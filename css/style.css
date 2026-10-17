@@ -380,6 +380,43 @@ button.path-dot:hover { background: var(--accent-soft); }
 
 .confetti { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
 
+/* ---------- optional timer ---------- */
+.tool-btn[aria-pressed="true"]#btn-timer { background: var(--accent-soft); border-color: var(--accent); }
+.play-clock {
+  font-weight: 800; font-variant-numeric: tabular-nums; padding: .1rem .7rem; border-radius: 999px;
+  background: var(--surface-2); direction: ltr;
+}
+.study-timer { width: 100%; max-width: 24rem; display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+.study-timer-bar { display: block; width: 100%; height: .6rem; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.study-timer-fill { display: block; height: 100%; width: 100%; background: var(--sun); border-radius: 999px; transition: width .2s linear; }
+.study-timer-label { font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.result-time { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- trophy ---------- */
+.trophy-icon { display: inline-grid; place-items: center; width: 4.5rem; height: 4.5rem; flex: none; }
+.trophy-icon svg, .card-trophy svg { width: 100%; height: 100%; }
+.trophy-icon .tr-cup, .card-trophy .tr-cup { fill: var(--sun); }
+.trophy-icon .tr-handle, .card-trophy .tr-handle { stroke: var(--sun); }
+.trophy-icon .tr-base, .card-trophy .tr-base { fill: var(--ink-soft); }
+.trophy-icon .tr-star, .card-trophy .tr-star { fill: var(--surface); }
+.trophy-card {
+  width: 100%; display: flex; align-items: center; gap: 1rem; text-align: start;
+  background: var(--sun-soft); border: 2px solid var(--sun); border-radius: var(--radius); padding: 1rem 1.2rem;
+}
+.trophy-card .trophy-icon { width: 5.5rem; height: 5.5rem; animation: trophy-pop .6s ease-out; }
+.trophy-text { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.trophy-title { font-size: 1.7rem; font-weight: 900; }
+.trophy-call { font-weight: 800; color: var(--accent); }
+.trophy-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
+.trophy-item {
+  display: flex; align-items: center; gap: .4rem; padding: .3rem .9rem .3rem .5rem; border-radius: 999px;
+  background: var(--sun-soft); font-weight: 700;
+}
+.trophy-item .trophy-icon { width: 2rem; height: 2rem; }
+.card-trophy { display: inline-block; width: 1.3rem; height: 1.3rem; vertical-align: -.15rem; margin-inline-start: .4rem; }
+@keyframes trophy-pop { 0% { transform: scale(.4) rotate(-12deg); } 70% { transform: scale(1.1) rotate(4deg); } 100% { transform: scale(1); } }
+@media (max-width: 420px) { .trophy-card { flex-direction: column; text-align: center; } }
+
 @media (max-width: 480px) {
   .stats { grid-template-columns: 1fr 1fr 1fr; gap: .5rem; }
   .stat { padding: .6rem; }

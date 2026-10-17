@@ -128,8 +128,9 @@
         ]);
         var readyBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: startPick }, 'זכרתי, הלאה');
         root.appendChild(note);
-        root.appendChild(el('p', { class: 'g-hint' }, 'אין מגבלת זמן. קחו את הזמן שאתם צריכים.'));
+        if (!ctx.timed) root.appendChild(el('p', { class: 'g-hint' }, 'אין מגבלת זמן. קחו את הזמן שאתם צריכים.'));
         root.appendChild(el('div', { class: 'g-actions' }, readyBtn));
+        ctx.studyTimer(readyBtn, 3000 + 1500 * data.list.length);
 
         var started = false;
         function startPick() {

@@ -64,7 +64,7 @@
     benefit: 'זיכרון חזותי-מרחבי',
     instructions: [
       'כמה משבצות יידלקו בצהוב. זכרו איפה הן.',
-      'כשתהיו מוכנים לחצו "זכרתי, הלאה" (או חכו, והן ייעלמו לבד).',
+      'קחו את הזמן, וכשתהיו מוכנים לחצו "זכרתי, הלאה".',
       'לחצו על המשבצות שזכרתם. לחיצה נוספת מבטלת בחירה.',
       'כשתבחרו את כל המשבצות נבדוק יחד.'
     ],
@@ -141,8 +141,10 @@
         countLine.textContent = count + ' משבצות דלוקות';
         Object.keys(targets).forEach(function (i) { tiles[i].classList.add('is-lit'); });
 
+        // The player sets the pace; only timer mode hides the squares automatically.
         var early = new Promise(function (resolve) { doneResolve = resolve; });
-        Promise.race([ctx.wait(showMs), early]).then(function () {
+        ctx.studyTimer(readyBtn, showMs);
+        early.then(function () {
           doneResolve = null;
           actions.hidden = true;
           tiles.forEach(function (t) { t.classList.remove('is-lit'); });

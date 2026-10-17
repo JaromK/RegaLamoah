@@ -188,8 +188,9 @@
         });
         var readyBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: go }, 'זכרתי, הלאה');
         root.appendChild(el('div', { class: 'fn-people' }, cards));
-        root.appendChild(el('p', { class: 'g-hint' }, 'אין מגבלת זמן. קחו את הזמן שאתם צריכים.'));
+        if (!ctx.timed) root.appendChild(el('p', { class: 'g-hint' }, 'אין מגבלת זמן. קחו את הזמן שאתם צריכים.'));
         root.appendChild(el('div', { class: 'g-actions' }, readyBtn));
+        ctx.studyTimer(readyBtn, 4000 + people.length * (withCity ? 4500 : withProf ? 3500 : 2500));
 
         var started = false;
         function go() {

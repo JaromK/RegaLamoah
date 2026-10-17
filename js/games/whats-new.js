@@ -183,11 +183,12 @@
 
         root.innerHTML = '';
         root.appendChild(ctx.el('div', { class: 'wn-wrap' }, [
-          ctx.el('p', { class: 'g-hint', text: items.length + ' פריטים. אין שעון, קחו את הזמן.' +
+          ctx.el('p', { class: 'g-hint', text: items.length + ' פריטים.' + (ctx.timed ? '' : ' אין שעון, קחו את הזמן.') +
             (isGone ? ' אחר כך תבחרו איזה פריט נעלם.' : '') }),
           grid,
           ctx.el('div', { class: 'g-actions' }, go)
         ]));
+        ctx.studyTimer(go, 3000 + 1000 * items.length);
         go.focus({ preventScroll: true });
       }
 

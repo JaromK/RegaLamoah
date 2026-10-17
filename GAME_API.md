@@ -37,6 +37,8 @@ Each game lives in `js/games/<id>.js`, wraps itself in an IIFE and calls `BrainG
 | member | purpose |
 |---|---|
 | `ctx.level` | integer 1–20, adaptive (app raises it at ≥85% accuracy, lowers it below 50%). New players start at 3; 1–2 are warm-ups. Stages: 1–5 צעדים ראשונים, 6–10 מתחממים, 11–15 בכושר, 16–20 אלופים. Scale *size/complexity* with it in small steps per level, never speed. Clamp defensively. |
+| `ctx.timed` | true only when the player switched on "שעון" (off by default). Never add time pressure when false. |
+| `ctx.studyTimer(button, ms)` | for memorise screens: in timer mode shows a countdown bar above the button's row and presses `button` when `ms` runs out; otherwise does nothing. Returns a cancel function. Pair it with a "זכרתי, הלאה" button so pacing stays player-controlled by default. |
 | `ctx.el(tag, attrs, children)` | DOM helper. attrs: `class`, `text`, `html`, `style` (object), `onclick` etc., any other attribute. children: node, string, or array. |
 | `ctx.shuffle(arr)` / `ctx.randInt(min,max)` / `ctx.pick(arr)` | randomness (inclusive randInt). |
 | `ctx.setProgress(cur, total)` | header "שלב cur מתוך total". Call at the start of each round. |

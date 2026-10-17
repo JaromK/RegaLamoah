@@ -41,7 +41,7 @@
   function loadState() {
     var base = {
       version: STATE_VERSION, name: '', welcomed: false,
-      levels: {}, best: {}, history: {}, prefs: { sound: true, bigText: false }
+      levels: {}, best: {}, trophies: {}, history: {}, prefs: { sound: true, bigText: false, timer: false }
     };
     try {
       var raw = window.localStorage.getItem(STORE_KEY);
@@ -51,6 +51,7 @@
         base.welcomed = !!parsed.welcomed;
         base.levels = parsed.levels || {};
         base.best = parsed.best || {};
+        base.trophies = parsed.trophies || {};
         base.history = parsed.history || {};
         base.prefs = Object.assign(base.prefs, parsed.prefs || {});
         if ((parsed.version || 1) < 2) {
