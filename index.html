@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>רגע למוח</title>
+  <meta name="description" content="אימון מוח יומי בעברית: משחקי זיכרון, קשב, חשיבה ושפה בקצב נוח.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button class="brand" id="brand-home" type="button" aria-label="חזרה לדף הבית">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">רגע למוח</span>
+      </button>
+      <div class="topbar-tools">
+        <button class="tool-btn" id="btn-sound" type="button" aria-pressed="true">צלילים: פועל</button>
+        <button class="tool-btn" id="btn-textsize" type="button">הגדלת טקסט</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="app" class="app" aria-live="polite"></main>
+
+  <footer class="footer">
+    <p>מתאמנים כמה דקות בכל יום. אין שעון ואין לחץ, רק קצב נוח והתקדמות הדרגתית.</p>
+  </footer>
+
+  <!-- Core must load first: games register themselves on window.BrainGames -->
+  <script src="js/core.js"></script>
+  <script src="js/games/memory-pairs.js"></script>
+  <script src="js/games/sequence-lights.js"></script>
+  <script src="js/games/grid-memory.js"></script>
+  <script src="js/games/mental-math.js"></script>
+  <script src="js/games/number-series.js"></script>
+  <script src="js/games/shop-change.js"></script>
+  <script src="js/games/odd-one-out.js"></script>
+  <script src="js/games/color-word.js"></script>
+  <script src="js/games/whats-new.js"></script>
+  <script src="js/games/shopping-list.js"></script>
+  <script src="js/games/face-names.js"></script>
+  <script src="js/games/count-items.js"></script>
+  <script src="js/games/word-scramble.js"></script>
+  <script src="js/games/proverbs.js"></script>
+  <script src="js/games/synonyms.js"></script>
+  <script src="js/games/spot-difference.js"></script>
+  <script src="js/games/clock-time.js"></script>
+  <script src="js/games/route-arrows.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
