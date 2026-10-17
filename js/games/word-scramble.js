@@ -89,9 +89,10 @@
   var CSS = [
     '.ws-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:1.1rem}',
     '.ws-cat{display:inline-block;padding:.3rem 1rem;border-radius:999px;background:var(--language-soft);color:var(--language);font-weight:800;font-size:1.1rem}',
-    '.ws-slots{--n:4;display:grid;grid-template-columns:repeat(var(--n),minmax(0,3.6rem));gap:.4rem;justify-content:center;width:100%;direction:rtl}',
-    '.ws-slot{height:3.8rem;min-width:0;padding:0;border-radius:var(--radius-sm);border:2px dashed var(--line);background:var(--surface-2);',
-    'color:var(--ink);font-family:var(--font-display);font-weight:900;font-size:clamp(1.15rem,calc(55vw / var(--n)),2.1rem);cursor:pointer;line-height:1}',
+    /* long words wrap onto a second line instead of shrinking the slots below a comfortable tap size */
+    '.ws-slots{--n:4;display:grid;grid-template-columns:repeat(var(--n),minmax(2.5rem,3.6rem));gap:.3rem;justify-content:center;width:100%;direction:rtl}',
+    '.ws-slot{min-width:0;height:3.8rem;padding:0;border-radius:var(--radius-sm);border:2px dashed var(--line);background:var(--surface-2);',
+    'color:var(--ink);font-family:var(--font-display);font-weight:900;font-size:1.9rem;cursor:pointer;line-height:1}',
     '.ws-slot.is-filled{border-style:solid;border-color:var(--accent);background:var(--accent-soft)}',
     '.ws-slot.is-hint{border-style:solid;border-color:var(--sun);background:var(--sun-soft);cursor:default}',
     '.ws-slot.is-correct{border-style:solid;border-color:var(--good);background:var(--good-soft);color:var(--good)}',
@@ -168,8 +169,9 @@
         var busy = false;
         var answered = false;
 
-        var slotsEl = ctx.el('div', { class: 'ws-slots', style: { '--n': n }, 'aria-label': 'המילה שבניתם' });
-        slotsEl.style.setProperty('--n', n);
+        // up to 6 letters on one line; longer words split evenly over two lines so slots stay tappable on phones
+        var slotCols = n <= 6 ? n : Math.ceil(n / 2);
+        var slotsEl = ctx.el('div', { class: 'ws-slots', style: { '--n': slotCols }, 'aria-label': 'המילה שבניתם' });
         var tilesEl = ctx.el('div', { class: 'ws-tiles', 'aria-label': 'אותיות' });
         var explain = ctx.el('p', { class: 'ws-explain', 'aria-live': 'polite' });
         var clearBtn = ctx.el('button', { class: 'btn btn-quiet', type: 'button', onclick: onClear }, 'ניקוי');

@@ -314,7 +314,7 @@
             (lv === opts.level ? ' is-current' : '') +
             (opts.selected === lv ? ' is-selected' : '') +
             (opts.from === lv ? ' is-from' : '');
-          if (opts.onPick && reached) {
+          if (opts.onPick) {
             dots.push(el('button', {
               class: cls, type: 'button', 'aria-pressed': opts.selected === lv ? 'true' : 'false',
               'aria-label': 'רמה ' + lv, onclick: function () { opts.onPick(lv); }
@@ -338,7 +338,7 @@
     clear();
     var level = getLevel(game.id);
     var best = getBest(game.id);
-    var selected = chosenLevel ? clampLevel(Math.min(chosenLevel, best)) : level;
+    var selected = chosenLevel ? clampLevel(chosenLevel) : level;
     var speakText = game.name + '. ' + game.instructions.join(' ');
 
     var startBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { startGame(game, daily, selected); } },
@@ -353,9 +353,17 @@
       pathWrap.innerHTML = '';
       pathWrap.appendChild(levelPath({
         level: level, best: best, selected: selected,
-        onPick: function (lv) { selected = lv; startBtn.textContent = 'התחלה ברמה ' + lv; drawPath(); }
+        onPick: function (lv) { selected = lv; startBtn.textContent = 'התחלה ברמה ' + lv; drawPath(); updatePickNote(); }
       }));
     }
+    var pickNote = el('p', { class: 'pick-note', 'aria-live': 'polite' }, '');
+    function updatePickNote() {
+      pickNote.textContent = selected > best
+        ? 'בחרתם רמה ' + selected + ', שעוד לא הגעתם אליה. זה יהיה אתגר. בהצלחה!'
+        : selected < level ? 'בחרתם רמה ' + selected + ', קלה יותר. מצוין לחימום.' : '';
+      pickNote.hidden = !pickNote.textContent;
+    }
+    updatePickNote();
     drawPath();
 
     app.appendChild(el('section', { class: 'intro' }, [
@@ -370,16 +378,17 @@
       el('h2', { class: 'intro-sub' }, 'איך משחקים'),
       el('ol', { class: 'steps' }, game.instructions.map(function (s) { return el('li', null, s); })),
       game.benefit ? el('p', { class: 'benefit' }, [el('strong', null, 'מה זה מאמן: '), game.benefit]) : null,
+      el('div', { class: 'level-box' }, [
+        el('h2', { class: 'intro-sub' }, 'בחירת רמה'),
+        el('p', { class: 'g-hint level-box-hint' },
+          'לחצו על כל רמה מ-1 עד ' + BG.MAX_LEVEL + ' כדי לשחק בה. העיגול המלא הוא הרמה שלכם עכשיו, והעיגולים המסומנים הם רמות שכבר הגעתם אליהן.'),
+        pathWrap,
+        pickNote
+      ]),
       el('div', { class: 'intro-actions' }, [
         startBtn,
         speakBtn,
         el('button', { class: 'btn btn-quiet', type: 'button', onclick: renderHome }, 'חזרה לדף הבית')
-      ]),
-      el('div', { class: 'level-box' }, [
-        el('h2', { class: 'intro-sub' }, 'הדרך שלי במשחק'),
-        el('p', { class: 'g-hint level-box-hint' },
-          'אפשר לבחור כל רמה שכבר הגעתם אליה. רמה קלה יותר היא דרך טובה להתחמם, וכל הצלחה פותחת את הרמה הבאה.'),
-        pathWrap
       ])
     ]));
   }

@@ -368,6 +368,8 @@ button.path-dot:hover { background: var(--accent-soft); }
 .path-dot.is-selected { box-shadow: 0 0 0 3px var(--sun); }
 .path-dot.is-from { border-color: var(--ink-soft); color: var(--ink-soft); }
 .result-path { width: 100%; text-align: start; }
+.level-box-hint { text-align: start; }
+.pick-note { background: var(--sun-soft); border-radius: var(--radius-sm); padding: .6rem .9rem; font-weight: 700; }
 .result-level.is-up { background: var(--good-soft); color: var(--good); font-weight: 800; }
 
 /* ---------- exit confirm ---------- */
@@ -416,6 +418,16 @@ button.path-dot:hover { background: var(--accent-soft); }
 .card-trophy { display: inline-block; width: 1.3rem; height: 1.3rem; vertical-align: -.15rem; margin-inline-start: .4rem; }
 @keyframes trophy-pop { 0% { transform: scale(.4) rotate(-12deg); } 70% { transform: scale(1.1) rotate(4deg); } 100% { transform: scale(1); } }
 @media (max-width: 420px) { .trophy-card { flex-direction: column; text-align: center; } }
+
+@media (max-width: 560px) {
+  /* game header: name + level on one line, clock / progress / exit on the next */
+  .play-head { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "title title title" "clock progress exit"; gap: .5rem .6rem; }
+  .play-title { grid-area: title; flex-wrap: wrap; }
+  .play-clock { grid-area: clock; }
+  .play-progress { grid-area: progress; }
+  .play-head > .btn { grid-area: exit; }
+  .tool-btn { font-size: .85rem; padding: .25rem .75rem; min-height: 2.5rem; }
+}
 
 @media (max-width: 480px) {
   .stats { grid-template-columns: 1fr 1fr 1fr; gap: .5rem; }
