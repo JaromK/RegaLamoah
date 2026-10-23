@@ -223,8 +223,11 @@
   }
 
   var css = [
-    '.bs-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:.7rem}',
+    '.bs-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:.5rem}',
     '.bs-label{font-size:1.1rem;font-weight:700;color:var(--ink-soft);margin:0}',
+    // the question sits between the balanced scales and the question scale, with a divider above it
+    '.bs-qlabel{width:100%;margin:.2rem 0 0;padding-top:.6rem;border-top:2px dashed var(--line);',
+    'text-align:center;font-size:1.2rem;font-weight:800;color:var(--ink)}',
     '.bs-known{width:100%;display:flex;flex-direction:column;align-items:center;gap:.5rem}',
     '.bs-scale{width:100%;max-width:26rem;display:grid;grid-template-columns:minmax(0,1fr) 2.5rem minmax(0,1fr);',
     'grid-template-rows:auto auto auto;align-items:start;column-gap:.3rem;padding:.4rem 0 0}',
@@ -376,7 +379,9 @@
         var ask = el('span', { class: 'bs-chip bs-ask' }, ['?', ' × ', el('span', { class: 'bs-fruit' }, T.e)]);
         var light = el('div', { class: 'bs-pan bs-light' }, ask);
         var qScale = scaleEl(heavy, light, '?', 'bs-question bs-tilt');
-        var knownLabel = el('p', { class: 'bs-label' }, 'המאזניים האלה מאוזנים:');
+        // with two or more balanced scales their "=" badges say it; the line would only cost height
+        var knownLabel = el('p', { class: 'bs-label', hidden: p.rels.length > 1 }, 'המאזניים האלה מאוזנים:');
+        var qLabel = el('p', { class: 'bs-qlabel' }, 'כמה ' + T.e + ' צריך כדי לאזן כאן?');
         var explain = el('p', { class: 'bs-explain', 'aria-live': 'polite' });
         var choices = el('div', { class: 'g-choices bs-choices' });
         var actions = el('div', { class: 'g-actions' });
@@ -395,12 +400,13 @@
         root.appendChild(el('div', { class: 'bs-wrap' }, [
           knownLabel,
           known,
+          qLabel,
           qScale,
           choices,
           explain,
           actions
         ]));
-        ctx.setStatus('כמה ' + T.e + ' צריך כדי לאזן?');
+        ctx.setStatus('מצאו את המספר החסר');
 
         function answer(v, btn) {
           if (answered) return;
@@ -425,25 +431,26 @@
             explain.className = 'bs-explain is-good';
             explain.textContent = 'נכון! ' + p.why;
             ctx.setStatus('מצוין, המאזניים מאוזנים!');
-            ctx.feedback(true)
-              .then(function () { return ctx.wait(1400); })
-              .then(nextRound);
+            ctx.feedback(true);
           } else {
             explain.className = 'bs-explain is-bad';
             explain.textContent = p.why;
             ctx.setStatus('כך מגיעים לתשובה');
-            ctx.feedback(false, 'התשובה הנכונה: ' + p.ans + ' ' + T.e).then(function () {
-              var next = el('button', {
-                class: 'btn btn-primary btn-lg', type: 'button',
-                onclick: function () { next.disabled = true; nextRound(); }
-              }, round >= ROUNDS ? 'לסיכום' : 'הבנתי, הלאה');
-              // the scale now shows the answer: the choices and the label make room for the button
-              choices.style.display = 'none';
-              knownLabel.style.display = 'none';
-              actions.appendChild(next);
-              try { next.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
-            });
+            ctx.feedback(false, 'התשובה הנכונה: ' + p.ans + ' ' + T.e);
           }
+          // the player moves on when ready; the scale now shows the answer, so the choices
+          // and the label make room for the button
+          ctx.wait(700).then(function () {
+            var next = el('button', {
+              class: 'btn btn-primary btn-lg', type: 'button',
+              onclick: function () { next.disabled = true; nextRound(); }
+            }, round >= ROUNDS ? 'לסיכום' : ok ? 'לשאלה הבאה' : 'הבנתי, הלאה');
+            choices.style.display = 'none';
+            knownLabel.style.display = 'none';
+            qLabel.style.display = 'none';
+            actions.appendChild(next);
+            try { next.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+          });
         }
       }
 

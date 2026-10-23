@@ -127,6 +127,7 @@
     id: 'bumper-path',
     name: 'לאן יגיע הכדור?',
     skill: 'perception',
+    startLevel: 1,
     tagline: 'עקבו אחרי הכדור שנתקל במחסומים',
     benefit: 'תפיסה מרחבית ותכנון מסלול בראש',
     instructions: [
