@@ -165,45 +165,37 @@
     benefit: 'התמצאות במרחב ומעקב אחרי הוראות',
     instructions: [
       'מצאו במפה את ההולך 🚶. משם מתחילים.',
-      'עקבו אחרי הצעדים לפי הסדר. כל חץ מראה לאן לזוז במסך.',
-      'אפשר ללחוץ על משבצות במפה כדי לסמן את הדרך.',
+      'עקבו אחרי הצעדים לפי הסדר. החץ מראה לאן לזוז במסך, והמספר לידו מראה כמה משבצות.',
       'בחרו לאיזה מקום הגעתם בסוף.'
     ],
     css: [
-      '.ra-top{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:16px;width:100%}',
-      '.ra-map{display:grid;grid-template-columns:repeat(var(--n),var(--ra-t));gap:4px;direction:ltr;padding:6px;',
+      '.ra-map{display:grid;grid-template-columns:repeat(var(--n),var(--ra-t));gap:4px;direction:ltr;padding:5px;',
       'border-radius:var(--radius);background:var(--surface-2);border:1px solid var(--line)}',
-      '.ra-cell{position:relative;width:var(--ra-t);height:var(--ra-t);min-width:40px;min-height:40px;padding:0;border-radius:8px;',
-      'border:2px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer;',
-      'font-size:calc(var(--ra-t) * .56);line-height:1;transition:background-color .2s,border-color .2s}',
-      '.ra-cell:disabled{cursor:default}',
-      '.ra-cell.ra-mark{background:var(--sun-soft);border-color:var(--sun)}',
+      '.ra-cell{position:relative;width:var(--ra-t);height:var(--ra-t);border-radius:8px;',
+      'border:2px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;',
+      'font-size:calc(var(--ra-t) * .58);line-height:1;transition:background-color .2s,border-color .2s}',
       '.ra-cell.ra-path{background:var(--logic-soft);border-color:var(--logic)}',
       '.ra-cell.ra-start{border-color:var(--logic);border-width:3px}',
       '.ra-cell.is-correct{background:var(--good-soft);border-color:var(--good);border-width:3px}',
       '.ra-cell.is-wrong{background:var(--bad-soft);border-color:var(--bad);border-width:3px}',
-      '.ra-num{position:absolute;top:1px;left:3px;font-size:11px;font-weight:800;color:var(--logic);font-family:var(--font-body)}',
+      '.ra-num{position:absolute;top:1px;left:3px;font-size:12px;font-weight:800;color:var(--logic);font-family:var(--font-body)}',
       '.ra-badge{position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;border-radius:50%;background:var(--logic);',
       'color:var(--surface);display:grid;place-items:center}',
       '.ra-badge .ra-ico{width:16px;height:16px}',
-      '.ra-side{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1 1 15rem;max-width:22rem}',
-      '.ra-facing{display:flex;align-items:center;gap:.5rem;font-weight:800;background:var(--logic-soft);color:var(--ink);',
-      'padding:.5rem .8rem;border-radius:var(--radius-sm)}',
+      '.ra-facing{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.1rem;background:var(--logic-soft);color:var(--ink);',
+      'padding:.35rem .8rem;border-radius:var(--radius-sm)}',
       '.ra-facing .ra-ico{width:1.6rem;height:1.6rem;color:var(--logic)}',
-      '.ra-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}',
-      '.ra-step{display:flex;align-items:center;gap:.6rem;padding:.45rem .7rem;border-radius:var(--radius-sm);',
-      'background:var(--surface-2);border:1px solid var(--line);font-size:1.15rem;font-weight:700}',
-      '.ra-step-n{flex:none;width:1.7rem;height:1.7rem;border-radius:50%;background:var(--logic);color:var(--surface);',
-      'display:grid;place-items:center;font-size:.95rem;font-weight:800}',
-      '.ra-step .ra-ico{flex:none;width:1.9rem;height:1.9rem;color:var(--logic)}',
-      '.ra-step b{font-variant-numeric:tabular-nums;font-weight:900}',
-      '.ra-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:28rem}',
-      '.ra-choices .g-choice{display:flex;align-items:center;justify-content:center;gap:.5rem;font-size:1.2rem}',
-      '.ra-choices .g-choice span:first-child{font-size:1.8rem;line-height:1}',
-      '.ra-tools{display:flex;justify-content:center;gap:.5rem;flex-wrap:wrap;align-items:center}',
-      '.ra-explain{font-size:1.15rem;font-weight:700;text-align:center;background:var(--sun-soft);color:var(--ink);',
-      'padding:.8rem 1.1rem;border-radius:var(--radius);max-width:100%;text-wrap:balance}',
-      '.ra-after{display:flex;flex-direction:column;align-items:center;gap:.75rem;width:100%}',
+      '.ra-steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.45rem;max-width:22rem}',
+      '.ra-step{display:flex;align-items:center;gap:.15rem;padding:.1rem .5rem .1rem .35rem;border-radius:999px;',
+      'background:var(--surface-2);border:1px solid var(--line);font-size:1.35rem;font-weight:900;font-variant-numeric:tabular-nums}',
+      '.ra-step-n{flex:none;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--logic);color:var(--surface);',
+      'display:grid;place-items:center;font-size:1.1rem;font-weight:800}',
+      '.ra-step .ra-ico{flex:none;width:1.6rem;height:1.6rem;color:var(--logic)}',
+      '.g-choices.ra-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:28rem}',
+      '.g-choices.ra-choices .g-choice{min-height:3.2rem;display:flex;align-items:center;justify-content:center;gap:.4rem;font-size:1.2rem;line-height:1.15;padding:.3rem .4rem;white-space:nowrap}',
+      '.ra-choices .g-choice span:first-child{font-size:1.6rem;line-height:1}',
+      '.ra-explain{font-size:1.15rem;font-weight:700;text-align:center;margin:0;text-wrap:balance}',
+      '.ra-after{display:flex;flex-direction:column;align-items:center;gap:.4rem;width:100%}',
       '.ra-after:empty{display:none}'
     ].join(''),
     generate: makeQuestion,
@@ -225,65 +217,48 @@
 
         var N = q.N;
         var answered = false;
-        var map = ctx.el('div', { class: 'ra-map', dir: 'ltr', style: { '--n': N, '--ra-t': 'min(58px, calc((100vw - 110px) / ' + N + '))' } });
+        // Map tiles are look-only (not buttons) so the screen stays calm; sized to fit a phone.
+        var map = ctx.el('div', {
+          class: 'ra-map', dir: 'ltr', role: 'img', 'aria-label': 'מפה',
+          style: { '--n': N, '--ra-t': 'min(' + (N > 5 ? 40 : 46) + 'px, calc((100vw - 96px) / ' + N + '))' }
+        });
         var cellEls = [];
         for (var i = 0; i < N * N; i++) {
-          (function (k) {
-            var kids = [];
-            var label = 'שורה ' + (Math.floor(k / N) + 1) + ', משבצת ' + (k % N + 1) + ' משמאל';
-            if (k === q.startK) {
-              kids.push(ctx.el('span', { 'aria-hidden': 'true' }, '🚶'));
-              if (q.relative) kids.push(ctx.el('span', { class: 'ra-badge', html: arrowSvg(q.facing) }));
-              label += ', נקודת ההתחלה';
-            } else if (q.cells[k]) {
-              kids.push(ctx.el('span', { 'aria-hidden': 'true' }, q.cells[k].e));
-              label += ', ' + q.cells[k].n;
-            }
-            var cell = ctx.el('button', {
-              class: 'ra-cell' + (k === q.startK ? ' ra-start' : ''), type: 'button', 'aria-label': label,
-              'aria-pressed': 'false',
-              onclick: function () {
-                if (answered || k === q.startK) return;
-                var on = cell.classList.toggle('ra-mark');
-                cell.setAttribute('aria-pressed', on ? 'true' : 'false');
-                ctx.sound('tap');
-              }
-            }, kids);
-            cellEls.push(cell);
-            map.appendChild(cell);
-          })(i);
+          var kids = [];
+          var label = 'שורה ' + (Math.floor(i / N) + 1) + ', משבצת ' + (i % N + 1) + ' משמאל';
+          if (i === q.startK) {
+            kids.push(ctx.el('span', { 'aria-hidden': 'true' }, '🚶'));
+            if (q.relative) kids.push(ctx.el('span', { class: 'ra-badge', html: arrowSvg(q.facing) }));
+            label += ', נקודת ההתחלה';
+          } else if (q.cells[i]) {
+            kids.push(ctx.el('span', { 'aria-hidden': 'true' }, q.cells[i].e));
+            label += ', ' + q.cells[i].n;
+          }
+          var cell = ctx.el('div', { class: 'ra-cell' + (i === q.startK ? ' ra-start' : ''), title: label }, kids);
+          cellEls.push(cell);
+          map.appendChild(cell);
         }
+        root.appendChild(map);
 
-        var side = ctx.el('div', { class: 'ra-side' });
         if (q.relative) {
-          side.appendChild(ctx.el('div', { class: 'ra-facing', html: '<span>בהתחלה ההולך מסתכל ' + FACE_NAME[q.facing] + '</span>' + arrowSvg(q.facing) }));
+          root.appendChild(ctx.el('div', { class: 'ra-facing', html: '<span>בהתחלה ההולך מסתכל ' + FACE_NAME[q.facing] + '</span>' + arrowSvg(q.facing) }));
         }
         var list = ctx.el('ol', { class: 'ra-steps' });
         q.moves.forEach(function (m, idx) {
           var p = stepParts(m, q.relative);
-          list.appendChild(ctx.el('li', { class: 'ra-step' }, [
-            ctx.el('span', { class: 'ra-step-n' }, String(idx + 1)),
+          list.appendChild(ctx.el('li', { class: 'ra-step', 'aria-label': (idx + 1) + ': ' + p.text + p.count }, [
             ctx.el('span', { html: p.icon, style: { display: 'contents' } }),
-            ctx.el('span', null, [p.text, ctx.el('b', null, p.count)])
+            ctx.el('span', { 'aria-hidden': 'true' }, String(m.n))
           ]));
         });
-        side.appendChild(list);
-        root.appendChild(ctx.el('div', { class: 'ra-top' }, [map, side]));
-
-        var clearBtn = ctx.el('button', {
-          class: 'btn btn-quiet btn-sm', type: 'button',
-          onclick: function () { cellEls.forEach(function (c) { c.classList.remove('ra-mark'); c.setAttribute('aria-pressed', 'false'); }); }
-        }, 'ניקוי סימונים');
-        root.appendChild(ctx.el('div', { class: 'ra-tools' }, [
-          ctx.el('span', { class: 'g-hint' }, 'לחצו על משבצות כדי לסמן את הדרך.'), clearBtn
-        ]));
+        root.appendChild(list);
 
         var buttons = [];
         var grid = ctx.el('div', { class: 'g-choices ra-choices' });
         q.choices.forEach(function (lm) {
           var b = ctx.el('button', {
             class: 'g-choice', type: 'button',
-            onclick: function () { choose(lm, b); }
+            onclick: function () { choose(lm); }
           }, [ctx.el('span', { 'aria-hidden': 'true' }, lm.e), ctx.el('span', null, lm.n)]);
           buttons.push({ lm: lm, btn: b });
           grid.appendChild(b);
@@ -297,16 +272,11 @@
           return -1;
         }
 
-        function choose(lm, btn) {
+        function choose(lm) {
           if (answered) return;
           answered = true;
-          clearBtn.disabled = true;
-          buttons.forEach(function (o) {
-            o.btn.disabled = true;
-            if (o.lm === q.answer) o.btn.classList.add('is-correct');
-          });
-          cellEls.forEach(function (c) { c.disabled = true; c.classList.remove('ra-mark'); });
-          q.path.forEach(function (rc, i) {
+          buttons.forEach(function (o) { o.btn.disabled = true; });
+          q.path.forEach(function (rc) {
             var k = rc[0] * N + rc[1];
             if (k !== q.startK) cellEls[k].classList.add('ra-path');
           });
@@ -320,23 +290,21 @@
           var ok = lm === q.answer;
           if (ok) correct++;
           else {
-            btn.classList.add('is-wrong');
             var wk = cellOf(lm);
             if (wk >= 0) cellEls[wk].classList.add('is-wrong');
           }
-          var msg = (ok ? 'נכון! ' : 'התשובה הנכונה: ' + q.answer.e + ' ' + q.answer.n + '. ') +
-            'הדרך מסומנת במפה, והמספרים מראים איפה נגמר כל צעד.';
-          if (q.relative) {
-            msg += ' במסך זה יוצא: ' + q.moves.map(function (m) { return DIR_NAME[m.dir] + ' ' + m.n; }).join(', ') +
-              '. כשההולך מסתכל למטה, ימינה שלו היא שמאלה במסך.';
-          }
+          // The answer buttons make way for one short line + the next button, so the round stays on one screen.
+          grid.style.display = 'none';
+          var msg = ok ? 'נכון! הדרך מסומנת במפה.' : 'התשובה: ' + q.answer.e + ' ' + q.answer.n;
           after.appendChild(ctx.el('p', { class: 'ra-explain' }, msg));
           var nextBtn = ctx.el('button', {
             class: 'btn btn-primary btn-lg', type: 'button',
             onclick: function () { nextBtn.disabled = true; nextRound(); }
           }, round >= ROUNDS ? 'לסיכום' : 'למסלול הבא');
           after.appendChild(nextBtn);
-          ctx.feedback(ok, ok ? 'נכון! הגעתם ל' + q.answer.n : 'הגעתם ל' + q.answer.n + ' ' + q.answer.e);
+          var tip = ok ? 'נכון! הגעתם ל' + q.answer.n : 'הגעתם ל' + q.answer.n + ' ' + q.answer.e;
+          if (q.relative && !ok) tip += '. במסך: ' + q.moves.map(function (m) { return DIR_NAME[m.dir] + ' ' + m.n; }).join(', ');
+          ctx.feedback(ok, tip);
           ctx.wait(50).then(function () { try { nextBtn.focus({ preventScroll: true }); } catch (e) { /* ignore */ } });
         }
       }

@@ -3,10 +3,10 @@
   'use strict';
 
   var ROUNDS = 6;
-  var MIN_TAP = 56; // px, smallest tile we allow
 
   // Per level (1–20): grid columns × rows and how many cells light up.
-  // Lit count and grid size take turns growing, so each level-up is a small step.
+  // At most 4 columns, so tiles stay ≥ 56px with roomy gaps on a 360px phone; up to level 15 the
+  // grid stays 4 × 5 (one screen) and difficulty grows through the number of lit cells.
   var LEVELS = [
     { cols: 3, rows: 3, count: 3 },  // 1
     { cols: 3, rows: 4, count: 3 },  // 2
@@ -15,45 +15,31 @@
     { cols: 4, rows: 4, count: 4 },  // 5
     { cols: 4, rows: 4, count: 5 },  // 6
     { cols: 4, rows: 5, count: 5 },  // 7
-    { cols: 5, rows: 5, count: 5 },  // 8
-    { cols: 4, rows: 4, count: 6 },  // 9
-    { cols: 4, rows: 5, count: 6 },  // 10
-    { cols: 5, rows: 5, count: 6 },  // 11
+    { cols: 4, rows: 4, count: 6 },  // 8
+    { cols: 4, rows: 5, count: 6 },  // 9
+    { cols: 4, rows: 5, count: 7 },  // 10
+    { cols: 4, rows: 4, count: 7 },  // 11
     { cols: 4, rows: 5, count: 7 },  // 12
-    { cols: 5, rows: 5, count: 7 },  // 13
-    { cols: 5, rows: 6, count: 7 },  // 14
-    { cols: 5, rows: 5, count: 8 },  // 15
-    { cols: 5, rows: 6, count: 8 },  // 16
-    { cols: 5, rows: 6, count: 9 },  // 17
-    { cols: 6, rows: 6, count: 9 },  // 18
-    { cols: 6, rows: 6, count: 10 }, // 19
-    { cols: 6, rows: 6, count: 11 }  // 20
+    { cols: 4, rows: 5, count: 8 },  // 13
+    { cols: 4, rows: 5, count: 8 },  // 14
+    { cols: 4, rows: 5, count: 9 },  // 15
+    { cols: 4, rows: 6, count: 8 },  // 16
+    { cols: 4, rows: 6, count: 9 },  // 17
+    { cols: 4, rows: 6, count: 9 },  // 18
+    { cols: 4, rows: 6, count: 10 }, // 19
+    { cols: 4, rows: 6, count: 11 }  // 20
   ];
 
-  function contentWidth(node) {
-    try {
-      var cs = window.getComputedStyle(node);
-      var w = node.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
-      return w > 0 ? w : 300;
-    } catch (e) { return 300; }
-  }
-
-  function remPx() {
-    try { return parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16; }
-    catch (e) { return 16; }
-  }
-
   var css = [
-    '.gm-grid{max-width:24rem;}',
-    '.gm-grid.gm-tall{max-width:20rem;}',
-    '.gm-grid.gm-wide{max-width:28rem;}',
+    '.gm-grid{max-width:16rem;}',
+    '.gm-grid.gm-tall{max-width:13rem;}',
     '.gm-grid .g-tile{font-weight:900;color:var(--ink);}',
     '.gm-grid .g-tile.gm-picked{background:var(--memory-soft);border-color:var(--memory);border-width:3px;color:var(--memory);}',
     '.gm-grid .g-tile.is-correct{color:var(--good);border-width:3px;}',
     '.gm-grid .g-tile.is-wrong{color:var(--bad);border-width:3px;}',
     '.gm-grid .g-tile.gm-missed{background:var(--sun-soft);border:3px dashed var(--sun);color:var(--ink);}',
-    '.gm-count{font-size:1.2rem;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;}',
-    '.gm-legend{display:flex;flex-wrap:wrap;gap:.4rem 1rem;justify-content:center;color:var(--ink-soft);font-size:.95rem;}'
+    '.gm-count{font-size:1.2rem;font-weight:700;text-align:center;margin:0;font-variant-numeric:tabular-nums;}',
+    '.gm-legend{display:flex;flex-wrap:wrap;gap:.2rem 1rem;justify-content:center;color:var(--ink-soft);font-size:1.1rem;}'
   ].join('');
 
   BrainGames.register({
@@ -74,11 +60,6 @@
       var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var cols = spec.cols, rows = spec.rows;
-      // Six columns only where tiles stay big enough; otherwise 5 × 7 (about the same number of cells).
-      if (cols > 5 && cols * MIN_TAP + (cols - 1) * 0.6 * remPx() > contentWidth(root)) {
-        rows = Math.round(cols * rows / 5);
-        cols = 5;
-      }
       var count = Math.min(spec.count, cols * rows - 1);
       var showMs = 3500 + 500 * count;
 
@@ -120,7 +101,7 @@
           });
         });
         var grid = el('div', {
-          class: 'g-grid gm-grid' + (cols >= 6 ? ' gm-wide' : (cols === 3 && rows > 3 ? ' gm-tall' : '')),
+          class: 'g-grid gm-grid' + (cols === 3 && rows > 3 ? ' gm-tall' : ''),
           style: { '--cols': cols }
         }, tiles);
         grid.style.setProperty('--cols', String(cols)); // custom props need setProperty

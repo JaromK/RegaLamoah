@@ -27,26 +27,26 @@
   });
 
   var css = [
-    '.sl2-note{width:100%;max-width:30rem;background:var(--sun-soft);border:2px solid var(--sun);border-radius:var(--radius);padding:1rem 1.1rem;}',
-    '.sl2-note-title{font-weight:800;font-size:1.15rem;text-align:center;margin:0 0 .6rem;}',
-    '.sl2-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr));gap:.2rem 1rem;}',
-    '.sl2-list li{display:flex;align-items:center;gap:.5rem;font-size:1.3rem;font-weight:700;padding:.3rem 0;border-bottom:1px dashed var(--line);min-width:0;}',
-    '.sl2-list .sl2-em{font-size:1.7rem;line-height:1;flex:none;}',
-    '.sl2-shelf{width:100%;max-width:34rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(5.4rem,1fr));gap:.5rem;}',
-    '.sl2-item{min-height:5.4rem;padding:.45rem .3rem;border-radius:var(--radius-sm);border:2px solid var(--line);background:var(--surface);',
-    'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;cursor:pointer;color:var(--ink);font:inherit;min-width:0;',
+    '.sl2-note{width:100%;max-width:30rem;background:var(--sun-soft);border:2px solid var(--sun);border-radius:var(--radius);padding:.7rem .9rem;}',
+    '.sl2-note-title{font-weight:800;font-size:1.15rem;text-align:center;margin:0 0 .4rem;}',
+    /* two columns so even the longest list fits one phone screen */
+    '.sl2-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.1rem 1rem;}',
+    '.sl2-list li{display:flex;align-items:center;gap:.4rem;font-size:1.2rem;line-height:1.2;font-weight:700;padding:.3rem 0;border-bottom:1px dashed var(--line);min-width:0;}',
+    '.sl2-list .sl2-em{font-size:1.5rem;line-height:1;flex:none;}',
+    '.sl2-shelf{width:100%;max-width:26rem;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem;}',
+    '.sl2-item{min-height:4.6rem;padding:.2rem .25rem;border-radius:var(--radius-sm);border:2px solid var(--line);background:var(--surface);',
+    'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;cursor:pointer;color:var(--ink);font:inherit;min-width:0;',
     '}',
     '.sl2-item:hover:not(:disabled){border-color:var(--accent);}',
     '.sl2-item:disabled{cursor:default;}',
-    '.sl2-item .sl2-em{font-size:2rem;line-height:1.1;}',
-    '.sl2-item .sl2-word{font-size:.95rem;font-weight:700;line-height:1.2;text-align:center;overflow-wrap:break-word;max-width:100%;}',
+    '.sl2-item .sl2-em{font-size:1.85rem;line-height:1.1;}',
+    '.sl2-item .sl2-word{font-size:1.1rem;font-weight:700;line-height:1.1;text-align:center;overflow-wrap:break-word;max-width:100%;}',
     '.sl2-item.sl2-picked{background:var(--memory-soft);border-color:var(--memory);border-width:3px;}',
     '.sl2-item.is-correct{background:var(--good-soft);border-color:var(--good);border-width:3px;color:var(--good);}',
     '.sl2-item.is-wrong{background:var(--bad-soft);border-color:var(--bad);border-width:3px;color:var(--bad);}',
     '.sl2-item.sl2-missed{background:var(--surface);border:3px dashed var(--sun);}',
     '.sl2-item.sl2-dim{opacity:.45;}',
-    '.sl2-count{font-size:1.15rem;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;margin:0;}',
-    '.sl2-legend{display:flex;flex-wrap:wrap;gap:.4rem 1rem;justify-content:center;color:var(--ink-soft);font-size:.95rem;}',
+    '.sl2-legend{display:flex;flex-wrap:wrap;gap:.3rem .9rem;justify-content:center;color:var(--ink-soft);font-size:1.1rem;line-height:1.3;margin:0;}',
     '.sl2-legend span{display:inline-flex;align-items:center;gap:.35rem;}',
     '.sl2-sw{display:inline-block;width:1rem;height:1rem;border-radius:4px;border:2px solid var(--line);}',
     '.sl2-sw.g{background:var(--good-soft);border-color:var(--good);}',
@@ -76,7 +76,10 @@
       var el = ctx.el;
       var level = clampLevel(ctx.level);
       var listLen = Math.round(3 + (level - 1) * 7 / 19);              // 3 → 10
-      var distractors = Math.min(listLen + Math.floor((level - 1) / 6), 20 - listLen);
+      // Shelf size is capped so every tile stays big and the round fits one phone screen
+      // (12 tiles = 4 rows of 3 up to level 15; at 16–20 a little scrolling is allowed).
+      var shelfMax = level <= 15 ? 12 : 15;
+      var distractors = Math.min(listLen + Math.floor((level - 1) / 6), shelfMax - listLen);
       var sameCatRatio = 0.9 * (level - 1) / 19;                         // 0 → 0.9
 
       var round = 0;
@@ -128,7 +131,7 @@
         ]);
         var readyBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: startPick }, 'זכרתי, הלאה');
         root.appendChild(note);
-        if (!ctx.timed) root.appendChild(el('p', { class: 'g-hint' }, 'אין מגבלת זמן. קחו את הזמן שאתם צריכים.'));
+        if (!ctx.timed) root.appendChild(el('p', { class: 'g-hint', style: { margin: '0' } }, 'אין מגבלת זמן.'));
         root.appendChild(el('div', { class: 'g-actions' }, readyBtn));
         ctx.studyTimer(readyBtn, 3000 + 1500 * data.list.length);
 
@@ -143,7 +146,7 @@
         }
 
         function showShelf() {
-          ctx.setStatus('לחצו על כל מה שהיה ברשימה');
+          ctx.setStatus('לחצו על ' + listLen + ' המוצרים שהיו ברשימה');
           var picked = {};
           var pickedCount = 0;
           var accepting = true;
@@ -156,16 +159,14 @@
             return b;
           });
           var shelf = el('div', { class: 'sl2-shelf' }, buttons);
-          var countLine = el('p', { class: 'sl2-count', 'aria-live': 'polite' }, '');
-          var checkBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', disabled: true, onclick: check }, 'בדיקה');
+          var checkBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', disabled: true, onclick: check, 'aria-live': 'polite' }, 'בדיקה');
           var actions = el('div', { class: 'g-actions' }, checkBtn);
           root.appendChild(shelf);
-          root.appendChild(countLine);
           root.appendChild(actions);
           updateCount();
 
           function updateCount() {
-            countLine.textContent = 'בחרתם ' + pickedCount + ' מוצרים · ברשימה היו ' + listLen;
+            checkBtn.textContent = pickedCount ? 'בדיקה (נבחרו ' + pickedCount + ')' : 'בדיקה';
             checkBtn.disabled = pickedCount === 0;
           }
 
@@ -201,12 +202,11 @@
               msg = 'זכרתם ' + hits + ' מתוך ' + listLen;
               if (wrong) msg += wrong === 1 ? ', ומוצר אחד לא היה ברשימה' : ', ו-' + wrong + ' מוצרים לא היו ברשימה';
             }
-            countLine.textContent = 'זכרתם ' + hits + ' מתוך ' + listLen + ' פריטים' + (wrong ? ' · ' + wrong + ' בחירות שגויות' : '');
-            ctx.setStatus(ok ? 'מצוין! זכרתם את כל הרשימה' : 'כך נראתה הרשימה');
-            var legend = el('div', { class: 'sl2-legend' }, [
-              el('span', null, [el('i', { class: 'sl2-sw g', 'aria-hidden': 'true' }), 'בחרתם נכון']),
-              hits < listLen ? el('span', null, [el('i', { class: 'sl2-sw m', 'aria-hidden': 'true' }), 'היה ברשימה ונשכח']) : null,
-              wrong ? el('span', null, [el('i', { class: 'sl2-sw w', 'aria-hidden': 'true' }), 'לא היה ברשימה']) : null
+            ctx.setStatus(ok ? 'מצוין! זכרתם את כל הרשימה' : 'זכרתם ' + hits + ' מתוך ' + listLen + (wrong ? ' · ' + (wrong === 1 ? 'טעות אחת' : wrong + ' טעויות') : ''));
+            var legend = el('p', { class: 'sl2-legend' }, [
+              el('span', null, [el('i', { class: 'sl2-sw g', 'aria-hidden': 'true' }), 'נכון']),
+              hits < listLen ? el('span', null, [el('i', { class: 'sl2-sw m', 'aria-hidden': 'true' }), 'נשכח']) : null,
+              wrong ? el('span', null, [el('i', { class: 'sl2-sw w', 'aria-hidden': 'true' }), 'לא ברשימה']) : null
             ]);
             root.insertBefore(legend, actions);
             ctx.feedback(ok, msg).then(function () {

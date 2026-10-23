@@ -87,26 +87,26 @@
   }
 
   var CSS = [
-    '.ws-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:1.1rem}',
+    '.ws-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:.8rem}',
     '.ws-cat{display:inline-block;padding:.3rem 1rem;border-radius:999px;background:var(--language-soft);color:var(--language);font-weight:800;font-size:1.1rem}',
-    /* long words wrap onto a second line instead of shrinking the slots below a comfortable tap size */
-    '.ws-slots{--n:4;display:grid;grid-template-columns:repeat(var(--n),minmax(2.5rem,3.6rem));gap:.3rem;justify-content:center;width:100%;direction:rtl}',
-    '.ws-slot{min-width:0;height:3.8rem;padding:0;border-radius:var(--radius-sm);border:2px dashed var(--line);background:var(--surface-2);',
+    /* at most 4 slots per line: long words wrap onto more lines instead of shrinking the slots */
+    '.ws-slots{--n:4;display:grid;grid-template-columns:repeat(var(--n),minmax(3.2rem,3.6rem));gap:.6rem;justify-content:center;width:100%;direction:rtl}',
+    '.ws-slot{min-width:0;height:3.4rem;padding:0;border-radius:var(--radius-sm);border:2px dashed var(--line);background:var(--surface-2);',
     'color:var(--ink);font-family:var(--font-display);font-weight:900;font-size:1.9rem;cursor:pointer;line-height:1}',
     '.ws-slot.is-filled{border-style:solid;border-color:var(--accent);background:var(--accent-soft)}',
     '.ws-slot.is-hint{border-style:solid;border-color:var(--sun);background:var(--sun-soft);cursor:default}',
     '.ws-slot.is-correct{border-style:solid;border-color:var(--good);background:var(--good-soft);color:var(--good)}',
     '.ws-slot.is-wrong{border-style:solid;border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}',
     '.ws-slot:disabled{cursor:default}',
-    '.ws-tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem;width:100%;max-width:30rem;direction:rtl}',
-    '.ws-tile{width:3.8rem;height:3.8rem;padding:0;border-radius:var(--radius-sm);border:2px solid var(--line);background:var(--surface);',
+    '.ws-tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem;width:100%;max-width:17rem;direction:rtl}',
+    '.ws-tile{width:3.6rem;height:3.6rem;padding:0;border-radius:var(--radius-sm);border:2px solid var(--line);background:var(--surface);',
     'box-shadow:var(--shadow);color:var(--ink);font-family:var(--font-display);font-weight:900;font-size:2.1rem;line-height:1;cursor:pointer;',
     'transition:background-color .2s,border-color .2s}',
     '.ws-tile:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}',
     '.ws-tile.is-used{background:transparent;border-style:dashed;box-shadow:none;color:transparent}',
     '.ws-tile:disabled{cursor:default}',
-    '.ws-explain{min-height:3rem;font-size:1.1rem;font-weight:600;text-align:center;text-wrap:balance;color:var(--ink);',
-    'padding:.6rem 1rem;border-radius:var(--radius-sm);max-width:34rem;width:100%}',
+    '.ws-explain{min-height:2.4rem;margin:0;font-size:1.1rem;font-weight:600;text-align:center;text-wrap:balance;color:var(--ink);',
+    'padding:.3rem .8rem;border-radius:var(--radius-sm);max-width:34rem;width:100%}',
     '.ws-explain.is-good{background:var(--good-soft);color:var(--good)}',
     '.ws-explain.is-bad{background:var(--bad-soft);color:var(--ink)}',
     '.ws-explain.is-info{background:var(--surface-2)}'
@@ -169,8 +169,8 @@
         var busy = false;
         var answered = false;
 
-        // up to 6 letters on one line; longer words split evenly over two lines so slots stay tappable on phones
-        var slotCols = n <= 6 ? n : Math.ceil(n / 2);
+        // up to 4 letters per line (slots stay big on phones); longer words split evenly over 2–3 lines
+        var slotCols = Math.ceil(n / Math.ceil(n / 4));
         var slotsEl = ctx.el('div', { class: 'ws-slots', style: { '--n': slotCols }, 'aria-label': 'המילה שבניתם' });
         var tilesEl = ctx.el('div', { class: 'ws-tiles', 'aria-label': 'אותיות' });
         var explain = ctx.el('p', { class: 'ws-explain', 'aria-live': 'polite' });
@@ -195,14 +195,13 @@
         // Warm-up level 1: the first letter is already in place.
         if (level === 1) placeLocked(0);
 
-        var hintText = nDecoy
-          ? 'שימו לב: יש כאן אות אחת מיותרת שלא שייכת למילה.'
-          : (level === 1 ? 'האות הראשונה כבר במקום. השלימו את השאר.' : 'המילה נבנית מימין לשמאל.');
+        // One short line: the category and the length. Extra guidance goes to the status line.
+        if (nDecoy) ctx.setStatus('סדרו את המילה. יש אות אחת מיותרת');
+        else if (level === 1) ctx.setStatus('האות הראשונה כבר במקום. השלימו');
 
         root.innerHTML = '';
         root.appendChild(ctx.el('div', { class: 'ws-wrap' }, [
-          ctx.el('span', { class: 'ws-cat', text: 'רמז: ' + word.label }),
-          ctx.el('p', { class: 'g-hint', text: hintText + ' (' + n + ' אותיות)' }),
+          ctx.el('span', { class: 'ws-cat', text: 'רמז: ' + word.label + ' · ' + n + ' אותיות' }),
           slotsEl,
           tilesEl,
           ctx.el('div', { class: 'g-actions' }, [hintBtn, clearBtn]),
@@ -328,7 +327,7 @@
             busy = true;
             setSlotState('is-wrong');
             explain.className = 'ws-explain is-bad';
-            explain.textContent = '"' + shown + '" זו לא המילה. לחצו על אות כדי להחזיר אותה, או על "רמז".';
+            explain.textContent = '"' + shown + '" זו לא המילה. החזירו אות או בקשו רמז.';
             ctx.feedback(false, 'עוד לא, נסו שוב').then(function () { busy = false; render(); });
             return;
           }

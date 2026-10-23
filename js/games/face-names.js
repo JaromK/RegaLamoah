@@ -40,7 +40,14 @@
     'display:flex;flex-direction:column;align-items:center;gap:.3rem;text-align:center;min-width:0;}',
     '.fn-face{font-size:2.8rem;line-height:1.1;}',
     '.fn-name{font-size:1.4rem;font-weight:800;color:var(--ink);}',
-    '.fn-detail{font-size:1.05rem;font-weight:600;color:var(--ink-soft);line-height:1.3;overflow-wrap:break-word;max-width:100%;}',
+    '.fn-detail{font-size:1.1rem;font-weight:600;color:var(--ink-soft);line-height:1.3;overflow-wrap:break-word;max-width:100%;}',
+    /* with profession (and city): one compact row per person, so up to 8 people fit one screen */
+    '.fn-people.fn-list{grid-template-columns:1fr;max-width:24rem;gap:.4rem;}',
+    '.fn-list .fn-card{flex-direction:row;padding:.2rem .8rem;gap:.7rem;text-align:start;}',
+    '.fn-list .fn-face{font-size:2.2rem;flex:none;}',
+    '.fn-text{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 .55rem;min-width:0;}',
+    '.fn-list .fn-name{font-size:1.3rem;}',
+    '.fn-list .fn-detail{font-size:1.1rem;}',
     '.fn-ask{display:flex;flex-direction:column;align-items:center;gap:.4rem;}',
     '.fn-ask .fn-face{font-size:5rem;background:var(--memory-soft);border:3px solid var(--memory);border-radius:50%;',
     'width:8rem;height:8rem;display:grid;place-items:center;}',
@@ -180,15 +187,18 @@
         ctx.setStatus(withProf ? (withCity ? 'זכרו שם, מקצוע ועיר של כל אחד' : 'זכרו את השם והמקצוע של כל אחד')
           : 'זכרו את השם של כל אחד');
         var cards = people.map(function (p) {
-          return el('div', { class: 'fn-card' }, [
-            el('span', { class: 'fn-face', 'aria-hidden': 'true' }, p.emoji),
-            el('span', { class: 'fn-name' }, p.name),
-            withProf ? el('span', { class: 'fn-detail' }, detailOf(p)) : null
-          ]);
+          var face = el('span', { class: 'fn-face', 'aria-hidden': 'true' }, p.emoji);
+          if (withProf) {
+            return el('div', { class: 'fn-card' }, [face, el('span', { class: 'fn-text' }, [
+              el('span', { class: 'fn-name' }, p.name),
+              el('span', { class: 'fn-detail' }, detailOf(p))
+            ])]);
+          }
+          return el('div', { class: 'fn-card' }, [face, el('span', { class: 'fn-name' }, p.name)]);
         });
         var readyBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: go }, 'זכרתי, הלאה');
-        root.appendChild(el('div', { class: 'fn-people' }, cards));
-        if (!ctx.timed) root.appendChild(el('p', { class: 'g-hint' }, 'אין מגבלת זמן. קחו את הזמן שאתם צריכים.'));
+        root.appendChild(el('div', { class: 'fn-people' + (withProf ? ' fn-list' : '') }, cards));
+        if (!ctx.timed && !withProf) root.appendChild(el('p', { class: 'g-hint' }, 'אין מגבלת זמן. קחו את הזמן שאתם צריכים.'));
         root.appendChild(el('div', { class: 'g-actions' }, readyBtn));
         ctx.studyTimer(readyBtn, 4000 + people.length * (withCity ? 4500 : withProf ? 3500 : 2500));
 

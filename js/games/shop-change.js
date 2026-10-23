@@ -125,7 +125,7 @@
       price: m * deal * 100,
       priceText: null,
       explain: it[0] + ': ' + qty + ' יחידות במבצע ' + dealText + ' = ' + moneyText(m * deal * 100),
-      hint: 'שימו לב למבצע: "' + dealText + '" זה ' + n + ' יחידות ביחד ב־' + moneyText(deal * 100) + '.',
+      hint: 'מבצע "' + dealText + '": ' + n + ' יחידות ביחד ב־' + moneyText(deal * 100) + '.',
       wrongPrices: [qty * deal * 100, m === 2 ? deal * 100 : null]
     };
   }
@@ -143,7 +143,7 @@
       price: paid,
       priceText: money(shelf * 100),
       explain: it[0] + ': ' + moneyText(shelf * 100) + ' פחות ' + pct + '% = ' + moneyText(paid),
-      hint: 'שימו לב: "' + pct + '% הנחה" אומר שמורידים ' + pct + '% מהמחיר שעל המדף.',
+      hint: '"' + pct + '% הנחה": מורידים ' + pct + '% מהמחיר.',
       wrongPrices: [shelf * 100, shelf > pct ? (shelf - pct) * 100 : null, shelf * pct]
     };
   }
@@ -222,7 +222,7 @@
     }
     var hints = [];
     if (spec) hints.push(spec.hint);
-    if (kind === 'change' && pay.length > 1) hints.push('משלמים בכמה שטרות ומטבעות: חברו אותם קודם.');
+    if (kind === 'change' && pay.length > 1) hints.push('חברו קודם את כל מה ששילמתם.');
     return {
       kind: kind,
       lines: lines,
@@ -252,36 +252,35 @@
       'בחרו את התשובה הנכונה, ולחצו "לשאלה הבאה" כשתהיו מוכנים.'
     ],
     css: [
-      '.sc-scene{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:1rem 1.5rem;width:100%}',
-      '.sc-receipt{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:.8rem 1rem;width:100%;max-width:18rem}',
-      '.sc-receipt-title{font-weight:800;text-align:center;color:var(--ink-soft);border-bottom:2px dashed var(--line);padding-bottom:.35rem;margin-bottom:.35rem}',
-      '.sc-row{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;font-size:1.2rem;padding:.2rem 0}',
+      '.sc-scene{display:flex;flex-direction:column;align-items:center;gap:.6rem;width:100%}',
+      '.sc-receipt{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:.35rem .9rem;width:100%;max-width:20rem}',
+      '.sc-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem;font-size:1.15rem;line-height:1.3;padding:.12rem 0}',
       '.sc-price{font-weight:800;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;white-space:nowrap}',
-      '.sc-sum{border-top:2px dashed var(--line);margin-top:.35rem;padding-top:.45rem;font-weight:800}',
+      '.sc-was{text-decoration:line-through;color:var(--ink-soft);font-weight:600;margin-inline-end:.35rem}',
+      '.sc-sum{border-top:2px dashed var(--line);margin-top:.2rem;padding-top:.3rem;font-weight:800}',
       '.sc-sum .sc-price{color:var(--accent)}',
-      '.sc-pay{display:flex;flex-direction:column;align-items:center;gap:.4rem}',
-      '.sc-pay-label{color:var(--ink-soft);font-weight:700}',
-      '.sc-note{--sc-c:var(--language);--sc-s:var(--language-soft);display:flex;align-items:center;justify-content:center;gap:.6rem;',
-      'min-width:10rem;min-height:5rem;padding:.6rem 1.2rem;border-radius:10px;background:var(--sc-s);color:var(--sc-c);',
-      'border:2px solid var(--sc-c);box-shadow:inset 0 0 0 .3rem var(--sc-s),inset 0 0 0 .45rem var(--sc-c)}',
-      '.sc-note-value{font-family:var(--font-display);font-weight:900;font-size:2.2rem;line-height:1;direction:ltr;unicode-bidi:isolate}',
-      '.sc-note-seal{width:1.6rem;height:1.6rem;border-radius:50%;border:2px solid var(--sc-c);flex:none}',
-      '.sc-name{display:flex;flex-direction:column;gap:.15rem}',
-      '.sc-tag{align-self:flex-start;font-size:.95rem;font-weight:800;color:var(--ink);border:1px solid var(--accent);background:var(--accent-soft);',
-      'border-radius:var(--radius-sm);padding:.05rem .45rem}',
+      '.sc-pay{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.6rem}',
+      '.sc-pay-label{color:var(--ink-soft);font-weight:700;font-size:1.1rem}',
+      '.sc-note{--sc-c:var(--language);--sc-s:var(--language-soft);display:flex;align-items:center;justify-content:center;gap:.45rem;',
+      'min-width:7.5rem;min-height:3.5rem;padding:.35rem .9rem;border-radius:9px;background:var(--sc-s);color:var(--sc-c);',
+      'border:2px solid var(--sc-c);box-shadow:inset 0 0 0 .22rem var(--sc-s),inset 0 0 0 .34rem var(--sc-c)}',
+      '.sc-note-value{font-family:var(--font-display);font-weight:900;font-size:1.75rem;line-height:1;direction:ltr;unicode-bidi:isolate}',
+      '.sc-note-seal{width:1.15rem;height:1.15rem;border-radius:50%;border:2px solid var(--sc-c);flex:none}',
+      '.sc-name{display:flex;flex-wrap:wrap;align-items:center;gap:.1rem .4rem;min-width:0}',
+      '.sc-tag{font-size:1.1rem;font-weight:800;color:var(--ink);border:1px solid var(--accent);background:var(--accent-soft);',
+      'border-radius:var(--radius-sm);padding:0 .4rem;white-space:nowrap}',
       '.sc-pay-items{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.6rem;max-width:100%}',
-      '.sc-coin{display:grid;place-items:center;width:3.8rem;height:3.8rem;border-radius:50%;background:var(--sun-soft);color:var(--ink);',
-      'border:3px solid var(--sun);font-weight:900;font-size:1.05rem;font-variant-numeric:tabular-nums;flex:none}',
+      '.sc-coin{display:grid;place-items:center;width:3.6rem;height:3.6rem;border-radius:50%;background:var(--sun-soft);color:var(--ink);',
+      'border:3px solid var(--sun);font-weight:900;font-size:1.1rem;font-variant-numeric:tabular-nums;flex:none}',
       '.sc-n20{--sc-c:var(--attention);--sc-s:var(--attention-soft)}',
       '.sc-n50{--sc-c:var(--language);--sc-s:var(--language-soft)}',
       '.sc-n100{--sc-c:var(--ink);--sc-s:var(--sun-soft)}',
       '.sc-n200{--sc-c:var(--logic);--sc-s:var(--logic-soft)}',
-      '.sc-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:26rem}',
+      '.sc-ask{margin:0;font-size:1.25rem}',
+      '.play-board .g-choices.sc-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:26rem}',
       '.sc-choices .g-choice{font-size:1.5rem;font-variant-numeric:tabular-nums;padding-inline:.5rem}',
-      '.sc-after{display:flex;flex-direction:column;align-items:center;gap:.75rem;width:100%}',
-      '.sc-after:empty{display:none}',
-      '.sc-explain{font-size:1.2rem;font-weight:700;text-align:center;background:var(--sun-soft);color:var(--ink);',
-      'padding:.8rem 1.1rem;border-radius:var(--radius);max-width:100%;text-wrap:balance}'
+      '.sc-explain{margin:0;font-size:1.15rem;font-weight:700;text-align:center;background:var(--sun-soft);color:var(--ink);',
+      'padding:.4rem .9rem;border-radius:var(--radius-sm);max-width:100%;text-wrap:balance;line-height:1.4}'
     ].join(''),
     generate: makeQuestion,
     start: function (root, ctx) {
@@ -303,17 +302,15 @@
 
         root.innerHTML = '';
         var sumPrice = ctx.el('span', { class: 'sc-price', dir: 'ltr' }, '?');
-        var receipt = ctx.el('div', { class: 'sc-receipt' }, [ctx.el('div', { class: 'sc-receipt-title' }, 'קבלה')]
-          .concat(q.lines.map(function (x) {
-            var nameEl = x.tag
-              ? ctx.el('span', { class: 'sc-name' }, [x.name, ctx.el('span', { class: 'sc-tag' }, x.tag)])
-              : ctx.el('span', null, x.name);
-            return ctx.el('div', { class: 'sc-row' }, [
-              nameEl,
-              x.tag && !x.priceText ? null : ctx.el('span', { class: 'sc-price', dir: 'ltr' }, x.priceText || money(x.price))
-            ]);
-          }))
-          .concat([ctx.el('div', { class: 'sc-row sc-sum' }, [ctx.el('span', null, 'סך הכול'), sumPrice])]));
+        var specPrice = null, specLine = null;
+        var receipt = ctx.el('div', { class: 'sc-receipt', role: 'group', 'aria-label': 'קבלה' }, q.lines.map(function (x) {
+          var nameEl = x.tag
+            ? ctx.el('span', { class: 'sc-name' }, [x.name, ctx.el('span', { class: 'sc-tag' }, x.tag)])
+            : ctx.el('span', null, x.name);
+          var priceEl = ctx.el('span', { class: 'sc-price', dir: 'ltr' }, x.tag && !x.priceText ? '' : (x.priceText || money(x.price)));
+          if (x.tag) { specPrice = priceEl; specLine = x; }
+          return ctx.el('div', { class: 'sc-row' }, [nameEl, priceEl]);
+        }).concat([ctx.el('div', { class: 'sc-row sc-sum' }, [ctx.el('span', null, 'סך הכול'), sumPrice])]));
         var notes = 0;
         var payEls = q.pay.map(function (v) {
           if (v >= 2000) {
@@ -325,13 +322,12 @@
           }
           return ctx.el('div', { class: 'sc-coin', role: 'img', dir: 'ltr', 'aria-label': v === 50 ? 'מטבע של חצי שקל' : 'מטבע של ' + (v / 100) + ' שקלים' }, money(v));
         });
-        var payLabel = q.pay.length === 1 ? 'משלמים בשטר:' : notes === q.pay.length ? 'משלמים בשטרות:' : 'משלמים בשטר ובמטבעות:';
-        root.appendChild(ctx.el('div', { class: 'sc-scene' }, [
-          receipt,
-          ctx.el('div', { class: 'sc-pay' }, [ctx.el('span', { class: 'sc-pay-label' }, payLabel),
-            ctx.el('div', { class: 'sc-pay-items' }, payEls)])
-        ]));
-        root.appendChild(ctx.el('p', { class: 'g-prompt' }, question));
+        var payLabel = q.pay.length === 1 ? 'משלמים בשטר:' : notes === q.pay.length ? 'משלמים בשטרות:' : 'משלמים:';
+        var payRow = ctx.el('div', { class: 'sc-pay' }, [ctx.el('span', { class: 'sc-pay-label' }, payLabel)].concat(payEls));
+        root.appendChild(ctx.el('div', { class: 'sc-scene' }, [receipt, payRow]));
+        // the status line already asks the question unless it carries a hint
+        var askEl = q.hint ? ctx.el('p', { class: 'g-prompt sc-ask' }, question) : null;
+        if (askEl) root.appendChild(askEl);
 
         var buttons = [];
         var answered = false;
@@ -345,8 +341,6 @@
           grid.appendChild(b);
         });
         root.appendChild(grid);
-        var after = ctx.el('div', { class: 'sc-after', 'aria-live': 'polite' });
-        root.appendChild(after);
 
         function choose(val, btn) {
           if (answered) return;
@@ -356,25 +350,29 @@
             if (o.val === q.answer) o.btn.classList.add('is-correct');
           });
           sumPrice.textContent = money(q.total);
+          if (specPrice) {
+            specPrice.textContent = '';
+            if (specLine.priceText) specPrice.appendChild(ctx.el('span', { class: 'sc-was' }, specLine.priceText));
+            specPrice.appendChild(document.createTextNode(money(specLine.price)));
+          }
           var ok = val === q.answer;
           if (ok) correct++;
           else btn.classList.add('is-wrong');
 
-          var summary = 'סך הכול ' + moneyText(q.total) + ', ועודף ' + moneyText(q.change);
-          var paid = q.pay.length > 1
-            ? 'שילמתם ' + ltr(q.pay.map(money).join(' + ') + ' = ' + money(q.note)) + '. '
-            : '';
+          // one short line: the special offer (if any) and, for change, the subtraction
           var detail = (q.special ? q.special + '. ' : '') + (kind === 'total'
-            ? 'סך הכול: ' + ltr(q.lines.map(function (x) { return money(x.price); }).join(' + ') + ' = ' + money(q.total))
-            : 'סך הכול ' + moneyText(q.total) + '. ' + paid + 'העודף: ' + ltr(money(q.note) + ' − ' + money(q.total) + ' = ' + money(q.change)));
-          after.appendChild(ctx.el('p', { class: 'sc-explain' },
-            (ok ? '' : 'התשובה הנכונה: ' + moneyText(q.answer) + '. ') + detail));
+            ? 'סך הכול: ' + moneyText(q.total)
+            : 'העודף: ' + ltr(q.pay.map(money).join(' + ') + ' − ' + money(q.total) + ' = ' + money(q.change)));
+          var explain = ctx.el('p', { class: 'sc-explain', 'aria-live': 'polite' }, detail);
+          // the explanation (which repeats what was paid) takes the place of the payment row
+          payRow.replaceWith(explain);
+          if (askEl) askEl.remove();
           var nextBtn = ctx.el('button', {
             class: 'btn btn-primary btn-lg', type: 'button',
             onclick: function () { nextBtn.disabled = true; nextRound(); }
           }, round >= ROUNDS ? 'לסיכום' : 'לשאלה הבאה');
-          after.appendChild(nextBtn);
-          ctx.feedback(ok, (ok ? 'נכון! ' : '') + summary);
+          root.appendChild(nextBtn);
+          ctx.feedback(ok, ok ? 'נכון! ' + moneyText(q.answer) : 'התשובה הנכונה: ' + moneyText(q.answer));
         }
       }
 

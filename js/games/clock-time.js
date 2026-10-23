@@ -67,64 +67,58 @@
   /* ---------- explanations ---------- */
   function readExplain(t) {
     var h = hour12(t), m = minOf(t);
-    var hourPart = m === 0 ? 'המחוג הקצר על ' + h : 'המחוג הקצר עבר את ה־' + h;
     var minPart;
-    if (m === 0) minPart = 'המחוג הארוך על 12, כלומר שעה עגולה';
-    else if (m % 5 === 0) minPart = 'המחוג הארוך על ' + (m / 5) + ', כלומר ' + m + ' דקות';
-    else minPart = 'המחוג הארוך ' + (m % 5 === 1 ? 'שנתה אחת' : (m % 5) + ' שנתות') + ' אחרי ה־' + (Math.floor(m / 5) || 12) + ', כלומר ' + m + ' דקות';
-    return hourPart + '. ' + minPart + '. לכן השעה ' + ltr(fmt12(t)) + '.';
+    if (m === 0) minPart = 'על 12 (שעה עגולה)';
+    else if (m % 5 === 0) minPart = 'על ' + (m / 5) + ' = ' + m + ' דקות';
+    else minPart = (m % 5 === 1 ? 'שנתה אחת' : (m % 5) + ' שנתות') + ' אחרי ה־' + (Math.floor(m / 5) || 12) + ' = ' + m + ' דקות';
+    return 'המחוג הקצר ' + (m === 0 ? 'על ' : 'אחרי ה־') + h + ', הארוך ' + minPart + '.';
   }
 
-  /* Step-by-step forward addition. f formats a time. */
+  /* Short step-by-step chain: "3:45 ועוד שעתיים = 5:45, ועוד 15 דקות = 6:00, ועוד 20 דקות = 6:20." */
   function addExplain(t, d, f) {
     var parts = [];
     var cur = t, h = Math.floor(d / 60), r = d % 60;
-    if (h > 0) {
-      parts.push(ltr(f(cur)) + ' ועוד ' + dur(h * 60) + ' זה ' + ltr(f(cur + h * 60)));
-      cur += h * 60;
-    }
+    if (h > 0) { cur += h * 60; parts.push('ועוד ' + dur(h * 60) + ' = ' + ltr(f(cur))); }
     if (r > 0) {
       var m = minOf(cur);
       if (m > 0 && m + r > 60) {
         var x = 60 - m;
-        var round = cur + x;
-        parts.push('מ־' + ltr(f(cur)) + ' עד ' + ltr(f(round)) + ' עוברות ' + x + ' דקות, ונשארות עוד ' + (r - x) + ' דקות');
-      } else {
-        parts.push((h > 0 ? 'ועוד ' : ltr(f(cur)) + ' ועוד ') + r + ' דקות');
+        cur += x;
+        parts.push('ועוד ' + x + ' דקות = ' + ltr(f(cur)));
+        r -= x;
       }
+      parts.push('ועוד ' + dur(r) + ' = ' + ltr(f(t + d)));
     }
-    return parts.join('. ') + ' ← ' + ltr(f(t + d)) + '.';
+    return ltr(f(t)) + ' ' + parts.join(', ') + '.';
   }
 
   function subExplain(t, d, f) {
     var parts = [];
     var cur = t, h = Math.floor(d / 60), r = d % 60;
-    if (h > 0) {
-      parts.push(ltr(f(cur)) + ' פחות ' + dur(h * 60) + ' זה ' + ltr(f(cur - h * 60)));
-      cur -= h * 60;
-    }
+    if (h > 0) { cur -= h * 60; parts.push('פחות ' + dur(h * 60) + ' = ' + ltr(f(cur))); }
     if (r > 0) {
       var m = minOf(cur);
       if (m > 0 && r > m) {
-        parts.push('אחורה מ־' + ltr(f(cur)) + ' עד ' + ltr(f(cur - m)) + ' יש ' + m + ' דקות, ועוד ' + (r - m) + ' דקות אחורה');
-      } else {
-        parts.push((h > 0 ? 'ועוד ' : ltr(f(cur)) + ' פחות ') + r + ' דקות' + (h > 0 ? ' אחורה' : ''));
+        cur -= m;
+        parts.push('פחות ' + m + ' דקות = ' + ltr(f(cur)));
+        r -= m;
       }
+      parts.push('פחות ' + dur(r) + ' = ' + ltr(f(t - d)));
     }
-    return parts.join('. ') + ' ← ' + ltr(f(t - d)) + '.';
+    return ltr(f(t)) + ' ' + parts.join(', ') + '.';
   }
 
   function elapsedExplain(t1, t2, f) {
     var d = t2 - t1;
     var m1 = minOf(t1);
     var firstRound = m1 === 0 ? t1 : t1 + (60 - m1);
-    if (firstRound > t2) return 'מ־' + ltr(f(t1)) + ' עד ' + ltr(f(t2)) + ' עוברות ' + dur(d) + '.';
+    if (firstRound > t2) return 'מ־' + ltr(f(t1)) + ' עד ' + ltr(f(t2)) + ': ' + dur(d) + '.';
     var parts = [];
-    if (firstRound > t1) parts.push('מ־' + ltr(f(t1)) + ' עד ' + ltr(f(firstRound)) + ': ' + dur(firstRound - t1));
+    if (firstRound > t1) parts.push('עד ' + ltr(f(firstRound)) + ': ' + dur(firstRound - t1));
     var lastRound = t2 - minOf(t2);
-    if (lastRound > firstRound) parts.push('מ־' + ltr(f(firstRound)) + ' עד ' + ltr(f(lastRound)) + ': ' + dur(lastRound - firstRound));
-    if (t2 > lastRound) parts.push('מ־' + ltr(f(lastRound)) + ' עד ' + ltr(f(t2)) + ': ' + dur(t2 - lastRound));
-    return parts.join(', ') + '. ביחד: ' + dur(d) + '.';
+    if (lastRound > firstRound) parts.push('עד ' + ltr(f(lastRound)) + ': ' + dur(lastRound - firstRound));
+    if (t2 > lastRound) parts.push('עד ' + ltr(f(t2)) + ': ' + dur(t2 - lastRound));
+    return 'מ־' + ltr(f(t1)) + ' ' + parts.join(', ') + '. ביחד: ' + dur(d) + '.';
   }
 
   /* ---------- choices ---------- */
@@ -177,9 +171,9 @@
     });
     return {
       kind: kind, clocks: [{ t: t }], status: 'מה השעה בשעון?',
-      prompt: mode === 'words' ? 'בחרו איך אומרים את השעה במילים.' : '',
+      prompt: mode === 'words' ? 'בחרו את השעה במילים' : '',
       mode: mode, answer: fmt12(t), answerText: mode === 'words' ? words(t) : fmt12(t),
-      options: R.shuffle(opts), explain: readExplain(t) + (words(t) ? ' במילים: ' + words(t) + '.' : ''),
+      options: R.shuffle(opts), explain: readExplain(t),
       check: { t: t }
     };
   }
@@ -204,9 +198,9 @@
     var dis = pickDistinct(fmt12(ans), cands, fmt12, R, function () { return norm12(ans + R.randInt(1, 20) * 5); });
     var opts = [ans].concat(dis).map(function (x) { return { key: fmt12(x), main: fmt12(x), sub: '' }; });
     return {
-      kind: kind, clocks: [{ t: t, label: 'עכשיו' }],
+      kind: kind, clocks: [{ t: t }],
       status: back ? 'מה הייתה השעה לפני ' + dur(d) + '?' : 'מה תהיה השעה בעוד ' + dur(d) + '?',
-      prompt: 'השעון מראה את השעה עכשיו: ' + ltr(fmt12(t)) + '.',
+      prompt: 'השעה עכשיו: ' + ltr(fmt12(t)),
       mode: 'digits', answer: fmt12(ans), answerText: fmt12(ans), options: R.shuffle(opts),
       explain: back ? subExplain(t, d, fmt12) : addExplain(t, d, fmt12),
       check: { t: t, d: d, back: back, ans: ans }
@@ -230,7 +224,7 @@
     return {
       kind: 'elapsed', clocks: [{ t: t1, label: 'התחלה' }, { t: t2, label: 'סוף' }],
       status: 'כמה זמן עבר מהשעון הראשון עד השני?',
-      prompt: 'מ־' + ltr(fmt12(t1)) + ' עד ' + ltr(fmt12(t2)) + '. עברו פחות מ־6 שעות.',
+      prompt: 'מ־' + ltr(fmt12(t1)) + ' עד ' + ltr(fmt12(t2)) + ' (פחות מ־6 שעות)',
       mode: 'dur', answer: dur(d), answerText: dur(d), options: durOptions(d, R),
       explain: elapsedExplain(t1, t2, fmt12),
       check: { t1: t1, t2: t2, d: d }
@@ -248,7 +242,7 @@
     return {
       kind: 'read24', clocks: [{ t: t12, label: part, sun: t < 18 * 60 ? 'sun' : 'moon' }],
       status: 'איך כותבים את השעה בשעון של 24 שעות?',
-      prompt: 'השעון מראה שעה ' + part + '.',
+      prompt: '',
       mode: 'digits', answer: fmt24(t), answerText: fmt24(t), options: R.shuffle(opts),
       explain: 'השעון מראה ' + ltr(fmt12(t12)) + ' ' + part + '. אחרי 12 בצהריים מוסיפים 12 לשעה: ' +
         ltr(h12 + ' + 12 = ' + (h12 + 12)) + ', ולכן ' + ltr(fmt24(t)) + '.',
@@ -279,7 +273,7 @@
     var dis = pickDistinct(k(ans), cands, k, R, function () { return ans + R.randInt(-20, 20) * 5; });
     var opts = [ans].concat(dis).map(function (x) { return { key: k(x), main: k(x), sub: '' }; });
     return {
-      kind: 'later24', clocks: [{ t: norm12(t), label: 'עכשיו, ' + partOfDay(t), sun: t < 18 * 60 ? 'sun' : 'moon' }],
+      kind: 'later24', clocks: [{ t: norm12(t) }],
       status: 'מה תהיה השעה בעוד ' + dur(d) + '?',
       prompt: 'עכשיו ' + ltr(fmt24(t)) + ' ' + partOfDay(t) + '. ענו בשעון של 24 שעות.',
       mode: 'digits', answer: fmt24(ans), answerText: fmt24(ans), options: R.shuffle(opts),
@@ -361,9 +355,9 @@
     ],
     css: [
       '.ct-clocks{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%}',
-      '.ct-clock{display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 1 15rem;min-width:0}',
+      '.ct-clock{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 1 13rem;min-width:0}',
       '.ct-clocks.ct-two .ct-clock{flex-basis:13rem;max-width:calc(50% - 6px)}',
-      '.ct-svg{display:block;width:100%;max-width:15rem;height:auto;color:var(--ink)}',
+      '.ct-svg{display:block;width:min(100%,12.5rem,28dvh);height:auto;color:var(--ink)}',
       '.ct-face{fill:var(--surface);stroke:var(--ink);stroke-width:4}',
       '.ct-tick{stroke:var(--ink-soft);stroke-width:1.5}',
       '.ct-tick5{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round}',
@@ -371,25 +365,25 @@
       '.ct-hour{stroke:var(--ink);stroke-width:9;stroke-linecap:round}',
       '.ct-min{stroke:var(--logic);stroke-width:5;stroke-linecap:round}',
       '.ct-pin{fill:var(--ink)}',
-      '.ct-label{font-weight:800;font-size:1.1rem;padding:.2rem .8rem;border-radius:999px;background:var(--logic-soft);color:var(--ink)}',
-      '.ct-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem 1rem;color:var(--ink-soft);font-size:.95rem}',
+      '.ct-label{font-weight:800;font-size:1.1rem;padding:.1rem .8rem;border-radius:999px;background:var(--logic-soft);color:var(--ink)}',
+      '.ct-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:.2rem 1rem;color:var(--ink-soft);font-size:1.1rem}',
       '.ct-legend i{display:inline-block;vertical-align:middle;width:1.6rem;border-radius:4px;margin-inline-end:.35rem}',
       '.ct-lg-h{height:7px;background:var(--ink)}.ct-lg-m{height:4px;background:var(--logic)}',
       '.ct-digital{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}',
-      '.ct-dig{display:flex;flex-direction:column;align-items:center;gap:.2rem;padding:.6rem 1.2rem;border-radius:var(--radius);',
+      '.ct-dig{display:flex;flex-direction:column;align-items:center;gap:.1rem;padding:.4rem 1.2rem;border-radius:var(--radius);',
       'background:var(--surface-2);border:2px solid var(--line)}',
       '.ct-dig b{font-family:var(--font-display);font-size:2rem;font-variant-numeric:tabular-nums;direction:ltr}',
-      '.ct-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:28rem}',
+      '.ct-prompt{margin:0;font-size:1.2rem}',
+      '.ct-choices .g-choice.ct-gone{display:none}',
+      '.play-board .g-choices.ct-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:28rem}',
       '.ct-choices .g-choice{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;padding:.6rem .5rem}',
-      '.ct-main{font-size:1.6rem;font-variant-numeric:tabular-nums;line-height:1.1}',
+      '.ct-main{font-size:1.6rem;font-variant-numeric:tabular-nums;line-height:1.1;text-wrap:balance}',
       '.ct-rtl .ct-main{font-size:1.25rem}',
-      '.ct-sub{font-size:1rem;font-weight:600;color:var(--ink-soft)}',
+      '.ct-sub{font-size:1.1rem;line-height:1.2;font-weight:600;color:var(--ink-soft)}',
       '.g-choice.is-correct .ct-sub{color:var(--good)}.g-choice.is-wrong .ct-sub{color:var(--bad)}',
       '.ct-words .ct-main{font-size:1.25rem}',
-      '.ct-explain{font-size:1.15rem;font-weight:700;text-align:center;background:var(--sun-soft);color:var(--ink);',
-      'padding:.8rem 1.1rem;border-radius:var(--radius);max-width:100%;text-wrap:balance}',
-      '.ct-after{display:flex;flex-direction:column;align-items:center;gap:.75rem;width:100%}',
-      '.ct-after:empty{display:none}'
+      '.ct-explain{margin:0;font-size:1.15rem;font-weight:700;text-align:center;background:var(--sun-soft);color:var(--ink);',
+      'padding:.4rem .9rem;border-radius:var(--radius-sm);max-width:100%;text-wrap:balance;line-height:1.4}'
     ].join(''),
     generate: makeQuestion,
     _util: { fmt12: fmt12, fmt24: fmt24, words: words, dur: dur, norm12: norm12 },
@@ -421,7 +415,7 @@
           root.appendChild(wrap);
           if (ctx.level <= 7) {
             root.appendChild(ctx.el('div', { class: 'ct-legend' }, [
-              ctx.el('span', null, [ctx.el('i', { class: 'ct-lg-h' }), 'קצר ועבה = שעות']),
+              ctx.el('span', null, [ctx.el('i', { class: 'ct-lg-h' }), 'קצר = שעות']),
               ctx.el('span', null, [ctx.el('i', { class: 'ct-lg-m' }), 'ארוך = דקות'])
             ]));
           }
@@ -431,7 +425,9 @@
             return ctx.el('div', { class: 'ct-dig' }, [ctx.el('span', null, i === 0 ? 'התחלה' : 'סוף'), ctx.el('b', { dir: 'ltr' }, fmt24(t))]);
           })));
         }
-        if (q.prompt) root.appendChild(ctx.el('p', { class: 'g-prompt' }, q.prompt));
+        var promptEl = q.prompt ? ctx.el('p', { class: 'g-prompt ct-prompt' }, q.prompt) : null;
+        if (promptEl) root.appendChild(promptEl);
+        var legendEl = root.querySelector('.ct-legend');
 
         var buttons = [];
         var answered = false;
@@ -449,8 +445,6 @@
           grid.appendChild(b);
         });
         root.appendChild(grid);
-        var after = ctx.el('div', { class: 'ct-after', 'aria-live': 'polite' });
-        root.appendChild(after);
 
         function choose(key, btn) {
           if (answered) return;
@@ -458,17 +452,20 @@
           buttons.forEach(function (o) {
             o.btn.disabled = true;
             if (o.key === q.answer) o.btn.classList.add('is-correct');
+            else if (o.btn !== btn) o.btn.classList.add('ct-gone'); // keep only the chosen and the right answer
           });
           var ok = key === q.answer;
           if (ok) correct++;
           else btn.classList.add('is-wrong');
-          after.appendChild(ctx.el('p', { class: 'ct-explain' },
-            (ok ? 'נכון! ' : 'התשובה הנכונה: ' + ltr(q.answerText) + '. ') + q.explain));
+          // one short explanation line takes the place of the prompt (and the hand legend)
+          var explain = ctx.el('p', { class: 'ct-explain', 'aria-live': 'polite' }, q.explain);
+          if (legendEl) legendEl.remove();
+          if (promptEl) promptEl.replaceWith(explain); else root.insertBefore(explain, grid);
           var nextBtn = ctx.el('button', {
             class: 'btn btn-primary btn-lg', type: 'button',
             onclick: function () { nextBtn.disabled = true; nextRound(); }
           }, round >= ROUNDS ? 'לסיכום' : 'לשאלה הבאה');
-          after.appendChild(nextBtn);
+          root.appendChild(nextBtn);
           ctx.feedback(ok, ok ? 'נכון! ' + ltr(q.answerText) : 'התשובה הנכונה: ' + ltr(q.answerText));
           ctx.wait(50).then(function () { try { nextBtn.focus({ preventScroll: true }); } catch (e) { /* ignore */ } });
         }

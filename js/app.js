@@ -43,26 +43,35 @@
     memory: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="10" width="16" height="22" rx="3"/><rect x="26" y="16" width="16" height="22" rx="3"/></svg>',
     attention: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke-width="4"/><circle cx="24" cy="24" r="6"/></svg>',
     logic: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="21" y="8" width="6" height="32" rx="3"/><rect x="8" y="21" width="32" height="6" rx="3"/></svg>',
-    language: '<svg viewBox="0 0 48 48" aria-hidden="true"><text x="24" y="36" text-anchor="middle" font-size="32" font-weight="800" font-family="Frank Ruhl Libre, serif">א</text></svg>'
+    language: '<svg viewBox="0 0 48 48" aria-hidden="true"><text x="24" y="36" text-anchor="middle" font-size="32" font-weight="800" font-family="Frank Ruhl Libre, serif">א</text></svg>',
+    perception: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l16 9v18l-16 9-16-9V15z" fill="none" stroke-width="4" stroke-linejoin="round"/><path d="M24 24l16-9M24 24v18M24 24L8 15" fill="none" stroke-width="3"/></svg>',
+    executive: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="34" width="36" height="6" rx="3"/><rect x="11" y="23" width="26" height="8" rx="3"/><rect x="16" y="12" width="16" height="8" rx="3"/></svg>'
   };
 
   /* ---------- helpers ---------- */
   function clear() {
     U.stopSpeaking();
+    document.body.classList.remove('is-playing');
     app.innerHTML = '';
     window.scrollTo(0, 0);
   }
 
   function clampLevel(n) { return Math.max(BG.MIN_LEVEL, Math.min(BG.MAX_LEVEL, n | 0)); }
 
+  // a game may start new players lower than the usual level (its `startLevel`)
+  function startLevel(id) {
+    var g = BG.getGame(id);
+    return g && g.startLevel ? clampLevel(g.startLevel) : BG.START_LEVEL;
+  }
+
   function getLevel(id) {
     var lv = BG.state.levels[id];
-    return typeof lv === 'number' ? clampLevel(lv) : BG.START_LEVEL;
+    return typeof lv === 'number' ? clampLevel(lv) : startLevel(id);
   }
 
   // new players may still pick the warm-up levels below the starting level
   function getBest(id) {
-    return Math.max(getLevel(id), BG.state.best[id] || BG.START_LEVEL);
+    return Math.max(getLevel(id), BG.state.best[id] || startLevel(id));
   }
 
   function todayRecord() {
@@ -106,9 +115,10 @@
   }
 
   /* ---------- welcome (first visit) ---------- */
-  function renderWelcome(isEdit) {
+  function renderWelcome() {
     endCurrent();
     clear();
+    refreshScreen = null;
     var nameInput = el('input', {
       class: 'text-input', id: 'welcome-name', type: 'text', autocomplete: 'given-name',
       maxlength: '24', placeholder: 'לדוגמה: רותי', value: BG.state.name || ''
@@ -140,20 +150,140 @@
       el('p', { class: 'field-label' }, 'איזה גודל טקסט נוח לכם?'),
       el('div', { class: 'size-options' }, [sizeBtn(false, 'רגיל'), sizeBtn(true, 'גדול')]),
       el('div', { class: 'intro-actions' }, [
-        el('button', { class: 'btn btn-primary btn-lg', type: 'submit' }, isEdit ? 'שמירה' : 'בואו נתחיל'),
-        isEdit ? el('button', { class: 'btn btn-quiet', type: 'button', onclick: renderHome }, 'ביטול') : null
+        el('button', { class: 'btn btn-primary btn-lg', type: 'submit' }, 'בואו נתחיל')
       ])
     ]);
 
     app.appendChild(el('section', { class: 'welcome' }, [
       el('span', { class: 'welcome-mark', 'aria-hidden': 'true' }),
-      el('h1', { class: 'hero-title' }, isEdit ? 'ההגדרות שלי' : 'שלום וברוכים הבאים!'),
-      isEdit ? null : el('p', { class: 'hero-lead' },
-        'כאן מתאמנים כמה דקות בכל יום במשחקים קצרים לזיכרון, לקשב, לחשיבה ולשפה. ' +
+      el('h1', { class: 'hero-title' }, 'שלום וברוכים הבאים!'),
+      el('p', { class: 'hero-lead' },
+        'כאן מתאמנים כמה דקות בכל יום במשחקים קצרים לזיכרון, לקשב, לחשיבה, לשפה, לתפיסה מרחבית ולתכנון. ' +
         'אין שעון ואין לחץ. כל משחק מתחיל בקלות ונעשה מאתגר יותר ככל שמצליחים.'),
       form
     ]));
-    if (!isEdit) setTimeout(function () { try { nameInput.focus(); } catch (e) {} }, 50);
+    setTimeout(function () { try { nameInput.focus(); } catch (e) {} }, 50);
+  }
+
+  /* ---------- settings: one dialog for name, text, sound, clock and levels ---------- */
+  var refreshScreen = null; // redraws home/instructions after a settings change; null mid-game
+
+  function optionGroup(label, options, value, onChange) {
+    var buttons = options.map(function (o) {
+      var b = el('button', {
+        class: 'seg-option', type: 'button', 'aria-pressed': o.value === value ? 'true' : 'false',
+        onclick: function () {
+          buttons.forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+          onChange(o.value);
+        }
+      }, o.label);
+      return b;
+    });
+    return el('div', { class: 'seg', role: 'group', 'aria-label': label }, buttons);
+  }
+
+  function settingsSection(title, children) {
+    return el('section', { class: 'settings-section' }, [el('h3', null, title)].concat(children));
+  }
+
+  // opts.gameId: open on this game's level picker
+  function openSettings(opts) {
+    opts = opts || {};
+    if (document.querySelector('dialog.settings')) return;
+    var p = BG.state.prefs;
+    var games = BG.all();
+    var gameId = opts.gameId || (games[0] && games[0].id);
+    var dirty = false;
+
+    var nameInput = el('input', {
+      class: 'text-input', id: 'set-name', type: 'text', autocomplete: 'given-name',
+      maxlength: '24', placeholder: 'לדוגמה: רותי', value: BG.state.name || '',
+      oninput: function () { BG.state.name = nameInput.value.trim().slice(0, 24); BG.save(); dirty = true; }
+    });
+
+    var select = el('select', {
+      class: 'select-input', id: 'set-game',
+      onchange: function () { gameId = select.value; levelNote.textContent = ''; drawLevels(); }
+    }, Object.keys(BG.SKILLS).map(function (skill) {
+      var gs = games.filter(function (g) { return g.skill === skill; });
+      if (!gs.length) return null;
+      return el('optgroup', { label: BG.SKILLS[skill].label }, gs.map(function (g) {
+        return el('option', { value: g.id, selected: g.id === gameId }, g.name);
+      }));
+    }));
+    var levelNow = el('p', { class: 'level-now' });
+    var pathWrap = el('div', { class: 'path-wrap' });
+    var levelNote = el('p', { class: 'pick-note', 'aria-live': 'polite' });
+
+    function drawLevels() {
+      var lv = getLevel(gameId);
+      levelNow.innerHTML = '';
+      levelNow.appendChild(levelPill(lv));
+      levelNow.appendChild(el('span', null, BG.stageOf(lv).name));
+      pathWrap.innerHTML = '';
+      pathWrap.appendChild(levelPath({
+        level: lv, best: getBest(gameId),
+        onPick: function (picked) {
+          var best = getBest(gameId);
+          var name = BG.getGame(gameId).name;
+          BG.state.levels[gameId] = picked;
+          BG.save();
+          dirty = true;
+          levelNote.textContent = picked > best
+            ? 'רמה ' + picked + ' נשמרה ל"' + name + '". עוד לא הגעתם אליה, זה יהיה אתגר. בהצלחה!'
+            : 'רמה ' + picked + ' נשמרה ל"' + name + '".';
+          drawLevels();
+        }
+      }));
+      levelNote.hidden = !levelNote.textContent;
+    }
+    drawLevels();
+
+    var levelSection = settingsSection('רמת משחק', [
+      el('label', { class: 'settings-hint', for: 'set-game' }, 'בחרו משחק, ואז לחצו על הרמה שבה תרצו לשחק בו.'),
+      select,
+      levelNow,
+      pathWrap,
+      levelNote,
+      el('p', { class: 'settings-hint' }, 'העיגול המלא הוא הרמה הנוכחית, והעיגולים המסומנים הם רמות שכבר הגעתם אליהן. הרמה עדיין עולה ויורדת לבד לפי ההצלחה.')
+    ]);
+
+    var dialog = el('dialog', { class: 'settings', 'aria-labelledby': 'settings-title' }, el('div', { class: 'settings-body' }, [
+      el('div', { class: 'settings-head' }, [
+        el('h2', { class: 'settings-title', id: 'settings-title' }, 'הגדרות'),
+        el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { dialog.close(); } }, 'סגירה')
+      ]),
+      settingsSection('השם שלי', [
+        el('label', { class: 'settings-hint', for: 'set-name' }, 'איך לקרוא לכם? (לא חובה)'),
+        nameInput
+      ]),
+      settingsSection('גודל טקסט', [
+        optionGroup('גודל טקסט', [{ value: false, label: 'רגיל' }, { value: true, label: 'גדול' }], !!p.bigText,
+          function (v) { p.bigText = v; BG.save(); applyPrefs(); })
+      ]),
+      settingsSection('צלילים', [
+        optionGroup('צלילים', [{ value: true, label: 'פועל' }, { value: false, label: 'כבוי' }], !!p.sound,
+          function (v) { p.sound = v; BG.save(); })
+      ]),
+      settingsSection('שעון', [
+        optionGroup('שעון', [{ value: false, label: 'כבוי' }, { value: true, label: 'פועל' }], !!p.timer,
+          function (v) { p.timer = v; BG.save(); }),
+        // takes effect from the next game started, so a running round never changes mid-way
+        el('p', { class: 'settings-hint' }, 'כשהשעון כבוי אין שום לחץ זמן. כשהוא פועל רואים כמה זמן עבר, וזמן הזכירה מוגבל. השינוי חל מהמשחק הבא.')
+      ]),
+      levelSection,
+      el('div', { class: 'settings-foot' },
+        el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { dialog.close(); } }, 'סיום'))
+    ]));
+
+    dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); }); // backdrop
+    dialog.addEventListener('close', function () {
+      dialog.remove();
+      if (dirty && refreshScreen) refreshScreen();
+    });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    if (opts.gameId) levelSection.scrollIntoView({ block: 'start' });
   }
 
   /* ---------- home ---------- */
@@ -184,8 +314,9 @@
 
   function renderHome() {
     endCurrent();
-    if (!BG.state.welcomed) { renderWelcome(false); return; }
+    if (!BG.state.welcomed) { renderWelcome(); return; }
     clear();
+    refreshScreen = renderHome;
     var daily = BG.dailyGames();
     var done = todayRecord();
     var doneCount = daily.filter(function (g) { return done[g.id]; }).length;
@@ -291,13 +422,13 @@
     app.appendChild(el('section', { class: 'section tips' }, [
       el('h2', { class: 'section-title' }, 'איך זה עובד'),
       el('ul', { class: 'tips-list' }, [
-        el('li', null, [el('strong', null, 'אין שעון. '), 'קחו את הזמן לחשוב. הדיוק חשוב יותר מהמהירות. מי שרוצה אתגר יכול להפעיל את השעון בכפתור "שעון" למעלה.']),
+        el('li', null, [el('strong', null, 'אין שעון. '), 'קחו את הזמן לחשוב. הדיוק חשוב יותר מהמהירות. מי שרוצה אתגר יכול להפעיל את השעון ב"הגדרות" למעלה.']),
         el('li', null, [el('strong', null, 'גביע לאלופים. '), 'מי שמנצח ברמה ' + BG.MAX_LEVEL + ' במשחק מקבל גביע.']),
-        el('li', null, [el('strong', null, BG.MAX_LEVEL + ' רמות בכל משחק. '), 'כשמצליחים עולים רמה, וכשקשה יורדים רמה. אפשר גם לבחור רמה קלה יותר בעצמכם.']),
+        el('li', null, [el('strong', null, BG.MAX_LEVEL + ' רמות בכל משחק. '), 'כשמצליחים עולים רמה, וכשקשה יורדים רמה. אפשר גם לבחור רמה בעצמכם ב"הגדרות".']),
         el('li', null, [el('strong', null, 'קצת בכל יום. '), 'עשר דקות ביום עדיפות על שעה פעם בשבוע.'])
       ]),
-      el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { renderWelcome(true); } },
-        BG.state.name ? 'שינוי שם וגודל טקסט' : 'הוספת שם וגודל טקסט')
+      el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { openSettings(); } },
+        'הגדרות: שם, טקסט, צלילים, שעון ורמות')
     ]));
   }
 
@@ -333,38 +464,19 @@
   }
 
   /* ---------- instructions ---------- */
-  function renderIntro(game, daily, chosenLevel) {
+  function renderIntro(game, daily) {
     endCurrent();
     clear();
+    refreshScreen = function () { renderIntro(game, daily); };
     var level = getLevel(game.id);
-    var best = getBest(game.id);
-    var selected = chosenLevel ? clampLevel(chosenLevel) : level;
     var speakText = game.name + '. ' + game.instructions.join(' ');
 
-    var startBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { startGame(game, daily, selected); } },
-      'התחלה ברמה ' + selected);
+    var startBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { startGame(game, daily, level); } },
+      'התחלה ברמה ' + level);
     var speakBtn = el('button', { class: 'btn btn-secondary', type: 'button', hidden: true, onclick: function () { U.speak(speakText); } }, 'הקראת ההוראות');
     function checkVoice() { if (U.canSpeak()) speakBtn.hidden = false; }
     checkVoice();
     if ('speechSynthesis' in window) window.speechSynthesis.addEventListener('voiceschanged', checkVoice, { once: true });
-
-    var pathWrap = el('div', { class: 'path-wrap' });
-    function drawPath() {
-      pathWrap.innerHTML = '';
-      pathWrap.appendChild(levelPath({
-        level: level, best: best, selected: selected,
-        onPick: function (lv) { selected = lv; startBtn.textContent = 'התחלה ברמה ' + lv; drawPath(); updatePickNote(); }
-      }));
-    }
-    var pickNote = el('p', { class: 'pick-note', 'aria-live': 'polite' }, '');
-    function updatePickNote() {
-      pickNote.textContent = selected > best
-        ? 'בחרתם רמה ' + selected + ', שעוד לא הגעתם אליה. זה יהיה אתגר. בהצלחה!'
-        : selected < level ? 'בחרתם רמה ' + selected + ', קלה יותר. מצוין לחימום.' : '';
-      pickNote.hidden = !pickNote.textContent;
-    }
-    updatePickNote();
-    drawPath();
 
     app.appendChild(el('section', { class: 'intro' }, [
       el('div', { class: 'intro-head' }, [
@@ -378,12 +490,14 @@
       el('h2', { class: 'intro-sub' }, 'איך משחקים'),
       el('ol', { class: 'steps' }, game.instructions.map(function (s) { return el('li', null, s); })),
       game.benefit ? el('p', { class: 'benefit' }, [el('strong', null, 'מה זה מאמן: '), game.benefit]) : null,
-      el('div', { class: 'level-box' }, [
-        el('h2', { class: 'intro-sub' }, 'בחירת רמה'),
-        el('p', { class: 'g-hint level-box-hint' },
-          'לחצו על כל רמה מ-1 עד ' + BG.MAX_LEVEL + ' כדי לשחק בה. העיגול המלא הוא הרמה שלכם עכשיו, והעיגולים המסומנים הם רמות שכבר הגעתם אליהן.'),
-        pathWrap,
-        pickNote
+      el('div', { class: 'level-box level-box-compact' }, [
+        el('p', { class: 'level-now' }, [
+          el('strong', null, 'הרמה שלכם:'),
+          el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.MAX_LEVEL),
+          el('span', null, BG.stageOf(level).name)
+        ]),
+        el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { openSettings({ gameId: game.id }); } },
+          'שינוי רמה')
       ]),
       el('div', { class: 'intro-actions' }, [
         startBtn,
@@ -397,6 +511,45 @@
   function stopTimers(session) {
     session.intervals.forEach(function (id) { clearInterval(id); });
     session.intervals = [];
+    if (session.unfit) { session.unfit(); session.unfit = null; }
+  }
+
+  /* Keep the round on one screen: shrink tile grids that would push the page past the
+     viewport (never below 48px tiles), and scroll a newly shown button into view
+     instead of leaving the player to look for it. Returns a stop function. */
+  function fitToScreen(board) {
+    var queued = false;
+    var minTile = 56, gap = 10; // older players: keep targets roomy even when shrinking
+    function fit() {
+      queued = false;
+      var grids = Array.prototype.slice.call(board.querySelectorAll('.g-grid'));
+      grids.forEach(function (g) { g.style.maxWidth = ''; });
+      var over = document.documentElement.scrollHeight - window.innerHeight;
+      if (over > 0) {
+        grids.forEach(function (g) {
+          var cols = parseInt(window.getComputedStyle(g).getPropertyValue('--cols'), 10) || 4;
+          var rows = Math.max(1, Math.ceil(g.children.length / cols));
+          var w = g.getBoundingClientRect().width;
+          var target = Math.max(cols * minTile + (cols - 1) * gap, w - (over / grids.length) * cols / rows);
+          if (target < w) g.style.maxWidth = Math.floor(target) + 'px';
+        });
+      }
+      var buttons = board.querySelectorAll('button:not([disabled])');
+      var last = buttons[buttons.length - 1];
+      if (last && last.getBoundingClientRect().bottom > window.innerHeight) {
+        last.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      }
+    }
+    function queue() {
+      if (queued) return;
+      queued = true;
+      window.requestAnimationFrame(fit);
+    }
+    var observer = new MutationObserver(queue);
+    observer.observe(board, { childList: true, subtree: true });
+    window.addEventListener('resize', queue);
+    queue();
+    return function () { observer.disconnect(); window.removeEventListener('resize', queue); };
   }
 
   function formatTime(ms) {
@@ -416,6 +569,7 @@
   function startGame(game, daily, level) {
     endCurrent();
     clear();
+    refreshScreen = null;
     level = clampLevel(level || getLevel(game.id));
     var timed = !!BG.state.prefs.timer;
     var session = { game: game, active: true, daily: daily, cleanup: null, intervals: [], startedAt: Date.now() };
@@ -443,21 +597,31 @@
       ])
     ]);
 
+    // the top bar is hidden while playing, so settings stay reachable from the game header
+    var settingsBtn = el('button', {
+      class: 'btn btn-quiet btn-sm play-settings', type: 'button', 'aria-label': 'הגדרות', title: 'הגדרות',
+      html: document.querySelector('#btn-settings svg').outerHTML, onclick: function () { openSettings({ gameId: game.id }); }
+    });
     var head = el('div', { class: 'play-head' }, [
-      el('div', { class: 'play-title' }, [skillIcon(game.skill), el('span', null, game.name), levelPill(level)]),
-      clock,
-      progressText,
+      el('div', { class: 'play-title' }, [skillIcon(game.skill), el('span', { class: 'play-name' }, game.name), levelPill(level)]),
+      settingsBtn,
       exitBtn
     ]);
 
+    document.body.classList.add('is-playing');
     app.appendChild(el('section', { class: 'play' }, [
       head,
       confirmBox,
-      el('span', { class: 'play-bar', 'aria-hidden': 'true' }, progressBar),
+      el('div', { class: 'play-progress-row' }, [
+        el('span', { class: 'play-bar', 'aria-hidden': 'true' }, progressBar),
+        progressText,
+        clock
+      ]),
       status,
       board,
       toast
     ]));
+    session.unfit = fitToScreen(board);
 
     function guard(fn) {
       return function () { if (session.active) return fn.apply(null, arguments); };
@@ -508,6 +672,7 @@
         });
       },
       setProgress: guard(function (cur, total) {
+        if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' }); // each round starts at the top
         progressText.textContent = 'שלב ' + cur + ' מתוך ' + total;
         progressBar.style.width = Math.round(((cur - 1) / total) * 100) + '%';
       }),
@@ -597,6 +762,7 @@
 
   function renderResult(game, daily, playedLevel, result, elapsedMs) {
     clear();
+    refreshScreen = null;
     var correct = Math.max(0, result.correct | 0);
     var total = Math.max(0, result.total | 0);
     var acc = total ? correct / total : 0;
@@ -658,9 +824,6 @@
       elapsedMs !== null && elapsedMs !== undefined ? el('p', { class: 'result-time' }, 'זמן המשחק: ' + formatTime(elapsedMs)) : null,
       wonTop ? trophyCard(game) : null,
       el('p', { class: 'result-level' + (leveledUp || wonTop ? ' is-up' : '') }, levelMsg),
-      el('div', { class: 'result-path' }, levelPath({
-        level: newLevel, best: Math.max(oldBest, newLevel), from: newLevel !== playedLevel ? playedLevel : null
-      })),
       el('div', { class: 'result-actions' }, actions)
     ]));
 
@@ -669,29 +832,10 @@
 
   /* ---------- top bar ---------- */
   function applyPrefs() {
-    var p = BG.state.prefs;
-    document.documentElement.classList.toggle('big-text', !!p.bigText);
-    var s = document.getElementById('btn-sound');
-    s.textContent = p.sound ? 'צלילים: פועל' : 'צלילים: כבוי';
-    s.setAttribute('aria-pressed', p.sound ? 'true' : 'false');
-    var c = document.getElementById('btn-timer');
-    c.textContent = p.timer ? 'שעון: פועל' : 'שעון: כבוי';
-    c.setAttribute('aria-pressed', p.timer ? 'true' : 'false');
-    var t = document.getElementById('btn-textsize');
-    t.textContent = p.bigText ? 'טקסט רגיל' : 'הגדלת טקסט';
-    t.setAttribute('aria-pressed', p.bigText ? 'true' : 'false');
+    document.documentElement.classList.toggle('big-text', !!BG.state.prefs.bigText);
   }
 
-  document.getElementById('btn-sound').addEventListener('click', function () {
-    BG.state.prefs.sound = !BG.state.prefs.sound; BG.save(); applyPrefs();
-  });
-  // Takes effect from the next game started, so a running round never changes mid-way
-  document.getElementById('btn-timer').addEventListener('click', function () {
-    BG.state.prefs.timer = !BG.state.prefs.timer; BG.save(); applyPrefs();
-  });
-  document.getElementById('btn-textsize').addEventListener('click', function () {
-    BG.state.prefs.bigText = !BG.state.prefs.bigText; BG.save(); applyPrefs();
-  });
+  document.getElementById('btn-settings').addEventListener('click', function () { openSettings(); });
   document.getElementById('brand-home').addEventListener('click', renderHome);
 
   applyPrefs();

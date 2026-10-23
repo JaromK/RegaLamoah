@@ -11,6 +11,12 @@ Each game lives in `js/games/<id>.js`, wraps itself in an IIFE and calls `BrainG
   (start ≥ 3–4 s, never < 1 s per item) **or** let the player press "זכרתי, הלאה" when ready.
 - Instructions: 2–4 short, concrete steps, plain words, address the player in plural ("לחצו", "זכרו").
 - Large targets (the shared classes already handle this). Max ~6 choices on screen.
+- **One screen, not crowded.** Every phase of a round (memorise, answer, explanation) must fit a
+  360×740 phone screen without scrolling at levels 1–15 (the top stage, 16–20, may scroll a little). Fit by showing fewer, bigger things, never by
+  shrinking: ≤ 25 tappable items (prefer ≤ 16), tap targets ≥ 56px, text ≥ 1.1rem, 4 choices in a
+  2-column grid. When a level table would break this, raise difficulty through similarity or rules
+  instead of count. While playing, the app hides the top bar and footer, shrinks oversized `.g-grid`s
+  (not below 56px tiles) and scrolls newly shown buttons into view, but treat that as a safety net.
 - One session = 6–8 rounds, about 3 minutes.
 
 ## Registration
@@ -20,9 +26,10 @@ Each game lives in `js/games/<id>.js`, wraps itself in an IIFE and calls `BrainG
   BrainGames.register({
     id: 'memory-pairs',            // must equal the file name
     name: 'זוגות',                 // short title
-    skill: 'memory',               // 'memory' | 'attention' | 'logic' | 'language'
+    skill: 'memory',               // 'memory' | 'attention' | 'logic' | 'language' | 'perception' | 'executive'
     tagline: 'מצאו את הזוגות של הקלפים', // one line for the cards
     benefit: 'זיכרון עבודה חזותי',  // optional, "מה זה מאמן"
+    startLevel: 1,                 // optional, level for new players (default 3)
     instructions: ['...', '...', '...'],
     css: '.mp-card{...}',          // optional, injected once; prefix classes with a game-specific prefix
     start: function (root, ctx) {  // root = empty board element
@@ -36,8 +43,8 @@ Each game lives in `js/games/<id>.js`, wraps itself in an IIFE and calls `BrainG
 ## ctx
 | member | purpose |
 |---|---|
-| `ctx.level` | integer 1–20, adaptive (app raises it at ≥85% accuracy, lowers it below 50%). New players start at 3; 1–2 are warm-ups. Stages: 1–5 צעדים ראשונים, 6–10 מתחממים, 11–15 בכושר, 16–20 אלופים. Scale *size/complexity* with it in small steps per level, never speed. Clamp defensively. |
-| `ctx.timed` | true only when the player switched on "שעון" (off by default). Never add time pressure when false. |
+| `ctx.level` | integer 1–20, adaptive (app raises it at ≥85% accuracy, lowers it below 50%). New players start at 3 (or the game's `startLevel`); 1–2 are warm-ups. Stages: 1–5 צעדים ראשונים, 6–10 מתחממים, 11–15 בכושר, 16–20 אלופים. Scale *size/complexity* with it in small steps per level, never speed. Clamp defensively. |
+| `ctx.timed` | true only when the player switched on "שעון" in the settings dialog (off by default). Never add time pressure when false. |
 | `ctx.studyTimer(button, ms)` | for memorise screens: in timer mode shows a countdown bar above the button's row and presses `button` when `ms` runs out; otherwise does nothing. Returns a cancel function. Pair it with a "זכרתי, הלאה" button so pacing stays player-controlled by default. |
 | `ctx.el(tag, attrs, children)` | DOM helper. attrs: `class`, `text`, `html`, `style` (object), `onclick` etc., any other attribute. children: node, string, or array. |
 | `ctx.shuffle(arr)` / `ctx.randInt(min,max)` / `ctx.pick(arr)` | randomness (inclusive randInt). |
@@ -55,7 +62,7 @@ Use `ctx.wait` for every delay instead of raw `setTimeout`. If you use `setInter
 ## Shared CSS classes (css/style.css)
 Use these before writing your own. Use CSS custom properties only (no literal colors) so dark mode works:
 `--surface --surface-2 --ink --ink-soft --line --accent --accent-soft --accent-ink --sun --sun-soft --good --good-soft --bad --bad-soft`
-and skill hues `--memory --attention --logic --language` (+ `-soft`).
+and skill hues `--memory --attention --logic --language --perception --executive` (+ `-soft`).
 
 - `.g-prompt` question text · `.g-big` huge number/word · `.g-hint` small grey helper text
 - `.g-choices` responsive grid of answers; `.g-choice` big answer button

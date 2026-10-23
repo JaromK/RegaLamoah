@@ -13,7 +13,9 @@
     memory:    { label: 'זיכרון', hue: 'memory' },
     attention: { label: 'קשב וריכוז', hue: 'attention' },
     logic:     { label: 'חשיבה וחשבון', hue: 'logic' },
-    language:  { label: 'שפה', hue: 'language' }
+    language:  { label: 'שפה', hue: 'language' },
+    perception: { label: 'תפיסה מרחבית', hue: 'perception' },
+    executive: { label: 'תכנון וגמישות', hue: 'executive' }
   };
 
   var MIN_LEVEL = 1;

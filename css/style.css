@@ -26,6 +26,8 @@
   --attention: #c2502f; --attention-soft: #f8e3dc;
   --logic: #1c6fa6;     --logic-soft: #dceaf5;
   --language: #2f7d3f;  --language-soft: #def0e1;
+  --perception: #a3366f; --perception-soft: #f6e0eb;
+  --executive: #95560f; --executive-soft: #f5e6d3;
 
   --font-display: "Frank Ruhl Libre", "David", "Times New Roman", serif;
   --font-body: "Assistant", "Arial Hebrew", "Segoe UI", Arial, sans-serif;
@@ -44,6 +46,7 @@
     --focus: #f2be5c;
     --memory: #a998f2; --memory-soft: #2a2550; --attention: #f0987b; --attention-soft: #44261d;
     --logic: #7cbbe8; --logic-soft: #1a3247; --language: #84cf92; --language-soft: #1c3a22;
+    --perception: #ec8fbf; --perception-soft: #45213a; --executive: #e3ac68; --executive-soft: #3f2e19;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .25);
     color-scheme: dark;
   }
@@ -55,6 +58,7 @@
   --focus: #f2be5c;
   --memory: #a998f2; --memory-soft: #2a2550; --attention: #f0987b; --attention-soft: #44261d;
   --logic: #7cbbe8; --logic-soft: #1a3247; --language: #84cf92; --language-soft: #1c3a22;
+  --perception: #ec8fbf; --perception-soft: #45213a; --executive: #e3ac68; --executive-soft: #3f2e19;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .25);
   color-scheme: dark;
 }
@@ -147,6 +151,8 @@ p { margin: 0; }
 .skill-attention { background: var(--attention-soft); color: var(--attention); }
 .skill-logic { background: var(--logic-soft); color: var(--logic); }
 .skill-language { background: var(--language-soft); color: var(--language); }
+.skill-perception { background: var(--perception-soft); color: var(--perception); }
+.skill-executive { background: var(--executive-soft); color: var(--executive); }
 .skill-icon.skill-language svg { stroke: none; }
 
 /* ---------- home ---------- */
@@ -230,11 +236,16 @@ p { margin: 0; }
 
 /* ---------- play ---------- */
 .play { display: flex; flex-direction: column; gap: 1rem; position: relative; }
-.play-head { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.play-head { display: flex; align-items: center; gap: .5rem; }
 .play-title { display: flex; align-items: center; gap: .6rem; font-weight: 800; font-size: 1.2rem; flex: 1; min-width: 0; }
+.play-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.play-settings { padding-inline: .7rem; }
+.play-settings svg { width: 1.3rem; height: 1.3rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.play-progress-row { display: flex; align-items: center; gap: .7rem; }
+.play-progress-row .play-bar { flex: 1; }
 .play-title .skill-icon { width: 2.2rem; height: 2.2rem; }
 .play-title .skill-icon svg { width: 1.3rem; height: 1.3rem; }
-.play-progress { font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.play-progress { font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; font-size: .95rem; white-space: nowrap; }
 .play-bar { display: block; height: .5rem; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .play-bar-fill { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width .5s ease; }
 .play-status { font-size: 1.3rem; font-weight: 700; text-align: center; min-height: 2.1rem; text-wrap: balance; }
@@ -251,6 +262,13 @@ p { margin: 0; }
 .toast.is-bad { background: var(--bad); color: var(--surface); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .error { color: var(--bad); font-weight: 700; }
+
+/* ---------- while playing: keep the whole round on one screen ---------- */
+.is-playing .footer, .is-playing .topbar { display: none; }
+.is-playing .app { padding-block: .75rem 1.2rem; }
+.is-playing .play { gap: .5rem; }
+.is-playing .play-status { font-size: 1.15rem; min-height: 1.6rem; }
+.is-playing .play-board { padding: 1rem .75rem; gap: .9rem; min-height: 10rem; }
 
 /* ---------- shared game building blocks (see GAME_API.md) ---------- */
 .g-prompt { font-size: 1.35rem; font-weight: 700; text-align: center; text-wrap: balance; }
@@ -282,6 +300,11 @@ p { margin: 0; }
 .g-tile.is-correct { background: var(--good-soft); border-color: var(--good); }
 .g-tile.is-wrong { background: var(--bad-soft); border-color: var(--bad); }
 .g-tile:disabled { cursor: default; }
+
+/* while playing: compact choices. Placed after the base rules; :where() keeps them at
+   single-class weight so a game's own choice layout still wins */
+:where(.is-playing) .g-choices { grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: .6rem; }
+:where(.is-playing) .g-choice { min-height: 3.6rem; padding: .5rem .8rem; }
 
 /* ---------- results ---------- */
 .result { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem; padding-top: 1rem; }
@@ -372,6 +395,40 @@ button.path-dot:hover { background: var(--accent-soft); }
 .pick-note { background: var(--sun-soft); border-radius: var(--radius-sm); padding: .6rem .9rem; font-weight: 700; }
 .result-level.is-up { background: var(--good-soft); color: var(--good); font-weight: 800; }
 
+.level-now { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; font-weight: 700; }
+.level-box-compact { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .6rem 1rem; }
+
+/* ---------- settings dialog ---------- */
+.settings-btn { display: inline-flex; align-items: center; gap: .45rem; font-size: 1rem; }
+.settings-btn svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.settings {
+  width: min(40rem, calc(100vw - 32px)); max-height: calc(100dvh - 2rem); padding: 0; overflow: auto;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--ink); box-shadow: var(--shadow);
+}
+.settings::backdrop { background: rgba(10, 20, 22, .55); }
+.settings-body { display: flex; flex-direction: column; gap: 1rem; padding: 1.2rem; }
+.settings-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.settings-title { font-size: 1.8rem; font-weight: 900; }
+.settings-section {
+  display: flex; flex-direction: column; gap: .6rem; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem;
+}
+.settings-section h3 { font-family: var(--font-body); font-weight: 800; font-size: 1.15rem; }
+.settings-hint { color: var(--ink-soft); font-size: .95rem; }
+.settings-foot { display: flex; justify-content: center; }
+.seg { display: flex; gap: .6rem; flex-wrap: wrap; }
+.seg-option {
+  min-height: var(--tap); min-width: 7rem; padding: .4rem 1.2rem; border-radius: 999px;
+  border: 2px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 700;
+}
+.seg-option:hover { border-color: var(--accent); }
+.seg-option[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.select-input {
+  min-height: var(--tap); padding: .4rem .9rem; font: inherit; font-size: 1.1rem; color: var(--ink);
+  background: var(--bg); border: 2px solid var(--line); border-radius: var(--radius-sm); width: 100%; max-width: 22rem;
+}
+.select-input:focus { border-color: var(--accent); outline: none; }
+
 /* ---------- exit confirm ---------- */
 .play-title .level-pill { flex: none; }
 .confirm {
@@ -383,7 +440,6 @@ button.path-dot:hover { background: var(--accent-soft); }
 .confetti { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
 
 /* ---------- optional timer ---------- */
-.tool-btn[aria-pressed="true"]#btn-timer { background: var(--accent-soft); border-color: var(--accent); }
 .play-clock {
   font-weight: 800; font-variant-numeric: tabular-nums; padding: .1rem .7rem; border-radius: 999px;
   background: var(--surface-2); direction: ltr;
@@ -420,12 +476,8 @@ button.path-dot:hover { background: var(--accent-soft); }
 @media (max-width: 420px) { .trophy-card { flex-direction: column; text-align: center; } }
 
 @media (max-width: 560px) {
-  /* game header: name + level on one line, clock / progress / exit on the next */
-  .play-head { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "title title title" "clock progress exit"; gap: .5rem .6rem; }
-  .play-title { grid-area: title; flex-wrap: wrap; }
-  .play-clock { grid-area: clock; }
-  .play-progress { grid-area: progress; }
-  .play-head > .btn { grid-area: exit; }
+  .play-title { font-size: 1.05rem; gap: .45rem; }
+  .play-title .skill-icon { display: none; }
   .tool-btn { font-size: .85rem; padding: .25rem .75rem; min-height: 2.5rem; }
 }
 
