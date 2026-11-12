@@ -177,7 +177,7 @@
     '.tg-pc.is-sel{stroke:var(--sun);stroke-width:.16;fill-opacity:1;}',
     '.tg-done .tg-pc{fill:var(--good);cursor:default;}',
     '.tg-tray{display:flex;flex-wrap:wrap;justify-content:center;gap:.2rem;width:100%;max-width:24rem;min-height:3.1rem;}',
-    '.tg-tbtn{width:3.1rem;height:3.1rem;padding:.25rem;border-radius:var(--radius-sm);border:2px solid var(--line);background:var(--surface-2);cursor:pointer;}',
+    '.tg-tbtn{width:3.1rem;height:3.1rem;padding:.25rem;border-radius:var(--radius-sm);border:2px solid var(--line);background:var(--surface-2);cursor:pointer;touch-action:none;}',
     '.tg-tbtn svg{width:100%;height:100%;display:block;}',
     '.tg-tbtn.is-sel{border-color:var(--sun);box-shadow:0 0 0 3px var(--sun);}',
     '.tg-actions .btn{min-width:0;padding-inline:.8rem;}'
@@ -189,7 +189,6 @@
     skill: 'perception',
     tagline: 'מלאו את הצללית בחלקי הטנגרם',
     benefit: 'תפיסה מרחבית, סיבוב בדמיון ותכנון',
-    startLevel: 1,
     instructions: [
       'על הלוח יש צללית אפורה. צריך למלא אותה בדיוק בחלקים שלמטה.',
       'לחצו על חלק כדי להוציא אותו ללוח, ואז לחצו על המקום בלוח שאליו הוא צריך לזוז (אפשר גם לגרור).',
@@ -279,6 +278,8 @@
             var mini = svgEl('svg', { viewBox: (-(m - s[0]) / 2 - .3) + ' ' + (-(m - s[1]) / 2 - .3) + ' ' + (m + .6) + ' ' + (m + .6), 'aria-hidden': 'true' });
             mini.appendChild(svgEl('polygon', { points: pts2str(o), fill: 'var(--' + HUE[pc.type] + ')' }));
             var b = el('button', { class: 'tg-tbtn' + (i === sel ? ' is-sel' : ''), type: 'button', 'aria-label': NAME[pc.type], onclick: function () { takeOut(i); } });
+            // press and drag straight from the tray onto the board (a plain tap still works, see takeOut)
+            b.addEventListener('pointerdown', function (ev) { trayPress = { i: i, x: ev.clientX, y: ev.clientY }; });
             b.appendChild(mini);
             tray.appendChild(b);
           });
@@ -344,7 +345,8 @@
         }
 
         // Tap on the board: move the selected piece so its middle lands on the tap. Drag: move along.
-        var drag = null;
+        // Dragging also works from the tray: once the finger moves, the piece comes onto the board under it.
+        var drag = null, trayPress = null;
         function onDown(ev) {
           if (done) return;
           var t = ev.target;
@@ -367,6 +369,15 @@
           }
         }
         function onMove(ev) {
+          if (trayPress && !drag) {
+            if (Math.abs(ev.clientX - trayPress.x) + Math.abs(ev.clientY - trayPress.y) < 10) return;
+            var i = trayPress.i, t = mine[i], ts = size(oriented(t.type, t.rot, t.flip));
+            trayPress = null;
+            if (done || t.onBoard) return;
+            sel = i; t.onBoard = true;
+            drag = { dx: ts[0] / 2, dy: ts[1] / 2, moved: true };
+            ctx.sound('tap');
+          }
           if (!drag || sel < 0) return;
           var p = svgPoint(ev);
           if (!p) return;
@@ -375,19 +386,21 @@
           if (nx !== pc.x || ny !== pc.y) { pc.x = nx; pc.y = ny; clampPiece(pc); drag.moved = true; draw(); }
         }
         function onUp() {
+          trayPress = null;
           if (!drag) return;
           drag = null;
           checkDone();
         }
+        // moves and releases are watched on the whole page, so a drag can start in the tray
         svg.addEventListener('pointerdown', onDown);
-        svg.addEventListener('pointermove', onMove);
-        svg.addEventListener('pointerup', onUp);
-        svg.addEventListener('pointercancel', onUp);
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
+        document.addEventListener('pointercancel', onUp);
         cleanupDrag = function () {
           svg.removeEventListener('pointerdown', onDown);
-          svg.removeEventListener('pointermove', onMove);
-          svg.removeEventListener('pointerup', onUp);
-          svg.removeEventListener('pointercancel', onUp);
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup', onUp);
+          document.removeEventListener('pointercancel', onUp);
         };
 
         function allPieces() {

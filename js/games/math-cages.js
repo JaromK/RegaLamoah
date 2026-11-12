@@ -180,9 +180,9 @@
   function fixedCells(n) { var a = []; for (var i = 0; i < n * n; i++) a.push(i); return a; }
 
   var css = [
-    '.mc-grid{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));width:min(100%,calc(var(--n) * 4.2rem),calc(100dvh - 21rem));',
+    '.mc-grid{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));grid-template-rows:repeat(var(--n),minmax(0,1fr));width:min(100%,calc(var(--n) * 4.2rem),calc(100dvh - 21rem));',
     'aspect-ratio:1;direction:rtl;border:3px solid var(--ink);border-radius:var(--radius-sm);overflow:hidden;background:var(--ink);gap:0;}',
-    '.mc-cell{position:relative;padding:0;border:0;background:var(--surface);color:var(--ink);font-family:var(--font-display);',
+    '.mc-cell{position:relative;min-height:0;min-width:0;padding:0;border:0;background:var(--surface);color:var(--ink);font-family:var(--font-display);',
     'font-weight:900;font-size:clamp(1.5rem,7vw,2.1rem);cursor:pointer;display:grid;place-items:center;',
     'box-shadow:inset 0 0 0 1px var(--line);}',
     '.mc-cell.bt{border-top:3px solid var(--ink);}',
@@ -205,7 +205,6 @@
     skill: 'logic',
     tagline: 'מלאו את הלוח לפי החשבון בכל כלוב',
     benefit: 'חשבון, חשיבה לוגית והסקת מסקנות',
-    startLevel: 1,
     instructions: [
       'מלאו מספרים בלוח: בכל שורה ובכל טור כל מספר מופיע פעם אחת בלבד.',
       'הלוח מחולק לכלובים בקו עבה. המספר בפינה והסימן אומרים מה התוצאה: "5+" פירושו שסכום המספרים בכלוב הוא 5.',

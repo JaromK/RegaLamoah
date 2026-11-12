@@ -7,8 +7,9 @@
   var NAMES = { shape: 'צורה', color: 'צבע', count: 'מספר', fill: 'מילוי' };
   var SHAPES = ['circle', 'square', 'triangle'];
   var SHAPE_WORDS = [['עיגול', 'עיגולים'], ['ריבוע', 'ריבועים'], ['משולש', 'משולשים']];
-  var COLORS = ['--logic', '--attention', '--memory'];
-  var COLOR_WORDS = [['כחול', 'כחולים'], ['כתום', 'כתומים'], ['סגול', 'סגולים']];
+  // the classic trio colours: red, green, purple (tokens defined in the css below, with dark-mode shades)
+  var COLORS = ['--tr-red', '--tr-green', '--tr-purple'];
+  var COLOR_WORDS = [['אדום', 'אדומים'], ['ירוק', 'ירוקים'], ['סגול', 'סגולים']];
   var FILL_WORDS = [['מלא', 'מלאים'], ['ריק', 'ריקים'], ['בהיר', 'בהירים']];
 
   /* Per level (1–30): f = features in play (2: shape + colour, 3: + count, 4: + fill), n = cards,
@@ -141,6 +142,9 @@
   var css = [
     '.tr-rule{margin:0;font-size:1.1rem;font-weight:700;text-align:center;color:var(--ink-soft);text-wrap:balance;}',
     '.tr-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem;width:100%;max-width:24rem;}',
+    '.tr-card{--tr-red:#d42a2f;--tr-green:#16924a;--tr-purple:#6a2c91;}',
+    '@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tr-card{--tr-red:#ff6f6a;--tr-green:#5ad283;--tr-purple:#c18df2;}}',
+    ':root[data-theme="dark"] .tr-card{--tr-red:#ff6f6a;--tr-green:#5ad283;--tr-purple:#c18df2;}',
     '.tr-card{aspect-ratio:5/3;min-height:56px;padding:.2rem;border-radius:var(--radius-sm);border:3px solid var(--line);',
     'background:var(--surface);cursor:pointer;display:grid;place-items:center;transition:border-color .15s,background-color .15s;}',
     '.tr-card svg{width:100%;height:100%;display:block;}',
@@ -161,11 +165,10 @@
     skill: 'logic',
     tagline: 'מצאו שלושה קלפים שמתאימים לפי הכלל',
     benefit: 'חשיבה לוגית, השוואה וקשב לפרטים',
-    startLevel: 1,
     instructions: [
       'על הלוח יש קלפים עם צורות. לכל קלף צורה, צבע, ובהמשך גם מספר ומילוי.',
       'מצאו שלושה קלפים שבכל תכונה הם או כולם זהים, או כולם שונים.',
-      'למשל: שלושה עיגולים בשלושה צבעים שונים. שני כחולים ואחד כתום, לא מתאים.',
+      'למשל: שלושה עיגולים בשלושה צבעים שונים. שני אדומים ואחד ירוק, לא מתאים.',
       'לחצו על שלושת הקלפים. אין שעון. ברמות הגבוהות מוצאים כמה שלישיות בכל לוח.'
     ],
     css: css,

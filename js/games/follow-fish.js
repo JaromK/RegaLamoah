@@ -49,7 +49,9 @@
   }
 
   var css = [
-    '.ff-pond{position:relative;width:100%;max-width:min(30rem,calc((100dvh - 21rem) * 4 / 3));aspect-ratio:4/3;border-radius:var(--radius);',
+    /* --ff-ar (width / height) is set per level: the pond grows taller as fish are added, up to the free screen height */
+    '.ff-pond{--ff-ar:4/3;position:relative;width:100%;max-width:30rem;aspect-ratio:var(--ff-ar);',
+    'max-height:calc(100dvh - 21rem);border-radius:var(--radius);',
     'background:var(--attention-soft);border:2px solid var(--line);overflow:hidden;touch-action:manipulation;}',
     '.ff-fish{position:absolute;top:0;left:0;display:grid;place-items:center;padding:0;border-radius:50%;',
     'border:3px solid transparent;background:transparent;cursor:pointer;will-change:transform;',
@@ -119,7 +121,8 @@
         root.innerHTML = '';
         stopLoop();
 
-        var pond = el('div', { class: 'ff-pond', role: 'group', 'aria-label': 'בריכה' });
+        // same water per fish at every level: 4 fish get a 4:3 pond, each extra fish adds height
+        var pond = el('div', { class: 'ff-pond', role: 'group', 'aria-label': 'בריכה', style: { '--ff-ar': String(16 / (3 * Math.max(4, N))) } });
         var countLine = el('p', { class: 'ff-count', 'aria-live': 'polite' }, '');
         var readyBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button' }, 'מוכנים');
         var actions = el('div', { class: 'g-actions' }, readyBtn);

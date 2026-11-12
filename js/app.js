@@ -51,7 +51,7 @@
   /* ---------- helpers ---------- */
   function clear() {
     U.stopSpeaking();
-    document.body.classList.remove('is-playing');
+    document.body.classList.remove('is-playing', 'on-home');
     app.innerHTML = '';
     window.scrollTo(0, 0);
   }
@@ -119,6 +119,7 @@
   function renderWelcome() {
     endCurrent();
     clear();
+    document.body.classList.add('on-home');
     refreshScreen = null;
     var nameInput = el('input', {
       class: 'text-input', id: 'welcome-name', type: 'text', autocomplete: 'given-name',
@@ -317,6 +318,7 @@
     endCurrent();
     if (!BG.state.welcomed) { renderWelcome(); return; }
     clear();
+    document.body.classList.add('on-home');
     refreshScreen = renderHome;
     var daily = BG.dailyGames();
     var done = todayRecord();
@@ -610,12 +612,19 @@
     var board = el('div', { class: 'play-board' });
     var toast = el('div', { class: 'toast', role: 'status', hidden: true });
 
-    var exitBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { confirmBox.hidden = false; exitBtn.hidden = true; } }, 'יציאה');
+    // both leave the round, so both ask first; "exit" goes back to the instructions, the house to home
+    var leaveTo = null;
+    function askLeave(target) { leaveTo = target; confirmBox.hidden = false; exitBtn.hidden = true; homeBtn.hidden = true; }
+    var exitBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { askLeave('intro'); } }, 'יציאה');
+    var homeBtn = el('button', {
+      class: 'btn btn-quiet btn-sm play-settings', type: 'button', 'aria-label': 'לדף הבית', title: 'לדף הבית',
+      html: document.querySelector('#btn-home svg').outerHTML, onclick: function () { askLeave('home'); }
+    });
     var confirmBox = el('div', { class: 'confirm', hidden: true, role: 'group', 'aria-label': 'יציאה מהמשחק' }, [
       el('span', null, 'לצאת מהמשחק? הסיבוב הזה לא יישמר.'),
       el('span', { class: 'confirm-actions' }, [
-        el('button', { class: 'btn btn-primary btn-sm', type: 'button', onclick: function () { confirmBox.hidden = true; exitBtn.hidden = false; } }, 'להמשיך לשחק'),
-        el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { renderIntro(game, daily); } }, 'כן, לצאת')
+        el('button', { class: 'btn btn-primary btn-sm', type: 'button', onclick: function () { confirmBox.hidden = true; exitBtn.hidden = false; homeBtn.hidden = false; } }, 'להמשיך לשחק'),
+        el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { if (leaveTo === 'home') renderHome(); else renderIntro(game, daily); } }, 'כן, לצאת')
       ])
     ]);
 
@@ -625,7 +634,8 @@
       html: document.querySelector('#btn-settings svg').outerHTML, onclick: function () { openSettings({ gameId: game.id }); }
     });
     var head = el('div', { class: 'play-head' }, [
-      el('div', { class: 'play-title' }, [skillIcon(game.skill), el('span', { class: 'play-name' }, game.name), levelPill(level)]),
+      el('div', { class: 'play-title' }, [skillIcon(game.skill), el('span', { class: 'play-name' }, game.name)]),
+      homeBtn,
       settingsBtn,
       exitBtn
     ]);
@@ -637,6 +647,7 @@
       el('div', { class: 'play-progress-row' }, [
         el('span', { class: 'play-bar', 'aria-hidden': 'true' }, progressBar),
         progressText,
+        levelPill(level), // here rather than beside the name, which needs the room next to the home/settings/exit buttons
         clock
       ]),
       status,
@@ -881,6 +892,7 @@
 
   document.getElementById('btn-settings').addEventListener('click', function () { openSettings(); });
   document.getElementById('brand-home').addEventListener('click', renderHome);
+  document.getElementById('btn-home').addEventListener('click', renderHome);
 
   applyPrefs();
   renderHome();
