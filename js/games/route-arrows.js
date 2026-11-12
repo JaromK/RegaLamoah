@@ -9,7 +9,7 @@
   function clampLevel(l) {
     l = Math.round(Number(l));
     if (!isFinite(l)) l = 3;
-    return Math.max(1, Math.min(20, l));
+    return Math.max(1, Math.min(30, l));
   }
 
   var LANDMARKS = [
@@ -24,7 +24,8 @@
   var DIR_NAME = ['למעלה', 'ימינה', 'למטה', 'שמאלה'];
   var FACE_NAME = ['למעלה', 'ימינה', 'למטה', 'שמאלה'];
 
-  var STEPS = [0, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 4, 5, 5, 6, 7];
+  var STEPS = [0, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 4, 5, 5, 6, 7,
+    5, 5, 6, 6, 6, 7, 7, 7, 8, 8];
 
   function params(L) {
     return {
@@ -32,7 +33,9 @@
       steps: STEPS[L],
       maxDist: L <= 8 ? 2 : 3,
       relative: L >= 16,
-      extra: L <= 2 ? 0 : L <= 5 ? 1 : L <= 11 ? 2 : L <= 15 ? 3 : 4
+      extra: L <= 2 ? 0 : L <= 5 ? 1 : L <= 11 ? 2 : L <= 15 ? 3 : L <= 20 ? 4 : 5,
+      // 21–30: read the steps, press "זכרתי, הלאה", and follow them on the map from memory
+      hide: L >= 21
     };
   }
 
@@ -133,7 +136,7 @@
 
     return {
       level: L, N: N, start: route.start, startK: startK, end: route.end, endK: endK,
-      relative: P.relative, facing: route.facing0, moves: mv, path: route.path,
+      relative: P.relative, hide: P.hide, facing: route.facing0, moves: mv, path: route.path,
       cells: cells, answer: lms[0],
       choices: R.shuffle([lms[0], lms[1], lms[2], lms[3]])
     };
@@ -166,9 +169,11 @@
     instructions: [
       'מצאו במפה את ההולך 🚶. משם מתחילים.',
       'עקבו אחרי הצעדים לפי הסדר. החץ מראה לאן לזוז במסך, והמספר לידו מראה כמה משבצות.',
-      'בחרו לאיזה מקום הגעתם בסוף.'
+      'בחרו לאיזה מקום הגעתם בסוף.',
+      'ברמות הגבוהות הצעדים נעלמים אחרי "זכרתי, הלאה", וממשיכים מהזיכרון.'
     ],
     css: [
+      '.ra-steps[hidden]{display:none}',
       '.ra-map{display:grid;grid-template-columns:repeat(var(--n),var(--ra-t));gap:4px;direction:ltr;padding:5px;',
       'border-radius:var(--radius);background:var(--surface-2);border:1px solid var(--line)}',
       '.ra-cell{position:relative;width:var(--ra-t);height:var(--ra-t);border-radius:8px;',
@@ -255,6 +260,21 @@
 
         var buttons = [];
         var grid = ctx.el('div', { class: 'g-choices ra-choices' });
+        if (q.hide) {
+          // Memorise phase: only the map and the steps; the answers come after "זכרתי, הלאה".
+          ctx.setStatus('זכרו את הצעדים, ואז לחצו "זכרתי, הלאה"');
+          grid.hidden = true;
+          var readyBtn = ctx.el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () {
+            readyBtn.disabled = true;
+            readyRow.remove();
+            list.hidden = true;
+            grid.hidden = false;
+            ctx.setStatus('לאן הגעתם? דמיינו את הצעדים על המפה');
+          } }, 'זכרתי, הלאה');
+          var readyRow = ctx.el('div', { class: 'g-actions' }, readyBtn);
+          root.appendChild(readyRow);
+          ctx.studyTimer(readyBtn, 5000 + 2000 * q.moves.length);
+        }
         q.choices.forEach(function (lm) {
           var b = ctx.el('button', {
             class: 'g-choice', type: 'button',
@@ -295,6 +315,7 @@
           }
           // The answer buttons make way for one short line + the next button, so the round stays on one screen.
           grid.style.display = 'none';
+          list.hidden = false; // show the steps again next to the drawn route
           var msg = ok ? 'נכון! הדרך מסומנת במפה.' : 'התשובה: ' + q.answer.e + ' ' + q.answer.n;
           after.appendChild(ctx.el('p', { class: 'ra-explain' }, msg));
           var nextBtn = ctx.el('button', {

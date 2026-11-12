@@ -36,6 +36,9 @@
     '.cw-ink-yellow{text-shadow:0 0 1px var(--cw-outline),0 0 2px var(--cw-outline)}',
     '.cw-choices{max-width:30rem;grid-template-columns:repeat(auto-fit,minmax(8rem,1fr))}',
     '.cw-choice{display:flex;align-items:center;justify-content:center;gap:.6rem;color:var(--ink)}',
+    '.cw-label-ink{font-weight:900}',
+    '.cw-label-ink.cw-ink-yellow{text-shadow:0 0 1px var(--cw-outline),0 0 2px var(--cw-outline)}',
+    '.g-choice.is-correct .cw-label-ink,.g-choice.is-wrong .cw-label-ink{color:inherit!important;text-shadow:none}',
     '.cw-swatch{width:1.1rem;height:1.1rem;border-radius:50%;flex:none;border:1px solid var(--line)}'
   ].join('');
 
@@ -43,13 +46,21 @@
 
   /* Difficulty by level (index = level - 1).
      Levels 1-15 spread the original 10-level curve in small steps; 16-20 switch rules more often
-     and, from 18, add a third rule: "is the ink the same as the word? yes / no". */
-  var N_CHOICES = [3, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6];
-  var P_CONGRUENT = [0.8, 0.7, 0.7, 0.6, 0.5, 0.5, 0.4, 0.4, 0.3, 0.3, 0.25, 0.2, 0.15, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
+     and, from 18, add a third rule: "is the ink the same as the word? yes / no".
+     21-30 switch even more often and take away the colour hints on the buttons. */
+  var N_CHOICES = [3, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6];
+  var P_CONGRUENT = [0.8, 0.7, 0.7, 0.6, 0.5, 0.5, 0.4, 0.4, 0.3, 0.3, 0.25, 0.2, 0.15, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+    0.1, 0.08, 0.08, 0.06, 0.06, 0.05, 0.05, 0.05, 0.05, 0.05];
   // Levels 1-15: chance of the "word" rule in a round. Levels 16-20: chance that the rule changes.
   var P_WORD = [0, 0, 0, 0, 0, 0, 0, 0.2, 0.25, 0.25, 0.3, 0.35, 0.4, 0.4, 0.45];
-  var P_SWITCH = { 16: 0.45, 17: 0.55, 18: 0.55, 19: 0.6, 20: 0.65 };
-  var P_MATCH = { 18: 0.25, 19: 0.3, 20: 0.35 }; // share of rule changes that go to the yes/no rule
+  var P_SWITCH = { 16: 0.45, 17: 0.55, 18: 0.55, 19: 0.6, 20: 0.65,
+    21: 0.68, 22: 0.7, 23: 0.7, 24: 0.72, 25: 0.75, 26: 0.75, 27: 0.78, 28: 0.8, 29: 0.82, 30: 0.85 };
+  var P_MATCH = { 18: 0.25, 19: 0.3, 20: 0.35, // share of rule changes that go to the yes/no rule
+    21: 0.35, 22: 0.38, 23: 0.38, 24: 0.4, 25: 0.4, 26: 0.42, 27: 0.42, 28: 0.45, 29: 0.45, 30: 0.5 };
+  // Levels 21-30: from 23 the answer buttons lose their colour dot (only the name is left), and from 26
+  // each name on a button is itself printed in a different colour, one more thing to ignore.
+  var NO_SWATCH_FROM = 23;
+  var INKED_FROM = 26;
 
   var RULES = {
     ink: { cls: 'cw-rule-ink', q: 'באיזה צבע כתובה המילה?', pill: 'בחרו את צבע הכתב' },
@@ -73,7 +84,7 @@
     ],
     css: CSS,
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(20, Math.round(Number(ctx.level) || 1)));
+      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
       var nChoices = N_CHOICES[level - 1];
       var pCongruent = P_CONGRUENT[level - 1];
       var pWordRule = level <= 15 ? P_WORD[level - 1] : 0;
@@ -134,6 +145,18 @@
           });
           opts = ctx.shuffle(opts);
         }
+        // From INKED_FROM, button labels wear the other options' inks (never their own colour)
+        var labelInk = {};
+        if (level >= INKED_FROM && rule !== 'match') {
+          var inks = opts.map(function (c) { return c.id; });
+          for (var tries = 0; tries < 30; tries++) {
+            var perm = ctx.shuffle(inks);
+            if (perm.every(function (id, k) { return id !== opts[k].id; })) {
+              opts.forEach(function (c, k) { labelInk[c.id] = perm[k]; });
+              break;
+            }
+          }
+        }
 
         ctx.setStatus((changed && rule === 'match' ? 'שאלה חדשה: ' : '') + RULES[rule].q);
 
@@ -157,9 +180,9 @@
             type: 'button',
             onclick: function () { answer(c, b); }
           }, [
-            rule === 'match' ? null
+            rule === 'match' || level >= NO_SWATCH_FROM ? null
               : ctx.el('span', { class: 'cw-swatch', 'aria-hidden': 'true', style: { background: inkVar(c.id) } }),
-            ctx.el('span', null, c.name)
+            ctx.el('span', labelInk[c.id] ? { class: 'cw-label-ink cw-ink-' + labelInk[c.id], style: { color: inkVar(labelInk[c.id]) } } : null, c.name)
           ]);
           buttons.push({ color: c, btn: b });
           choices.appendChild(b);

@@ -4,7 +4,7 @@
 
   var ROUNDS = 6;
 
-  // Per level (1–20): grid columns × rows and how many cells light up.
+  // Per level (1–30): grid columns × rows and how many cells light up.
   // At most 4 columns, so tiles stay ≥ 56px with roomy gaps on a 360px phone; up to level 15 the
   // grid stays 4 × 5 (one screen) and difficulty grows through the number of lit cells.
   var LEVELS = [
@@ -27,7 +27,18 @@
     { cols: 4, rows: 6, count: 9 },  // 17
     { cols: 4, rows: 6, count: 9 },  // 18
     { cols: 4, rows: 6, count: 10 }, // 19
-    { cols: 4, rows: 6, count: 11 }  // 20
+    { cols: 4, rows: 6, count: 11 }, // 20
+    // 21–30: the same 4 × 6 board, a few more cells to remember
+    { cols: 4, rows: 6, count: 12 }, // 21
+    { cols: 4, rows: 6, count: 12 }, // 22
+    { cols: 4, rows: 6, count: 12 }, // 23
+    { cols: 4, rows: 6, count: 13 }, // 24
+    { cols: 4, rows: 6, count: 13 }, // 25
+    { cols: 4, rows: 6, count: 13 }, // 26
+    { cols: 4, rows: 6, count: 13 }, // 27
+    { cols: 4, rows: 6, count: 14 }, // 28
+    { cols: 4, rows: 6, count: 14 }, // 29
+    { cols: 4, rows: 6, count: 14 }  // 30
   ];
 
   var css = [

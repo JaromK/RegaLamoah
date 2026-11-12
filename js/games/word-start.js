@@ -36,7 +36,7 @@
     'דל': ['דלת דלי דלעת', 'דלק דלפק דלקת', 'דליפה דליל', 'דלמגוש דלגוט דלפוז דלצבה דלקטון']
   };
 
-  // Per level (1–20): options on screen, how many are real words, which word tiers to prefer
+  // Per level (1–30): options on screen, how many are real words, which word tiers to prefer
   // (0 = very common, 1 = common, 2 = rarer). At most 5 options so the screen stays calm.
   var LEVELS = [
     { options: 4, correct: 1, tiers: [0] },    // 1
@@ -58,7 +58,19 @@
     { options: 5, correct: 3, tiers: [2, 1] }, // 17
     { options: 5, correct: 3, tiers: [2] },    // 18
     { options: 5, correct: 3, tiers: [2] },    // 19
-    { options: 5, correct: 3, tiers: [2] }     // 20
+    { options: 5, correct: 3, tiers: [2] },    // 20
+    // 21–30: still 5 options; the number of real words changes from round to round (correct: [min, max]),
+    // and from 26 the player is not told how many to pick (hidden)
+    { options: 5, correct: [2, 3], tiers: [2] },               // 21
+    { options: 5, correct: [1, 3], tiers: [2] },               // 22
+    { options: 5, correct: [2, 4], tiers: [2, 1] },            // 23
+    { options: 5, correct: [1, 4], tiers: [2] },               // 24
+    { options: 5, correct: [1, 4], tiers: [2, 1] },            // 25
+    { options: 5, correct: [2, 3], tiers: [2], hidden: true }, // 26
+    { options: 5, correct: [1, 3], tiers: [2], hidden: true }, // 27
+    { options: 5, correct: [2, 4], tiers: [2, 1], hidden: true }, // 28
+    { options: 5, correct: [1, 4], tiers: [2], hidden: true }, // 29
+    { options: 5, correct: [1, 4], tiers: [2, 1], hidden: true } // 30
   ];
 
   function words(str) { return str.split(' ').filter(Boolean); }
@@ -68,6 +80,9 @@
   function makeRound(open, spec, rnd) {
     var p = POOL[open];
     var picked = [];
+    if (Array.isArray(spec.correct)) {
+      spec = { options: spec.options, tiers: spec.tiers, correct: rnd.randInt(spec.correct[0], spec.correct[1]) };
+    }
     // preferred tiers first (shuffled together), then the remaining tiers nearest to them
     var order = spec.tiers.slice();
     [0, 1, 2].sort(function (a, b) {
@@ -110,7 +125,7 @@
     instructions: [
       'למעלה יופיעו שתי אותיות פתיחה.',
       'מתחת יש כמה מילים. רק חלקן מילים אמיתיות.',
-      'בחרו את המילים האמיתיות. כתוב כמה לבחור.',
+      'בחרו את המילים האמיתיות. כתוב כמה לבחור (ברמות הגבוהות לא כתוב).',
       'לחצו "בדיקה" כשתסיימו.'
     ],
     css: css,
@@ -161,29 +176,31 @@
         root.appendChild(head);
         root.appendChild(opts);
         root.appendChild(actions);
-        ctx.setStatus(need === 1 ? 'בחרו מילה אחת אמיתית' : 'בחרו ' + need + ' מילים אמיתיות');
+        var hidden = !!spec.hidden;
+        ctx.setStatus(hidden ? 'בחרו את כל המילים האמיתיות (לפחות אחת)'
+          : need === 1 ? 'בחרו מילה אחת אמיתית' : 'בחרו ' + need + ' מילים אמיתיות');
 
         function toggle(i) {
           if (done) return;
           ctx.sound('tap');
           if (selected[i]) { delete selected[i]; count--; }
           else {
-            if (need === 1) { // a single answer: switch the choice instead of blocking
+            if (need === 1 && !hidden) { // a single answer: switch the choice instead of blocking
               Object.keys(selected).forEach(function (k) {
                 delete selected[k]; count--;
                 buttons[k].classList.remove('is-selected');
                 buttons[k].setAttribute('aria-pressed', 'false');
               });
-            } else if (count >= need) return;
+            } else if (!hidden && count >= need) return;
             selected[i] = true; count++;
           }
           buttons[i].classList.toggle('is-selected', !!selected[i]);
           buttons[i].setAttribute('aria-pressed', selected[i] ? 'true' : 'false');
-          checkBtn.disabled = count !== need;
+          checkBtn.disabled = hidden ? count === 0 : count !== need;
         }
 
         function check() {
-          if (done || count !== need) return;
+          if (done || (hidden ? count === 0 : count !== need)) return;
           done = true;
           actions.remove();
           var hits = 0;
@@ -200,7 +217,7 @@
               b.appendChild(el('span', { class: 'ws-mark', 'aria-hidden': 'true' }, '✗'));
             }
           });
-          var ok = hits === need;
+          var ok = hits === need && count === need;
           if (ok) score++;
           if (R.more.length) {
             root.appendChild(el('p', { class: 'g-hint ws-more' }, 'עוד מילים: ' + R.more.join(', ')));

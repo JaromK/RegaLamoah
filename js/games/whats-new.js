@@ -44,11 +44,16 @@
   /* Difficulty by level (index = level - 1).
      Levels 1-15 spread the original 10-level curve in small steps; 16-20 add new challenges. */
   // Items shown first (the second screen adds one more, or one disappears).
-  var COUNTS = [3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10, 10, 11, 11, 12];
+  // 21–30 go up to 15 items: 15 + the new one still fill only four rows of four.
+  var COUNTS = [3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10, 10, 11, 11, 12,
+    12, 13, 13, 14, 14, 14, 15, 15, 15, 15];
+  // A "what disappeared?" round also shows a row of candidates, so it keeps at most 13 items (four rows).
+  var GONE_MAX = 13;
   // From level 17 the items come from a single category, so they are harder to tell apart.
   var SAME_CAT_FROM = 17;
   // Rounds (out of 7) that ask "what disappeared?" instead of "what is new?".
-  var GONE_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3];
+  var GONE_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3,
+    3, 3, 4, 3, 4, 4, 4, 5, 5, 6];
   var N_DECOYS = 3; // extra candidates in a "what disappeared?" round
 
   var CSS = [
@@ -81,7 +86,7 @@
     ],
     css: CSS,
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(20, Math.round(Number(ctx.level) || 1)));
+      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
       var count = COUNTS[level - 1];
       var sameCat = level >= SAME_CAT_FROM;
       var round = 0;
@@ -148,8 +153,9 @@
 
         if (kinds[round - 1] === 'gone') {
           goneTotal++;
-          var pool = pickItems(count + N_DECOYS);
-          var decoys = pool.splice(count, N_DECOYS);
+          var goneCount = Math.min(count, GONE_MAX);
+          var pool = pickItems(goneCount + N_DECOYS);
+          var decoys = pool.splice(goneCount, N_DECOYS);
           var shown = pool.slice();
           var gone = takeAnswer(pool); // pool now holds the items that stay
           showStudy(shown, function () { showGoneTest(pool, gone, decoys); }, true);

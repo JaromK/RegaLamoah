@@ -9,12 +9,14 @@
   function clampLevel(l) {
     l = Math.round(Number(l));
     if (!isFinite(l)) l = 3;
-    return Math.max(1, Math.min(20, l));
+    return Math.max(1, Math.min(30, l));
   }
 
   /* [rows, cols] per level (index = level). */
   var SIZES = [null,
     [2, 3], [3, 3], [3, 3], [3, 4], [3, 4],
+    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
+    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
     [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
     [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
     [4, 4], [4, 4], [4, 4], [4, 4], [4, 4]];
@@ -30,7 +32,11 @@
     if (L <= 11) return ['twin', 'rot180'];
     if (L <= 13) return ['twin', 'rot180', 'mirror'];
     if (L <= 15) return ['twin', 'mirror', 'rot90'];
-    return ['subtle', 'mirror', 'rot90'];
+    if (L <= 20) return ['subtle', 'mirror', 'rot90'];
+    // 21–30: two pictures trade places ('swap'), or one is only slightly tilted ('tilt')
+    if (L <= 22) return ['subtle', 'mirror', 'rot90', 'swap'];
+    if (L <= 25) return ['subtle', 'swap', 'mirror', 'tilt'];
+    return ['subtle', 'swap', 'tilt'];
   }
 
   var FAMILIES = [
@@ -92,7 +98,7 @@
     var tries = 0;
     while (kinds.length > 1 && kind === prevKind && tries++ < 10) kind = R.pick(kinds);
     var target = R.randInt(0, n - 1);
-    var a, b, cellsA, transform = '', explain, from, to;
+    var a, b, cellsA, transform = '', explain, from, to, target2 = -1;
 
     if (kind === 'far' || kind === 'family') {
       var fams = R.shuffle(FAMILIES.map(function (f, i) { return i; }));
@@ -121,6 +127,22 @@
       from = pair[0]; to = pair[1];
       cellsA[target] = from;
       explain = from + ' הוחלף ב־' + to + ' שדומה לו';
+    } else if (kind === 'swap') {
+      // two neighbouring, different pictures trade places
+      var swapPool = R.shuffle(R.pick(FAMILIES)).slice(0, R.randInt(5, 7));
+      for (var sw = 0; sw < 50; sw++) {
+        cellsA = fillRepeat(swapPool, n, R);
+        var nbs = [];
+        if (target % cols > 0) nbs.push(target - 1);
+        if (target % cols < cols - 1) nbs.push(target + 1);
+        if (target >= cols) nbs.push(target - cols);
+        if (target + cols < n) nbs.push(target + cols);
+        nbs = nbs.filter(function (k) { return cellsA[k] !== cellsA[target]; });
+        if (nbs.length) { target2 = R.pick(nbs); break; }
+      }
+      if (target2 < 0) { target2 = target === 0 ? 1 : target - 1; cellsA[target2] = swapPool[0] === cellsA[target] ? swapPool[1] : swapPool[0]; }
+      from = cellsA[target]; to = cellsA[target2];
+      explain = from + ' ו־' + to + ' החליפו מקומות';
     } else if (kind === 'subtle') {
       var grp = R.pick(SUBTLE);
       cellsA = fillRepeat(grp, n, R);
@@ -139,13 +161,18 @@
       from = to = cellsA[target];
       if (kind === 'mirror') { transform = 'scaleX(-1)'; explain = from + ' הפוך, כמו בראי'; }
       else if (kind === 'rot180') { transform = 'rotate(180deg)'; explain = from + ' עומד על הראש (הפוך)'; }
+      else if (kind === 'tilt') {
+        var deg = L >= 28 ? 20 : 30;
+        transform = 'rotate(' + (R.randInt(0, 1) ? deg : -deg) + 'deg)'; explain = from + ' מוטה קצת הצידה';
+      }
       else { transform = R.randInt(0, 1) ? 'rotate(90deg)' : 'rotate(-90deg)'; explain = from + ' שוכב על הצד'; }
     }
 
     var cellsB = cellsA.slice();
     cellsB[target] = to;
+    if (target2 >= 0) cellsB[target2] = from;
     return {
-      kind: kind, rows: rows, cols: cols, target: target,
+      kind: kind, rows: rows, cols: cols, target: target, target2: target2,
       a: cellsA, b: cellsB, transform: transform, explain: explain,
       row: Math.floor(target / cols) + 1, col: (target % cols) + 1
     };
@@ -159,7 +186,7 @@
     benefit: 'קשב לפרטים וסריקה חזותית מסודרת',
     instructions: [
       'השוו בין תמונה א לתמונה ב, משבצת אחרי משבצת.',
-      'בכל סיבוב יש הבדל אחד בלבד: פרט שהוחלף, הפוך או מסובב.',
+      'בכל סיבוב יש הבדל אחד בלבד: פרט שהוחלף, הפוך, מסובב, או שני פרטים שהחליפו מקומות.',
       'לחצו על המשבצת השונה בתמונה ב (התחתונה).',
       'אין שעון. סרקו בנחת, שורה אחרי שורה.'
     ],
@@ -236,7 +263,11 @@
           tiles.b.forEach(function (t) { t.disabled = true; });
           tiles.a[q.target].classList.add('is-correct');
           tiles.b[q.target].classList.add('is-correct');
-          var ok = i === q.target;
+          if (q.target2 >= 0) {
+            tiles.a[q.target2].classList.add('is-correct');
+            tiles.b[q.target2].classList.add('is-correct');
+          }
+          var ok = i === q.target || i === q.target2;
           if (ok) correct++;
           else tiles.b[i].classList.add('is-wrong');
           // the status line now names picture B, so its label makes room for the next button

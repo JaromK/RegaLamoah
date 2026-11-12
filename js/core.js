@@ -19,15 +19,18 @@
   };
 
   var MIN_LEVEL = 1;
-  var MAX_LEVEL = 20;
+  var MAX_LEVEL = 30;
   var START_LEVEL = 3; // level 1–2 stay available as warm-ups
+  var SILVER_LEVEL = 20; // winning this level earns the silver trophy; MAX_LEVEL earns the gold one
 
   /* Levels are grouped into named stages shown on the level path. */
   var STAGES = [
     { from: 1,  to: 5,  name: 'צעדים ראשונים' },
     { from: 6,  to: 10, name: 'מתחממים' },
     { from: 11, to: 15, name: 'בכושר' },
-    { from: 16, to: 20, name: 'אלופים' }
+    { from: 16, to: 20, name: 'אלופים' },
+    { from: 21, to: 25, name: 'מומחים' },
+    { from: 26, to: 30, name: 'אגדות' }
   ];
 
   function stageOf(level) {
@@ -65,6 +68,13 @@
         }
         Object.keys(base.levels).forEach(function (id) {
           base.best[id] = Math.max(base.best[id] || 1, base.levels[id]);
+        });
+        // Trophies: { silver: date, gold: date }. Before 30 levels a trophy was a date string
+        // earned at level 20, which is now the silver trophy.
+        Object.keys(base.trophies).forEach(function (id) {
+          var t = base.trophies[id];
+          if (typeof t === 'string') base.trophies[id] = { silver: t };
+          else if (!t || typeof t !== 'object') delete base.trophies[id];
         });
       }
     } catch (e) {
@@ -231,6 +241,12 @@
     return null;
   }
 
+  /* A game's top level: its own maxLevel (a game may stop early, e.g. at 20) or MAX_LEVEL. */
+  function maxLevelOf(id) {
+    var g = typeof id === 'string' ? getGame(id) : id;
+    return g && g.maxLevel ? Math.max(MIN_LEVEL, Math.min(MAX_LEVEL, g.maxLevel)) : MAX_LEVEL;
+  }
+
   /* Today's workout: 4 games, seeded by the date, covering as many skills as possible. */
   function dailyGames(dKey, count) {
     count = count || 4;
@@ -252,10 +268,12 @@
     MIN_LEVEL: MIN_LEVEL,
     MAX_LEVEL: MAX_LEVEL,
     START_LEVEL: START_LEVEL,
+    SILVER_LEVEL: SILVER_LEVEL,
     STAGES: STAGES,
     stageOf: stageOf,
     register: register,
     getGame: getGame,
+    maxLevelOf: maxLevelOf,
     all: function () { return registry.slice(); },
     dailyGames: dailyGames,
     state: loadState(),

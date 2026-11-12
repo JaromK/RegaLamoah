@@ -4,9 +4,7 @@
 
   var ROUNDS = 5;
 
-  // Per level (1–20): grid columns × rows, houses to deliver to, blocked cells (trees),
-  // and how many extra steps beyond the shortest route still count as a good route.
-  // Per level (1–20): grid columns × rows (never more than 5 × 5, so cells stay big),
+  // Per level (1–30): grid columns × rows (never more than 5 × 5, so cells stay big),
   // houses to deliver to, blocked cells (trees), and how many extra steps beyond the
   // shortest route still count as a good route. From level 16 the maps are picked so that
   // "always go to the nearest house" is NOT the shortest route — real planning is needed.
@@ -30,7 +28,18 @@
     { cols: 5, rows: 5, k: 5, walls: 7, slack: 0, tricky: true }, // 17
     { cols: 5, rows: 5, k: 5, walls: 8, slack: 0, tricky: true }, // 18
     { cols: 5, rows: 5, k: 5, walls: 8, slack: 0, tricky: true }, // 19
-    { cols: 5, rows: 5, k: 5, walls: 9, slack: 0, tricky: true }  // 20
+    { cols: 5, rows: 5, k: 5, walls: 9, slack: 0, tricky: true }, // 20
+    // 21–30: the same 5 × 5 map with more houses on one route
+    { cols: 5, rows: 5, k: 6, walls: 6, slack: 1, tricky: true }, // 21
+    { cols: 5, rows: 5, k: 6, walls: 7, slack: 0, tricky: true }, // 22
+    { cols: 5, rows: 5, k: 6, walls: 8, slack: 0, tricky: true }, // 23
+    { cols: 5, rows: 5, k: 6, walls: 9, slack: 0, tricky: true }, // 24
+    { cols: 5, rows: 5, k: 6, walls: 10, slack: 0, tricky: true }, // 25
+    { cols: 5, rows: 5, k: 7, walls: 7, slack: 1, tricky: true }, // 26
+    { cols: 5, rows: 5, k: 7, walls: 8, slack: 0, tricky: true }, // 27
+    { cols: 5, rows: 5, k: 7, walls: 9, slack: 0, tricky: true }, // 28
+    { cols: 5, rows: 5, k: 7, walls: 10, slack: 0, tricky: true }, // 29
+    { cols: 5, rows: 5, k: 7, walls: 11, slack: 0, tricky: true }  // 30
   ];
 
   /* ---------- map helpers (pure) ---------- */
@@ -109,7 +118,7 @@
 
   function makeMap(spec, cols, rows, rand) {
     var n = cols * rows;
-    var k = Math.min(spec.k, 5);
+    var k = Math.min(spec.k, 7);
     for (var attempt = 0; attempt < 400; attempt++) {
       var open = [];
       for (var i = 0; i < n; i++) open.push(true);

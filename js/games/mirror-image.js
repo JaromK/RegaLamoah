@@ -4,7 +4,7 @@
 
   var ROUNDS = 7;
 
-  // Per level (1–20): grid size, filled cells, options shown, colours (1–2),
+  // Per level (1–30): grid size, filled cells, options shown, colours (1–2),
   // and `near` = the "one cell moved" distractor moves only to a neighbouring cell (subtler).
   var LEVELS = [
     { size: 3, count: 3,  options: 3, colors: 1, near: false }, // 1
@@ -26,7 +26,19 @@
     { size: 5, count: 10, options: 4, colors: 2, near: true },  // 17
     { size: 5, count: 11, options: 4, colors: 2, near: true },  // 18
     { size: 5, count: 12, options: 4, colors: 2, near: true },  // 19
-    { size: 5, count: 13, options: 4, colors: 2, near: true }   // 20
+    { size: 5, count: 13, options: 4, colors: 2, near: true },  // 20
+    // 21–30: the easy wrong answers (the unchanged picture, the upside-down one) give way to near
+    // misses: another cell moved, or two colours swapped (hard = how many easy answers are replaced)
+    { size: 5, count: 12, options: 4, colors: 2, near: true, hard: 1 }, // 21
+    { size: 5, count: 13, options: 4, colors: 2, near: true, hard: 1 }, // 22
+    { size: 5, count: 14, options: 4, colors: 2, near: true, hard: 1 }, // 23
+    { size: 5, count: 11, options: 4, colors: 2, near: true, hard: 2 }, // 24
+    { size: 5, count: 12, options: 4, colors: 2, near: true, hard: 2 }, // 25
+    { size: 5, count: 13, options: 4, colors: 2, near: true, hard: 2 }, // 26
+    { size: 5, count: 14, options: 4, colors: 2, near: true, hard: 2 }, // 27
+    { size: 5, count: 15, options: 4, colors: 2, near: true, hard: 2 }, // 28
+    { size: 5, count: 16, options: 4, colors: 2, near: true, hard: 2 }, // 29
+    { size: 5, count: 17, options: 4, colors: 2, near: true, hard: 2 }  // 30
   ];
 
   var css = [
@@ -105,6 +117,17 @@
     return null;
   }
 
+  // Swap the colours of one cell of each colour (same shape, colours in the wrong places).
+  function colorSwap(p, ctx) {
+    var a = [], b = [];
+    p.forEach(function (v, k) { if (v === 1) a.push(k); else if (v === 2) b.push(k); });
+    if (!a.length || !b.length) return null;
+    var out = p.slice();
+    var i = ctx.pick(a), j = ctx.pick(b);
+    out[i] = 2; out[j] = 1;
+    return out;
+  }
+
   // Build one round: original, answer (mirror) and distinct distractors.
   function buildRound(spec, ctx) {
     var n = spec.size;
@@ -130,6 +153,19 @@
         { p: upDown, kind: 'updown' },
         { p: moved, kind: 'moved' }
       ];
+      if (spec.hard) {
+        var near = [];
+        for (var h = 0; h < 30 && near.length < spec.hard; h++) {
+          var c2 = near.length % 2 === 0 ? moveOne(answer, n, true, ctx) : colorSwap(answer, ctx);
+          var swapKind = near.length % 2 === 0 ? 'moved' : 'swap';
+          if (c2 && !seen[keyOf(c2)] && keyOf(c2) !== keyOf(moved)) { seen[keyOf(c2)] = true; near.push({ p: c2, kind: swapKind }); }
+        }
+        if (near.length < spec.hard) continue;
+        // keep the "moved" one; hard 1 replaces the unchanged picture, hard 2 also the upside-down one
+        distractors = [{ p: moved, kind: 'moved' }].concat(near);
+        if (spec.hard < 2) distractors.push({ p: upDown, kind: 'updown' });
+        distractors = distractors.slice(0, 3);
+      }
       distractors = ctx.shuffle(distractors).slice(0, spec.options - 1);
       var options = ctx.shuffle([{ p: answer, kind: 'answer' }].concat(distractors));
       return { orig: orig, options: options };
@@ -224,6 +260,7 @@
           if (!ok) {
             if (chosen.kind === 'same') msg = 'זה הציור עצמו, בלי מראה. התשובה מסומנת בירוק';
             else if (chosen.kind === 'updown') msg = 'זה הפוך מלמעלה למטה. התשובה מסומנת בירוק';
+            else if (chosen.kind === 'swap') msg = 'כמעט! שני צבעים התחלפו. התשובה מסומנת בירוק';
             else msg = 'כמעט! משבצת אחת זזה. התשובה מסומנת בירוק';
           }
           ctx.setStatus(ok ? 'מצוין, בדיוק כמו במראה!' : 'הנה התמונה הנכונה');

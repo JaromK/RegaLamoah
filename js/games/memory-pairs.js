@@ -42,8 +42,10 @@
     ]
   ];
 
-  // Per level (1–20): number of pairs + how alike the pictures are.
-  // mix: 0 = mixed families, 1 = two families, 2 = one family, 3 = look-alikes, 'word' = picture + its name.
+  // Per level (1–30): number of pairs + how alike the pictures are.
+  // mix: 0 = mixed families, 1 = two families, 2 = one family, 3 = look-alikes, 'word' = picture + its name;
+  // 'word2' / 'word1' = picture + name from two families / one family, 'wordLook' = coloured circles and
+  // squares with their names ("עיגול ירוק").
   var LEVELS = [
     { pairs: 3, mix: 0 },  // 1
     { pairs: 3, mix: 2 },  // 2
@@ -64,7 +66,18 @@
     { pairs: 12, mix: 0 }, // 17
     { pairs: 12, mix: 1 }, // 18
     { pairs: 12, mix: 2 }, // 19
-    { pairs: 12, mix: 'word' } // 20
+    { pairs: 12, mix: 'word' }, // 20
+    // 21–30: always 12 pairs; the pictures get more alike, and the picture must be matched with its name
+    { pairs: 12, mix: 3 },        // 21
+    { pairs: 12, mix: 3 },        // 22
+    { pairs: 12, mix: 'word2' },  // 23
+    { pairs: 12, mix: 'word2' },  // 24
+    { pairs: 12, mix: 'word1' },  // 25
+    { pairs: 12, mix: 'word1' },  // 26
+    { pairs: 12, mix: 'word1' },  // 27
+    { pairs: 12, mix: 'wordLook' }, // 28
+    { pairs: 12, mix: 'wordLook' }, // 29
+    { pairs: 12, mix: 'wordLook' }  // 30
   ];
 
   var MIN_TAP = 56; // px, smallest card we allow
@@ -122,6 +135,18 @@
   function choosePictures(ctx, pairs, mix) {
     var fams = ctx.shuffle(BASE);
     var list;
+    var oneWord = function (p) { return p.n.indexOf(' ') === -1; };
+    if (mix === 'wordLook') return ctx.shuffle(LOOKALIKE[1]).slice(0, pairs);
+    if (mix === 'word1') {
+      // one family: pick the family with enough one-word names
+      var f1 = fams.filter(function (f) { return FAMILIES[f].filter(oneWord).length >= pairs; })[0] || fams[0];
+      return ctx.shuffle(FAMILIES[f1].filter(oneWord)).slice(0, pairs);
+    }
+    if (mix === 'word2') {
+      var h = Math.ceil(pairs / 2);
+      return ctx.shuffle(FAMILIES[fams[0]].filter(oneWord)).slice(0, h)
+        .concat(ctx.shuffle(FAMILIES[fams[1]].filter(oneWord)).slice(0, pairs - h));
+    }
     if (mix === 3) {
       list = ctx.shuffle(ctx.pick(LOOKALIKE.filter(function (s) { return s.length >= pairs; })));
     } else if (mix === 2) {
@@ -162,7 +187,7 @@
     start: function (root, ctx) {
       var el = ctx.el;
       var spec = LEVELS[clampLevel(ctx.level) - 1];
-      var wordMode = spec.mix === 'word';
+      var wordMode = typeof spec.mix === 'string';
 
       var chosen = choosePictures(ctx, spec.pairs, spec.mix);
       var pairs = chosen.length;

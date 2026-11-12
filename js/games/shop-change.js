@@ -41,7 +41,7 @@
   }
   function moneyText(ag) { return ltr(money(ag)); }
 
-  var MAX_L = 20;
+  var MAX_L = 30;
 
   /* Per level: item count [min,max], price type, most expensive item allowed, cap on the total (agorot),
      chance of paying with a bigger note than needed, special offer, and how the player pays. */
@@ -65,7 +65,19 @@
     17: { count: [3, 3], price: 'half', maxPrice: 99, cap: 19000, up: 0.3, special: 'deal' },
     18: { count: [3, 3], price: 'half', maxPrice: 99, cap: 19000, up: 0.3, special: 'discount' },
     19: { count: [4, 4], price: 'half', maxPrice: 99, cap: 19000, up: 0, pay: 'multi' },
-    20: { count: [4, 5], price: 'mix', maxPrice: 99, cap: 19000, up: 0.3, special: 'any', pay: 'any' }
+    20: { count: [4, 5], price: 'mix', maxPrice: 99, cap: 19000, up: 0.3, special: 'any', pay: 'any' },
+    // 21–30: prices in any 10 agorot (₪12.40), and two special offers on one receipt ('both');
+    // never more than five lines, so the receipt still fits the screen
+    21: { count: [4, 4], price: 'odd', maxPrice: 99, cap: 19000, up: 0.3, pay: 'any' },
+    22: { count: [4, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.3, pay: 'any' },
+    23: { count: [3, 4], price: 'mix', maxPrice: 99, cap: 19000, up: 0.3, special: 'both', pay: 'any' },
+    24: { count: [4, 4], price: 'mix', maxPrice: 99, cap: 19000, up: 0.3, special: 'both', pay: 'any' },
+    25: { count: [4, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.3, special: 'any', pay: 'any' },
+    26: { count: [3, 4], price: 'odd', maxPrice: 99, cap: 19000, up: 0.3, special: 'both', pay: 'any' },
+    27: { count: [4, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.3, special: 'both', pay: 'multi' },
+    28: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, special: 'any', pay: 'any' },
+    29: { count: [4, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, special: 'both', pay: 'any' },
+    30: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, special: 'both', pay: 'any' }
   };
 
   var TWO_NOTES = [[2000, 2000], [5000, 2000], [5000, 5000], [10000, 2000], [10000, 5000], [20000, 5000], [20000, 10000]];
@@ -79,6 +91,11 @@
     var lo = item[1], hi = item[2];
     if (type === 'whole') return R.randInt(lo, hi) * 100;
     if (type === 'half') return R.randInt(lo * 2, hi * 2) * 50;
+    if (type === 'odd') { // any 10 agorot, mostly not round: ₪12.40, ₪7.80
+      var ag = R.randInt(lo * 10, hi * 10 - 1) * 10;
+      if (ag % 100 === 0) ag += R.pick([20, 40, 60, 80]);
+      return ag;
+    }
     var r = R.randInt(1, 10);
     if (r <= 6) return R.randInt(lo, hi - 1) * 100 + 90;
     if (r <= 8) return R.randInt(lo, hi - 1) * 100 + 50;
@@ -191,37 +208,42 @@
     var pool = ITEMS.filter(function (it) { return it[2] <= cfg.maxPrice; });
     var count = itemCount(L, cfg, kind, R);
     var special = cfg.special === 'any' ? R.pick(['deal', 'discount', null]) : (cfg.special || null);
-    var lines, total, spec, tries = 0;
+    var kindsOf = special === 'both' ? ['deal', 'discount'] : special ? [special] : [];
+    var lines, total, specs, tries = 0;
     do {
-      spec = null;
+      specs = [];
       var plain = R.shuffle(pool);
-      if (special) {
-        var sItem = R.pick(ITEMS.filter(function (it) { return special === 'deal' ? it[2] <= 12 : it[2] >= 10; }));
+      kindsOf.forEach(function (sk) {
+        var sItem = R.pick(ITEMS.filter(function (it) {
+          return (sk === 'deal' ? it[2] <= 12 : it[2] >= 10) && plain.indexOf(it) !== -1;
+        }));
         plain = plain.filter(function (it) { return it !== sItem; });
-        spec = special === 'deal' ? dealLine(sItem, R) : discountLine(sItem, R);
-      }
-      lines = plain.slice(0, special ? count - 1 : count).map(function (it) { return { name: it[0], price: price(it, cfg.price, R) }; });
-      if (spec) lines.splice(R.randInt(0, lines.length), 0, spec);
+        specs.push(sk === 'deal' ? dealLine(sItem, R) : discountLine(sItem, R));
+      });
+      lines = plain.slice(0, Math.max(1, count - specs.length)).map(function (it) { return { name: it[0], price: price(it, cfg.price, R) }; });
+      specs.forEach(function (sp) { lines.splice(R.randInt(0, lines.length), 0, sp); });
       total = lines.reduce(function (s, x) { return s + x.price; }, 0);
     } while (total > cfg.cap && tries++ < 40);
 
     var pay = choosePay(total, cfg, R);
     var note = pay.reduce(function (s, x) { return s + x; }, 0);
     var change = note - total;
-    var frac = lines.some(function (x) { return x.price % 100 === 90; }) ? 'ninety'
+    var frac = lines.some(function (x) { return x.price % 100 === 90 || x.price % 50 !== 0; }) ? 'ninety'
       : lines.some(function (x) { return x.price % 100 !== 0; }) ? 'half' : '';
     var ans = kind === 'total' ? total : change;
     var upper = kind === 'total' ? 100000 : note;
     var extras = [];
-    if (spec) {
-      spec.wrongPrices.forEach(function (wp) {
-        if (wp === null || wp === spec.price) return;
-        var wrongTotal = total - spec.price + wp;
+    specs.forEach(function (sp) {
+      sp.wrongPrices.forEach(function (wp) {
+        if (wp === null || wp === sp.price) return;
+        var wrongTotal = total - sp.price + wp;
         extras.push(kind === 'total' ? wrongTotal : note - wrongTotal);
       });
-    }
+    });
     var hints = [];
-    if (spec) hints.push(spec.hint);
+    // one offer: explain it in the status line; two offers: the tags on the receipt lines say enough
+    if (specs.length === 1) hints.push(specs[0].hint);
+    else if (specs.length > 1) hints.push('שימו לב לשני המבצעים בקבלה.');
     if (kind === 'change' && pay.length > 1) hints.push('חברו קודם את כל מה ששילמתם.');
     return {
       kind: kind,
@@ -232,7 +254,7 @@
       change: change,
       answer: ans,
       hint: hints.length ? hints.join(' ') : null,
-      special: spec ? spec.explain : null,
+      special: specs.length ? specs.map(function (sp) { return sp.explain; }).join(' · ') : null,
       choices: R.shuffle([ans].concat(makeDistractors(ans, frac, upper, R, extras)))
     };
   }

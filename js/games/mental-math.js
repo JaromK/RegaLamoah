@@ -94,7 +94,7 @@
     return { text: text, answer: ans, extras: [wrong], twoStep: true };
   }
 
-  var MAX_L = 20;
+  var MAX_L = 30;
 
   /* two-digit + one-digit without carrying, or minus without borrowing */
   function noCarrySmall(R, allowSub) {
@@ -209,6 +209,89 @@
     return { text: text, answer: ans, extras: [wrong], twoStep: true, hint: hint };
   }
 
+  /* ---------- levels 21–30 ---------- */
+
+  /* three-digit ± two- or three-digit, with carrying / borrowing */
+  function bigAddSub(R, sub3) {
+    if (R.randInt(0, 1)) {
+      var a = R.randInt(120, 780), b = R.randInt(sub3 ? 110 : 25, sub3 ? 219 : 99);
+      if ((a % 10) + (b % 10) < 10) b += 10 - (b % 10) - (a % 10) + R.randInt(0, 3); // force a carry
+      var e = simple(a, PLUS, b);
+      e.extras = [a + b - 10, a + b + 10, a + b - 100];
+      return e;
+    }
+    var x = R.randInt(310, 960), y = R.randInt(sub3 ? 120 : 25, sub3 ? 290 : 98);
+    if ((x % 10) >= (y % 10)) y = y - (y % 10) + Math.min(9, (x % 10) + 1 + R.randInt(0, 2)); // force a borrow
+    var f = simple(x, MINUS, y);
+    f.extras = [x - y + 10, x - y - 10, x - y + 100];
+    return f;
+  }
+
+  /* two-digit × one-digit, e.g. 47 × 6 */
+  function mulTwoOne(R, maxA) {
+    var a = R.randInt(13, maxA), b = R.randInt(3, 9);
+    if (a % 10 === 0) a += R.randInt(1, 9);
+    var e = R.randInt(0, 1) ? simple(a, TIMES, b) : simple(b, TIMES, a);
+    e.extras = [Math.floor(a / 10) * 10 * b + (a % 10), a * b + 10, a * b - 10, (a + 1) * b];
+    e.hint = 'רמז: פרקו לעשרות ואחדות, למשל ' + a + ' = ' + (a - a % 10) + ' + ' + (a % 10);
+    return e;
+  }
+
+  /* division with a two-digit answer, e.g. 96 ÷ 4 */
+  function divTwo(R) {
+    var p = R.randInt(3, 9), q = R.randInt(12, p <= 4 ? 30 : 19);
+    var e = simple(p * q, DIV, p);
+    e.extras = [q + 1, q - 1, q + 10, q - 10];
+    return e;
+  }
+
+  /* ×11, ×25, ×12 and ×15 tricks */
+  function mulTricks(R) {
+    var k = R.pick([11, 25, 12, 15]);
+    var a = k === 11 ? R.randInt(12, 45) : k === 25 ? R.randInt(3, 16) * 2 : R.randInt(12, 19);
+    if (a % 10 === 0) a += 1;
+    var e = R.randInt(0, 1) ? simple(a, TIMES, k) : simple(k, TIMES, a);
+    e.extras = [a * k + 10, a * k - 10, a * (k - 1), a * (k + 1)];
+    e.hint = k === 11 ? 'רמז: × 11 זה × 10 ועוד פעם אחת' : k === 25 ? 'רמז: × 25 זה × 100 ואז ÷ 4'
+      : k === 12 ? 'רמז: × 12 זה × 10 ועוד × 2' : 'רמז: × 15 זה × 10 ועוד חצי מזה';
+    return e;
+  }
+
+  var PCT_HINTS2 = {
+    5: 'רמז: 5% זה חצי מ־10%',
+    15: 'רמז: 15% זה 10% ועוד 5%',
+    30: 'רמז: 30% זה שלוש פעמים 10%',
+    40: 'רמז: 40% זה ארבע פעמים 10%',
+    60: 'רמז: 60% זה שש פעמים 10%'
+  };
+
+  /* the less round percentages */
+  function percentHard(R) {
+    var p = R.pick([5, 15, 30, 40, 60]);
+    var n = p === 5 || p === 15 ? R.randInt(2, 40) * 20 : R.randInt(2, 50) * 10;
+    var ans = n * p / 100;
+    var extras = [n / 10, n * (p + 10) / 100, n * (p - 5) / 100, n - ans].filter(function (v) { return v === Math.round(v); });
+    return { text: p + '% ' + TIMES + ' ' + n, answer: ans, extras: extras, twoStep: false, hint: PCT_HINTS2[p] };
+  }
+
+  /* four numbers, three operations: (a + b) × c − d × e  or  a × b + c × d − e */
+  function fourStep(R) {
+    var a, b, c, d, e, text, ans, wrong;
+    if (R.randInt(0, 1)) {
+      a = R.randInt(2, 9); b = R.randInt(2, 9); c = R.randInt(2, 5); d = R.randInt(2, 5); e = R.randInt(2, 6);
+      if (d * e >= (a + b) * c) { d = 2; e = 2; }
+      text = '(' + a + ' ' + PLUS + ' ' + b + ') ' + TIMES + ' ' + c + ' ' + MINUS + ' ' + d + ' ' + TIMES + ' ' + e;
+      ans = (a + b) * c - d * e; wrong = ((a + b) * c - d) * e;
+    } else {
+      a = R.randInt(2, 9); b = R.randInt(2, 9); c = R.randInt(2, 6); d = R.randInt(2, 6);
+      e = R.randInt(1, Math.min(20, a * b + c * d - 1));
+      text = a + ' ' + TIMES + ' ' + b + ' ' + PLUS + ' ' + c + ' ' + TIMES + ' ' + d + ' ' + MINUS + ' ' + e;
+      ans = a * b + c * d - e; wrong = (a * b + c) * d - e;
+    }
+    return { text: text, answer: ans, extras: [wrong, ans + 10, ans - 10], twoStep: true,
+      hint: 'זכרו: קודם סוגריים, אחר כך כפל, ובסוף חיבור וחיסור משמאל לימין' };
+  }
+
   function makeExercise(level, R) {
     var L = Math.max(1, Math.min(MAX_L, level | 0));
     var r;
@@ -238,7 +321,26 @@
       case 17: return R.randInt(0, 2) ? percent(R, [10, 50]) : doubleHalf(R, false);
       case 18: return R.randInt(0, 3) ? percent(R, [10, 20, 25, 50]) : doubleHalf(R, true);
       case 19: return R.randInt(0, 3) ? threeStep(R) : percent(R, [10, 20, 25, 50]);
+      case 20:
+        r = R.randInt(0, 9);
+        return r < 5 ? threeStep(R) : r < 8 ? percent(R, [10, 20, 25, 50, 75]) : doubleHalf(R, true);
+      case 21: return R.randInt(0, 1) ? bigAddSub(R, false) : threeStep(R);         // 347 + 86
+      case 22: return R.randInt(0, 1) ? mulTwoOne(R, 49) : bigAddSub(R, false);     // 47 × 6
+      case 23: return R.randInt(0, 1) ? divTwo(R) : mulTwoOne(R, 59);               // 96 ÷ 4
+      case 24: return R.randInt(0, 1) ? percentHard(R) : mulTwoOne(R, 69);          // 15% × 80
+      case 25:
+        r = R.randInt(0, 3);
+        return r === 0 ? bigAddSub(R, true) : r === 1 ? mulTwoOne(R, 79) : r === 2 ? divTwo(R) : percentHard(R);
+      case 26: return R.randInt(0, 1) ? bigAddSub(R, true) : mulTwoOne(R, 99);      // 512 − 268, 78 × 7
+      case 27: return R.randInt(0, 1) ? fourStep(R) : percentHard(R);
+      case 28: return R.randInt(0, 1) ? mulTricks(R) : fourStep(R);                 // 25 × 16, 11 × 43
+      case 29:
+        r = R.randInt(0, 3);
+        return r === 0 ? mulTricks(R) : r === 1 ? percentHard(R) : r === 2 ? divTwo(R) : bigAddSub(R, true);
       default:
+        r = R.randInt(0, 5);
+        return r === 0 ? fourStep(R) : r === 1 ? mulTricks(R) : r === 2 ? percentHard(R)
+          : r === 3 ? mulTwoOne(R, 99) : r === 4 ? bigAddSub(R, true) : divTwo(R);
         r = R.randInt(0, 9);
         return r < 5 ? threeStep(R) : r < 8 ? percent(R, [10, 20, 25, 50, 75]) : doubleHalf(R, true);
     }

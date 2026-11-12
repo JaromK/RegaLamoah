@@ -12,11 +12,12 @@
     { e: '🍊', n: 'תפוז' }, { e: '🍇', n: 'ענבים' }, { e: '🍓', n: 'תות' }
   ];
 
-  /* Per level (1–20).
+  /* Per level (1–30).
      kind 'one'   – one relation 🍎 = k × 🍐 (multi: chance of "a 🍎 = b 🍐" with both sides > 1)
      kind 'chain' – 🍎 = k1 🍐, 🍐 = k2 🍌  → 🍎 in 🍌
      kind 'combo' – 🍎🍐 = c 🍌, 🍐 = d 🍌 (three: chance of a third relation in the chain;
-                    mix: chance the question pan holds two kinds of fruit)
+                    mix: chance the question pan holds two kinds of fruit, up to mixMax of the second;
+                    k3: multiplier range inside the three-scale chain, default 2–3)
      k = multiplier range, n = how many fruits are asked about, rev = chance of the reverse question. */
   var LEVELS = [
     { kind: 'one', k: [2, 2], n: [2, 3] },                          // 1
@@ -38,7 +39,17 @@
     { kind: 'combo', k: [2, 4], n: [1, 3], mix: 0.3 },              // 17
     { kind: 'combo', k: [2, 4], n: [1, 3], mix: 0.3, three: 0.5 },  // 18
     { kind: 'combo', k: [2, 4], n: [1, 3], mix: 0.4, three: 0.65 }, // 19
-    { kind: 'combo', k: [2, 5], n: [1, 3], mix: 0.5, three: 0.8 }   // 20
+    { kind: 'combo', k: [2, 5], n: [1, 3], mix: 0.5, three: 0.8 },  // 20
+    { kind: 'combo', k: [2, 5], n: [1, 3], mix: 0.55, three: 0.85 },                     // 21
+    { kind: 'combo', k: [2, 5], n: [1, 4], mix: 0.6, three: 0.9 },                       // 22
+    { kind: 'combo', k: [2, 6], n: [1, 4], mix: 0.6, three: 0.9, k3: [2, 4] },           // 23
+    { kind: 'combo', k: [2, 6], n: [1, 4], mix: 0.65, three: 1, k3: [2, 4] },            // 24
+    { kind: 'combo', k: [2, 6], n: [2, 4], mix: 0.7, three: 1, k3: [2, 4] },             // 25
+    { kind: 'combo', k: [2, 6], n: [2, 4], mix: 0.7, three: 1, k3: [2, 4], mixMax: 3 },  // 26
+    { kind: 'combo', k: [3, 6], n: [2, 4], mix: 0.75, three: 1, k3: [2, 5], mixMax: 3 }, // 27
+    { kind: 'combo', k: [3, 6], n: [2, 5], mix: 0.8, three: 1, k3: [2, 5], mixMax: 3 },  // 28
+    { kind: 'combo', k: [3, 7], n: [2, 5], mix: 0.85, three: 1, k3: [3, 5], mixMax: 3 }, // 29
+    { kind: 'combo', k: [3, 7], n: [2, 5], mix: 0.9, three: 1, k3: [3, 5], mixMax: 3 }   // 30
   ];
 
   /* ---------- text helpers ---------- */
@@ -154,7 +165,8 @@
     var w = {}, rels, unitFruit, a, bw, mixFruit, mixW, why;
     if (three) {
       // 🍎🍐 = c 🍓, 🍐 = k 🍊, 🍊 = e 🍓
-      var k = ctx.randInt(2, 3), e = ctx.randInt(2, 3);
+      var k3 = spec.k3 || [2, 3];
+      var k = ctx.randInt(k3[0], k3[1]), e = ctx.randInt(k3[0], k3[1]);
       bw = k * e;
       a = ctx.randInt(1, 4);
       var c3 = a + bw;
@@ -189,7 +201,7 @@
     var ans = n * a;
     var traps = [n * (a + bw), n * bw, a + bw, ans + 1, ans + bw];
     if (mix) {
-      var m = ctx.randInt(1, 2);
+      var m = ctx.randInt(1, spec.mixMax || 2);
       q.push([mixFruit, m]);
       ans += m * mixW;
       why += 'לכן ' + qty(n, A) + ' ' + eq(n) + ' ' + qty(n * a, unitFruit) + ', ' + qty(m, mixFruit) + ' ' + eq(m) + ' ' +

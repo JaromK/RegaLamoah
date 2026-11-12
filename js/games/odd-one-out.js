@@ -81,13 +81,14 @@
 
   /* Difficulty by level (index = level - 1).
      Levels 1-15 spread the original 10-level curve in small steps; 16-20 add new challenges. */
-  var N_WORDS = [4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6];
+  var N_WORDS = [4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6];
   // Chance that the odd word comes from a closely related category.
-  var P_HARD = [0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1, 1, 1, 1, 1, 1];
+  var P_HARD = [0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
   // Rounds (out of 8) whose base group is an abstract category (feelings, traits, units...).
-  var ABS_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 3];
+  // Levels 21–30 keep six words and fill more rounds with the harder kinds (abstract groups, letters).
+  var ABS_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 3, 3, 3, 4, 3, 4, 4, 4, 4, 4, 4];
   // Rounds (out of 8) that use the second rule: "which word does not start with the same letter?".
-  var LETTER_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 3];
+  var LETTER_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 3, 3, 3, 2, 3, 3, 3, 3, 3, 3, 3];
   // From level 19 the odd word in letter rounds starts with a look-alike or sound-alike letter.
   var NEAR = {
     'ב': ['כ', 'פ'], 'כ': ['ב', 'ק'], 'ק': ['כ'], 'פ': ['ב'], 'ט': ['ת'], 'ת': ['ט', 'ח'], 'ס': ['ש'],
@@ -138,7 +139,7 @@
     ],
     css: CSS,
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(20, Math.round(Number(ctx.level) || 1)));
+      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
       var nWords = N_WORDS[level - 1];
       var pHard = P_HARD[level - 1];
       var round = 0;

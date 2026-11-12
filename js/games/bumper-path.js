@@ -5,7 +5,7 @@
   var ROUNDS = 6;
   var MIN_TAP = 48; // px, smallest exit slot / cell we allow (board is at most 5 × 5)
 
-  // Per level (1–20): board size, number of bumpers, the fewest bumpers the ball must hit,
+  // Per level (1–30): board size, number of bumpers, the fewest bumpers the ball must hit,
   // and whether the bumpers are hidden while answering (memorise first).
   var LEVELS = [
     { n: 4, bumpers: 1, hits: 1, hide: false }, // 1
@@ -27,7 +27,18 @@
     { n: 5, bumpers: 4, hits: 4, hide: true },  // 17
     { n: 5, bumpers: 5, hits: 4, hide: true },  // 18
     { n: 5, bumpers: 6, hits: 4, hide: true },  // 19
-    { n: 5, bumpers: 6, hits: 5, hide: true }   // 20
+    { n: 5, bumpers: 6, hits: 5, hide: true },  // 20
+    // 21–30: same 5 × 5 board, more lines to remember and a longer bouncing path
+    { n: 5, bumpers: 7, hits: 5, hide: true },  // 21
+    { n: 5, bumpers: 7, hits: 5, hide: true },  // 22
+    { n: 5, bumpers: 7, hits: 6, hide: true },  // 23
+    { n: 5, bumpers: 8, hits: 5, hide: true },  // 24
+    { n: 5, bumpers: 8, hits: 6, hide: true },  // 25
+    { n: 5, bumpers: 8, hits: 6, hide: true },  // 26
+    { n: 5, bumpers: 9, hits: 6, hide: true },  // 27
+    { n: 5, bumpers: 9, hits: 7, hide: true },  // 28
+    { n: 5, bumpers: 10, hits: 7, hide: true }, // 29
+    { n: 5, bumpers: 10, hits: 8, hide: true }  // 30
   ];
 
   // Edge slots: T (top, by column), B (bottom), L (left, by row), R (right). Grid is always drawn LTR.
@@ -148,7 +159,7 @@
       var avail = Math.min(contentWidth(root) + 1.5 * rem, 28 * rem);
       try { if (window.innerHeight) avail = Math.min(avail, Math.max(17 * rem, window.innerHeight - 15 * rem)); } catch (e) { /* ignore */ }
       while (n > 4 && (avail - 2 * 3 * rem - (n + 1) * 4) / n < MIN_TAP) n--;
-      var bumpers = Math.min(spec.bumpers, n === 4 ? 5 : 6);
+      var bumpers = Math.min(spec.bumpers, n === 4 ? 5 : 10);
 
       var round = 0, score = 0;
 

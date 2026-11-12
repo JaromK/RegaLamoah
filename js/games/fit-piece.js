@@ -4,7 +4,7 @@
 
   var ROUNDS = 7;
 
-  // Per level (1–20): board size, hole size (cells), options shown, rotation allowed.
+  // Per level (1–30): board size, hole size (cells), options shown, rotation allowed.
   var LEVELS = [
     { n: 4, hole: 2, options: 3, rot: false }, // 1
     { n: 4, hole: 3, options: 3, rot: false }, // 2
@@ -25,7 +25,18 @@
     { n: 5, hole: 6, options: 4, rot: true },  // 17
     { n: 5, hole: 6, options: 4, rot: true },  // 18
     { n: 5, hole: 7, options: 4, rot: true },  // 19
-    { n: 5, hole: 7, options: 4, rot: true }   // 20
+    { n: 5, hole: 7, options: 4, rot: true },  // 20
+    // 21–30: bigger holes; every wrong piece has the same number of cells as the hole
+    { n: 5, hole: 7, options: 4, rot: true, same: true }, // 21
+    { n: 5, hole: 7, options: 4, rot: true, same: true }, // 22
+    { n: 5, hole: 8, options: 4, rot: true, same: true }, // 23
+    { n: 5, hole: 8, options: 4, rot: true, same: true }, // 24
+    { n: 5, hole: 8, options: 4, rot: true, same: true }, // 25
+    { n: 5, hole: 9, options: 4, rot: true, same: true }, // 26
+    { n: 5, hole: 9, options: 4, rot: true, same: true }, // 27
+    { n: 5, hole: 10, options: 4, rot: true, same: true }, // 28
+    { n: 5, hole: 10, options: 4, rot: true, same: true }, // 29
+    { n: 5, hole: 10, options: 4, rot: true, same: true }  // 30
   ];
   var MAX_EXTENT = 4; // pieces stay within a 4 × 4 box so the option cards stay readable
 
@@ -146,7 +157,8 @@
       tryAdd(moveCell(shape, rnd));
       // 3. One cell more or fewer (as a last resort only when needed).
       var extra = rnd.shuffle([function () { return addCell(shape, rnd); }, function () { return removeCell(shape, rnd); }]);
-      for (var e = 0; e < 4 && distractors.length < spec.options - 1; e++) tryAdd(moveCell(shape, rnd));
+      for (var e = 0; e < (spec.same ? 30 : 4) && distractors.length < spec.options - 1; e++) tryAdd(moveCell(shape, rnd));
+      if (spec.same && distractors.length < spec.options - 1) continue; // same cell count only: try another hole
       extra.forEach(function (f) { tryAdd(f()); });
       for (var g = 0; g < 10 && distractors.length < spec.options - 1; g++) tryAdd(rnd.pick(extra)());
       if (distractors.length < spec.options - 1) continue;

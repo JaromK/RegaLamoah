@@ -227,14 +227,17 @@
   var ALL = GROUPS.map(function (g) { return BY_ID[g[0]]; });
 
   /* Difficulty by level (index = level - 1). */
-  var MAX_T = [1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3];
+  var MAX_T = [1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3];
   // Chance a round must include at least a tier-2 word / a tier-3 word.
-  var P2 = [0, 0, 0, 0.25, 0.5, 0.7, 0.85, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-  var P3 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0.15, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1, 1, 1, 1];
+  var P2 = [0, 0, 0, 0.25, 0.5, 0.7, 0.85, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+  var P3 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0.15, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
   // Antonym rounds per session.
-  var ANT = [0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4];
+  var ANT = [0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 6];
   // Chance of a "trap" choice (the opposite in a synonym round, a synonym in an antonym round).
-  var TRAP = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.25, 0.35, 0.45, 0.55, 0.7, 0.7, 0.8, 0.8, 0.9];
+  var TRAP = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.25, 0.35, 0.45, 0.55, 0.7, 0.7, 0.8, 0.8, 0.9, 0.95, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+  // Levels 21–30: chance of a SECOND trap word (two choices from the opposite meaning), and from 25
+  // the other wrong choices are only rarer words, so no choice stands out as plain.
+  var TRAP2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.2, 0.35, 0.5, 0.6, 0.7, 0.8, 0.9, 1];
 
   var CSS = [
     '.sy-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:1.1rem}',
@@ -263,7 +266,7 @@
     ],
     css: CSS,
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(20, Math.round(Number(ctx.level) || 1)));
+      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
       var maxT = MAX_T[level - 1];
       var round = 0;
       var correct = 0;
@@ -316,7 +319,7 @@
         if (g.opp) block[g.opp] = true;
         Object.keys(g.near).forEach(function (id) { block[id] = true; });
         if (g.opp) Object.keys(BY_ID[g.opp].near).forEach(function (id) { block[id] = true; });
-        var minT = level >= 18 ? 2 : 1;
+        var minT = level >= 25 ? 3 : level >= 18 ? 2 : 1;
         var pool = [];
         ALL.forEach(function (o) {
           if (o.pos !== g.pos || block[o.id]) return;
@@ -337,6 +340,8 @@
             var tw = within(trapGroup.words).filter(function (w) { return w.w !== ans.w; });
             if (kind === 'ant') tw = tw.filter(function (w) { return w.w !== currentPrompt; });
             if (tw.length) { trap = ctx.pick(tw).w; out.push(trap); }
+            var tw2 = tw.filter(function (w) { return w.w !== trap; });
+            if (trap && tw2.length && Math.random() < TRAP2[level - 1]) out.push(ctx.pick(tw2).w);
           }
         }
         for (var i = 0; i < ranked.length && out.length < 3; i++) {

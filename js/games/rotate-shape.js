@@ -4,7 +4,7 @@
 
   var ROUNDS = 7;
 
-  // Per level (1–20): cells in the shape, box (shape fits box × box), options shown,
+  // Per level (1–30): cells in the shape, box (shape fits box × box), options shown,
   // turn270 (allow 90°/270° quarter turns both ways; otherwise only 90° and 180°),
   // mirrors (how many mirror-image distractors), near (the "different shape" is the
   // original with one cell moved — a subtle near miss).
@@ -28,7 +28,18 @@
     { cells: 8, box: 5, options: 4, turn270: true,  mirrors: 2, near: true },  // 17
     { cells: 8, box: 4, options: 4, turn270: true,  mirrors: 1, near: true },  // 18
     { cells: 8, box: 4, options: 4, turn270: true,  mirrors: 2, near: true },  // 19
-    { cells: 8, box: 4, options: 4, turn270: true,  mirrors: 2, near: true }   // 20
+    { cells: 8, box: 4, options: 4, turn270: true,  mirrors: 2, near: true },  // 20
+    // 21–30: bigger shapes; from 23 every other wrong shape is a near miss (one cell moved)
+    { cells: 9, box: 5, options: 4, turn270: true,  mirrors: 1, near: true }, // 21
+    { cells: 9, box: 5, options: 4, turn270: true,  mirrors: 2, near: true }, // 22
+    { cells: 9, box: 4, options: 4, turn270: true,  mirrors: 2, near: true, nearAll: true }, // 23
+    { cells: 10, box: 5, options: 4, turn270: true,  mirrors: 1, near: true, nearAll: true }, // 24
+    { cells: 10, box: 5, options: 4, turn270: true,  mirrors: 2, near: true, nearAll: true }, // 25
+    { cells: 10, box: 4, options: 4, turn270: true,  mirrors: 1, near: true, nearAll: true }, // 26
+    { cells: 10, box: 4, options: 4, turn270: true,  mirrors: 2, near: true, nearAll: true }, // 27
+    { cells: 11, box: 5, options: 4, turn270: true,  mirrors: 1, near: true, nearAll: true }, // 28
+    { cells: 11, box: 5, options: 4, turn270: true,  mirrors: 2, near: true, nearAll: true }, // 29
+    { cells: 12, box: 5, options: 4, turn270: true,  mirrors: 2, near: true, nearAll: true }  // 30
   ];
 
   var css = [
@@ -164,7 +175,7 @@
       var guard = 0;
       var nearUsed = false;
       while (options.length < spec.options && guard++ < 200) {
-        var other = (spec.near && !nearUsed) ? nearMiss(shape, spec.box, ctx) : growShape(spec.cells, spec.box, ctx);
+        var other = (spec.near && (spec.nearAll || !nearUsed)) ? nearMiss(shape, spec.box, ctx) : growShape(spec.cells, spec.box, ctx);
         if (spec.near && !nearUsed) nearUsed = true;
         if (!other) continue;
         var ok = true;

@@ -160,6 +160,7 @@
 
   BrainGames.register({
     id: 'ball-tower',
+    maxLevel: 20, // three balls allow at most 8-move puzzles, reached at level 20: this game stops there
     name: 'מגדל הכדורים',
     skill: 'executive',
     tagline: 'סדרו את הכדורים כמו בתמונה',

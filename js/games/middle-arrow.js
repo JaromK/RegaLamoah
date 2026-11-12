@@ -40,7 +40,18 @@
     { forms: ['x9', 'diamond13', 'row7'], dirs: 4, inc: 0.9, mixed: 0.7, ring: false, shift: true },    // 17
     { forms: ['box9', 'diamond13'], dirs: 4, inc: 0.9, mixed: 0.7, ring: false, shift: true },          // 18
     { forms: ['diamond13', 'x9'], dirs: 4, inc: 0.95, mixed: 0.75, ring: false, shift: true },          // 19
-    { forms: ['diamond13'], dirs: 4, inc: 0.95, mixed: 0.8, ring: false, shift: true }                  // 20
+    { forms: ['diamond13'], dirs: 4, inc: 0.95, mixed: 0.8, ring: false, shift: true },                 // 20
+    // 21–30: on some cards (outer) the question flips: which way do the arrows AROUND the middle point?
+    { forms: ['diamond13', 'x9'], dirs: 4, inc: 0.95, mixed: 0.8, ring: false, shift: true, outer: 0.15 }, // 21
+    { forms: ['diamond13', 'box9'], dirs: 4, inc: 0.95, mixed: 0.8, ring: false, shift: true, outer: 0.2 }, // 22
+    { forms: ['diamond13'], dirs: 4, inc: 0.95, mixed: 0.8, ring: false, shift: true, outer: 0.25 }, // 23
+    { forms: ['diamond13', 'x9'], dirs: 4, inc: 0.95, mixed: 0.85, ring: false, shift: true, outer: 0.25 }, // 24
+    { forms: ['diamond13'], dirs: 4, inc: 0.95, mixed: 0.85, ring: false, shift: true, outer: 0.3 }, // 25
+    { forms: ['diamond13', 'box9'], dirs: 4, inc: 1, mixed: 0.85, ring: false, shift: true, outer: 0.3 }, // 26
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.85, ring: false, shift: true, outer: 0.35 }, // 27
+    { forms: ['diamond13', 'x9'], dirs: 4, inc: 1, mixed: 0.9, ring: false, shift: true, outer: 0.35 }, // 28
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.9, ring: false, shift: true, outer: 0.4 }, // 29
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.9, ring: false, shift: true, outer: 0.45 }  // 30
   ];
 
   var FIELD = 7;   // largest field side when the formation is shifted off-centre
@@ -106,7 +117,20 @@
     for (var k = kinds.length - 1; k > 0; k--) {
       var j = Math.floor(rand() * (k + 1)); var t = kinds[k]; kinds[k] = kinds[j]; kinds[j] = t;
     }
-    return kinds.map(function (kind) { return makeTrial(spec, kind, rand); });
+    // "Outer" cards (levels 21+): the surrounding arrows all share one direction, never the middle's.
+    var nOuter = Math.round((spec.outer || 0) * TRIALS);
+    var slots = [];
+    for (var s = 1; s < TRIALS; s++) slots.push(s); // never the first card
+    for (var m = slots.length - 1; m > 0; m--) {
+      var q = Math.floor(rand() * (m + 1)); var u = slots[m]; slots[m] = slots[q]; slots[q] = u;
+    }
+    var outer = {};
+    slots.slice(0, nOuter).forEach(function (p) { outer[p] = true; kinds[p] = 'opp'; });
+    return kinds.map(function (kind, p) {
+      var tr = makeTrial(spec, kind, rand);
+      if (outer[p]) { tr.outer = true; tr.answer = tr.items[1].dir; } else tr.answer = tr.mid;
+      return tr;
+    });
   }
 
   var css = [
@@ -117,6 +141,11 @@
     '.ma-cell svg{display:block;width:100%;height:100%;}',
     '.ma-ring{box-shadow:0 0 0 3px var(--attention-soft),inset 0 0 0 2px var(--attention);}',
     '.ma-cell.ma-show{background:var(--sun-soft);box-shadow:0 0 0 3px var(--sun);}',
+    '.ma-rule{display:inline-block;padding:.3rem 1rem;border-radius:999px;font-weight:800;font-size:1.1rem;',
+    'background:var(--attention-soft);color:var(--attention);border:2px solid var(--attention);}',
+    '.ma-rule.is-outer{background:var(--logic-soft);color:var(--logic);border-color:var(--logic);}',
+    '.ma-rule.is-changed{box-shadow:0 0 0 4px var(--sun);}',
+    '.ma-rule + .ma-field{width:min(100%,calc(var(--cols) * 4.2rem),calc((100dvh - 21.5rem) * var(--cols) / var(--rows)));}',
     '.ma-pad{display:grid;gap:.6rem;direction:ltr;width:100%;max-width:20rem;}',
     '.ma-pad2{grid-template-columns:1fr 1fr;}',
     '.ma-pad4{grid-template-columns:repeat(4,1fr);max-width:24rem;}',
@@ -135,7 +164,8 @@
     instructions: [
       'יופיעו כמה חיצים יחד. הסתכלו רק על החץ שבאמצע.',
       'החיצים מסביב באים להטעות: לפעמים הם מצביעים לכיוון אחר, ולפעמים לכל הכיוונים.',
-      'לחצו על הכפתור עם הכיוון של החץ האמצעי. אין שעון, קחו את הזמן.'
+      'לחצו על הכפתור עם הכיוון של החץ האמצעי. אין שעון, קחו את הזמן.',
+      'ברמות הגבוהות לפעמים שואלים דווקא על החיצים שמסביב. קראו את הכלל בכל כרטיס.'
     ],
     css: css,
     _makeSession: makeSession,   // exposed for tests
@@ -153,7 +183,8 @@
           ctx.finish({
             correct: score,
             total: TRIALS,
-            note: 'זיהיתם נכון את כיוון החץ האמצעי ' + score + ' מתוך ' + TRIALS + ' פעמים'
+            note: spec.outer ? 'עניתם נכון על ' + score + ' מתוך ' + TRIALS + ' כרטיסים'
+              : 'זיהיתם נכון את כיוון החץ האמצעי ' + score + ' מתוך ' + TRIALS + ' פעמים'
           });
           return;
         }
@@ -164,7 +195,8 @@
 
       function play(tr) {
         root.innerHTML = '';
-        ctx.setStatus('לאן מצביע החץ שבאמצע?');
+        var prevOuter = idx > 1 && trials[idx - 2].outer;
+        ctx.setStatus(tr.outer ? 'שימו לב: לאן מצביעים החיצים שמסביב?' : 'לאן מצביע החץ שבאמצע?');
         var cells = [];
         var byPos = {};
         tr.items.forEach(function (it) { byPos[it.r * tr.cols + it.c] = it; });
@@ -194,12 +226,17 @@
           return b;
         });
         var pad = el('div', { class: 'ma-pad ma-pad' + spec.dirs }, btns);
+        if (spec.outer) {
+          root.appendChild(el('span', {
+            class: 'ma-rule' + (tr.outer ? ' is-outer' : '') + (!!tr.outer !== !!prevOuter ? ' is-changed' : '')
+          }, tr.outer ? 'הכלל: החיצים שמסביב' : 'הכלל: החץ שבאמצע'));
+        }
         root.appendChild(field);
         root.appendChild(pad);
 
         function answer(d) {
           btns.forEach(function (b) { b.disabled = true; });
-          var ok = d === tr.mid;
+          var ok = d === tr.answer;
           if (ok) {
             score++;
             buttons[d].classList.add('is-correct');
@@ -208,10 +245,14 @@
             return;
           }
           buttons[d].classList.add('is-wrong');
-          buttons[tr.mid].classList.add('is-correct');
-          midCell.classList.add('ma-show');
-          ctx.setStatus('החץ האמצעי מסומן בצהוב');
-          ctx.feedback(false, 'החץ האמצעי הצביע ' + WORD[tr.mid]).then(function () {
+          buttons[tr.answer].classList.add('is-correct');
+          if (tr.outer) {
+            ctx.setStatus('הפעם שאלנו על החיצים שמסביב');
+          } else {
+            midCell.classList.add('ma-show');
+            ctx.setStatus('החץ האמצעי מסומן בצהוב');
+          }
+          ctx.feedback(false, tr.outer ? 'החיצים שמסביב הצביעו ' + WORD[tr.answer] : 'החץ האמצעי הצביע ' + WORD[tr.mid]).then(function () {
             return ctx.wait(900);
           }).then(next);
         }

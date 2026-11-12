@@ -34,7 +34,19 @@
     { n: 16, cols: 4, f: ['shape', 'color', 'count'], v: 4, gs: 2, sim: 'near' }, // 17
     { n: 16, cols: 4, f: ['shape', 'fill', 'count'], v: 4, gs: 2, sim: 'near' },  // 18
     { n: 16, cols: 4, f: null, v: 4, gs: 2, sim: 'near' },                        // 19: any 3 features
-    { n: 16, cols: 4, f: null, v: 4, gs: 2, sim: 'near2' }                        // 20: near to two groups
+    { n: 16, cols: 4, f: null, v: 4, gs: 2, sim: 'near2' },                       // 20: near to two groups
+    // 21–30: all four features at once (f: 'all'); 'cluster' builds the groups from look-alike items,
+    // and 'near3' means the unique one differs by a single feature from three groups
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near' },                       // 21
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near2' },                      // 22
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near' },                       // 23
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near2' },                      // 24
+    { n: 16, cols: 4, f: null, v: 4, gs: 2, sim: 'near2', cluster: true },        // 25
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near2', cluster: true },       // 26
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near2', cluster: true },       // 27
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near3', cluster: true },       // 28
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near3', cluster: true },       // 29
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near4', cluster: true }        // 30
   ];
 
   function valuesOf(feature, v) {
@@ -61,7 +73,7 @@
       for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rand() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
       return a;
     }
-    var feats = spec.f || shuffle(FEATURES).slice(0, 3);
+    var feats = spec.f === 'all' ? FEATURES.slice() : spec.f || shuffle(FEATURES).slice(0, 3);
     // fixed look for the features that are not in play
     var base = { shape: any(SHAPES.slice(0, 2)), color: '--ink', fill: 'solid', count: 1 };
     if (feats.indexOf('color') === -1 && feats.indexOf('fill') !== -1) base.color = any(['--logic', '--memory']);
@@ -88,8 +100,14 @@
     for (var g = 0; g < gCount; g++) sizes.push(Math.floor(rest / gCount));
     for (var r = 0; r < rest % gCount; r++) sizes[r]++;
 
-    for (var attempt = 0; attempt < 200; attempt++) {
+    for (var attempt = 0; attempt < 400; attempt++) {
       var pool = shuffle(combos);
+      if (spec.cluster) {
+        // look-alike groups: everything within two features of one random item
+        var seed = pool[0];
+        var close = pool.filter(function (c) { return diff(c, seed, feats) <= 2; });
+        if (close.length >= gCount + 4) pool = close.concat(pool.filter(function (c) { return diff(c, seed, feats) > 2; }));
+      }
       var groups = pool.slice(0, gCount);
       var candidates = pool.slice(gCount);
       var scored = candidates.map(function (c) {
@@ -106,8 +124,8 @@
       if (spec.sim === 'far') {
         scored.sort(function (a, b) { return b.minD - a.minD || b.sumD - a.sumD; });
         unique = scored[0] && scored[0].c;
-      } else if (spec.sim === 'near' || spec.sim === 'near2') {
-        var need = spec.sim === 'near2' ? 2 : 1;
+      } else if (/^near\d?$/.test(spec.sim)) {
+        var need = Number(spec.sim.slice(4)) || 1; // 'near' = 1, 'near2'…'near4'
         var ok = scored.filter(function (s) { return s.near >= need; });
         if (!ok.length) continue;
         unique = any(ok).c;

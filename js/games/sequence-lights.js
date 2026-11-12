@@ -15,7 +15,7 @@
     { hue: 'accent',    label: '6', shape: '♥', name: 'לב',     freq: 784 }
   ];
 
-  // Per level (1–20): sequence length + number of pads.
+  // Per level (1–30): sequence length + number of pads.
   // Each length is played on 4, then 5, then 6 pads, so every level-up is a small step.
   var LEVELS = [
     { len: 3, pads: 4 }, { len: 3, pads: 5 }, { len: 3, pads: 6 },   // 1–3
@@ -24,7 +24,12 @@
     { len: 6, pads: 4 }, { len: 6, pads: 5 }, { len: 6, pads: 6 },   // 10–12
     { len: 7, pads: 4 }, { len: 7, pads: 5 }, { len: 7, pads: 6 },   // 13–15
     { len: 8, pads: 4 }, { len: 8, pads: 5 }, { len: 8, pads: 6 },   // 16–18
-    { len: 9, pads: 5 }, { len: 9, pads: 6 }                         // 19–20
+    { len: 9, pads: 5 }, { len: 9, pads: 6 },                        // 19–20
+    // 21–25: longer sequences; 26–30: repeat the sequence backwards, from the last light to the first
+    { len: 10, pads: 5 }, { len: 10, pads: 6 }, { len: 11, pads: 5 }, // 21–23
+    { len: 11, pads: 6 }, { len: 12, pads: 6 },                      // 24–25
+    { len: 7, pads: 6, rev: true }, { len: 8, pads: 5, rev: true }, { len: 8, pads: 6, rev: true }, // 26–28
+    { len: 9, pads: 5, rev: true }, { len: 9, pads: 6, rev: true }   // 29–30
   ];
 
   var css = [
@@ -68,7 +73,7 @@
       'צפו: הכפתורים יידלקו אחד אחרי השני, לאט.',
       'זכרו את הסדר. לכל כפתור יש מספר וצורה משלו.',
       'כשכתוב "עכשיו תורכם" — לחצו על הכפתורים באותו סדר.',
-      'שכחתם? לחצו "הראו לי שוב" פעם אחת בכל שלב.'
+      'שכחתם? לחצו "הראו לי שוב" פעם אחת בכל שלב. ברמות הגבוהות חוזרים על הרצף מהסוף להתחלה.'
     ],
     css: css,
     start: function (root, ctx) {
@@ -76,6 +81,8 @@
       var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var length = LEVELS[level - 1].len;
       var padCount = Math.max(2, Math.min(PADS.length, LEVELS[level - 1].pads));
+      var backwards = !!LEVELS[level - 1].rev;
+      var expected = [];  // the order to tap: the sequence, or (backwards) the sequence reversed
       var pads = PADS.slice(0, padCount);
 
       var round = 0;
@@ -153,8 +160,8 @@
           });
         });
         return chain.then(function () {
-          ctx.setStatus('עכשיו תורכם');
-          hint.textContent = 'לחצו על הכפתורים באותו סדר';
+          ctx.setStatus(backwards ? 'עכשיו תורכם: מהסוף להתחלה' : 'עכשיו תורכם');
+          hint.textContent = backwards ? 'לחצו בסדר הפוך: קודם האחרון שנדלק' : 'לחצו על הכפתורים באותו סדר';
           setPads(true);
           replayBtn.disabled = replayUsed;
           accepting = true;
@@ -178,7 +185,7 @@
         flash(idx);
         ctx.sound('note', pads[idx].freq);
 
-        if (idx !== seq[pos]) {
+        if (idx !== expected[pos]) {
           endRound(false);
           return;
         }
@@ -192,7 +199,7 @@
         setPads(false);
         replayBtn.disabled = true;
         if (ok) score++;
-        var msg = ok ? null : 'הרצף היה: ' + seq.map(function (i) { return pads[i].label; }).join(' ← ');
+        var msg = ok ? null : (backwards ? 'מהסוף להתחלה: ' : 'הרצף היה: ') + expected.map(function (i) { return pads[i].label; }).join(' ← ');
         ctx.wait(400).then(function () {
           return ctx.feedback(ok, msg || undefined);
         }).then(function () {
@@ -205,7 +212,7 @@
           ctx.finish({
             correct: score,
             total: ROUNDS,
-            note: 'חזרתם נכון על ' + score + ' מתוך ' + ROUNDS + ' רצפים של ' + length + ' אורות'
+            note: 'חזרתם נכון על ' + score + ' מתוך ' + ROUNDS + ' רצפים של ' + length + ' אורות' + (backwards ? ' (בסדר הפוך)' : '')
           });
           return;
         }
@@ -213,6 +220,7 @@
         ctx.setProgress(round, ROUNDS);
         replayUsed = false;
         seq = makeSequence();
+        expected = backwards ? seq.slice().reverse() : seq;
         playSequence();
       }
 

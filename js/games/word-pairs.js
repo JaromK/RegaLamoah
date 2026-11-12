@@ -53,7 +53,19 @@
     { n: 8, d: 3 }, // 17
     { n: 8, d: 4 }, // 18
     { n: 8, d: 3, rev: true }, // 19
-    { n: 8, d: 4, rev: true }  // 20
+    { n: 8, d: 4, rev: true }, // 20
+    // 21–30: still 8 pairs. d5: all wrong choices were on the study screen, one of them from the answer's
+    // category; d6: two of them from that category. cats: the pairs use only 4, 3 or 2 categories.
+    { n: 8, d: 5 },                     // 21
+    { n: 8, d: 5, rev: true },          // 22
+    { n: 8, d: 5, rev: true, cats: 4 }, // 23
+    { n: 8, d: 5, cats: 3 },            // 24
+    { n: 8, d: 5, rev: true, cats: 3 }, // 25
+    { n: 8, d: 6, cats: 3 },            // 26
+    { n: 8, d: 6, rev: true, cats: 3 }, // 27
+    { n: 8, d: 6, cats: 2 },            // 28
+    { n: 8, d: 6, rev: true, cats: 2 }, // 29
+    { n: 8, d: 6, rev: true, cats: 2, flipAll: true } // 30: every question asks from the second word
   ];
 
   var css = [
@@ -102,8 +114,13 @@
       function related(a, b) { return CAT_OF[a] === CAT_OF[b] || RELATED_SET[a + '|' + b]; }
 
       function makePairs() {
-        var avail = POOL.filter(function (w) { return !usedWords[w]; });
-        if (avail.length < n * 2 + 6) { usedWords = {}; avail = POOL.slice(); }
+        var catPool = POOL;
+        if (spec.cats) {
+          var useCats = ctx.shuffle(Object.keys(CATS)).slice(0, spec.cats);
+          catPool = POOL.filter(function (w) { return useCats.indexOf(CAT_OF[w]) !== -1; });
+        }
+        var avail = catPool.filter(function (w) { return !usedWords[w]; });
+        if (avail.length < n * 2 + (spec.cats ? 0 : 6)) { usedWords = {}; avail = catPool.slice(); }
         var best = [];
         for (var attempt = 0; attempt < 40; attempt++) {
           var list = ctx.shuffle(avail.slice());
@@ -135,6 +152,13 @@
         var lures = unseen.filter(function (w) { return CAT_OF[w] === CAT_OF[answer]; });
         var others = unseen.filter(function (w) { return CAT_OF[w] !== CAT_OF[answer]; });
 
+        if (spec.d >= 5) {
+          // every wrong choice was on the study screen; 1 (d5) or 2 (d6) from the answer's category
+          var sameShown = shownOthers.filter(function (w) { return CAT_OF[w] === CAT_OF[answer]; });
+          var pick5 = sameShown.slice(0, spec.d === 6 ? 2 : 1);
+          shownOthers.forEach(function (w) { if (pick5.length < 3 && pick5.indexOf(w) === -1) pick5.push(w); });
+          return ctx.shuffle(pick5.concat([answer]));
+        }
         var wantShown = [0, 1, 2, 3, 2][spec.d];
         var wantLure = spec.d === 4 ? 1 : 0;
         var picked = shownOthers.slice(0, wantShown);
@@ -189,7 +213,7 @@
         var shownWords = [];
         pairs.forEach(function (p) { shownWords.push(p[0], p[1]); });
         var questions = ctx.shuffle(pairs.map(function (p) {
-          var flip = spec.rev && Math.random() < 0.5;
+          var flip = spec.flipAll || (spec.rev && Math.random() < 0.5);
           return flip ? { cue: p[1], answer: p[0], pair: p } : { cue: p[0], answer: p[1], pair: p };
         }));
         var qi = 0;

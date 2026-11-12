@@ -9,7 +9,7 @@
   function clampLevel(l) {
     l = Math.round(Number(l));
     if (!isFinite(l)) l = 3;
-    return Math.max(1, Math.min(20, l));
+    return Math.max(1, Math.min(30, l));
   }
 
   /* Isolate a time / math snippet as LTR inside Hebrew text (LRI ... PDI). */
@@ -22,7 +22,14 @@
     13: ['later', 'earlier', 'elapsed'], 14: ['elapsed', 'later'], 15: ['elapsed', 'later', 'earlier'],
     16: ['read24', 'later24'], 17: ['read24', 'later24', 'elapsed'],
     18: ['read1', 'later24', 'elapsed24'], 19: ['read1', 'later24', 'elapsed24', 'elapsed'],
-    20: ['read1', 'later24', 'elapsed24', 'earlier']
+    20: ['read1', 'later24', 'elapsed24', 'earlier'],
+    // 21–30: read the clock yourself and then calculate, earlier in 24-hour time, and across midnight
+    21: ['read1', 'laterRead', 'elapsed24'], 22: ['laterRead', 'earlier24', 'later24'],
+    23: ['laterRead', 'earlierRead', 'elapsed24'], 24: ['earlier24', 'overnight', 'laterRead'],
+    25: ['overnight', 'laterRead', 'earlierRead', 'later24'], 26: ['laterRead', 'overnight', 'earlier24'],
+    27: ['earlierRead', 'overnight', 'later24', 'elapsed24'], 28: ['laterRead', 'earlierRead', 'overnight', 'earlier24'],
+    29: ['laterRead', 'earlierRead', 'overnight', 'elapsed24', 'earlier24'],
+    30: ['laterRead', 'earlierRead', 'overnight', 'earlier24', 'later24']
   };
 
   var HOURS = ['', 'אחת', 'שתיים', 'שלוש', 'ארבע', 'חמש', 'שש', 'שבע', 'שמונה', 'תשע', 'עשר', 'אחת־עשרה', 'שתים־עשרה'];
@@ -305,11 +312,90 @@
     };
   }
 
+  /* "Read the clock, then calculate": the current time is only on the clock face.
+     From level 26 the clock shows any minute, not only multiples of 5. */
+  function laterReadQ(L, R, kind) {
+    var back = kind === 'earlierRead';
+    var t = norm12(R.randInt(1, 12) * 60 + (L >= 26 ? R.randInt(0, 59) : R.randInt(0, 11) * 5));
+    var d = R.randInt(L >= 26 ? 9 : 6, L >= 26 ? 60 : 48) * 5;
+    var ans = norm12(back ? t - d : t + d);
+    var cands = R.shuffle([ans + 60, ans - 60, back ? t + d : t - d, ans + 5, ans - 5])
+      .concat([ans + 10, ans - 10, ans + 30, ans + 1, ans - 1]);
+    if (!back && minOf(t) + d % 60 >= 60) cands.unshift(ans - 60);
+    cands = cands.map(norm12);
+    var dis = pickDistinct(fmt12(ans), cands, fmt12, R, function () { return norm12(ans + R.randInt(1, 20) * 5); });
+    var opts = [ans].concat(dis).map(function (x) { return { key: fmt12(x), main: fmt12(x), sub: '' }; });
+    return {
+      kind: kind, clocks: [{ t: t }],
+      status: back ? 'מה הייתה השעה לפני ' + dur(d) + '?' : 'מה תהיה השעה בעוד ' + dur(d) + '?',
+      prompt: 'קראו קודם את השעה בשעון, ואז חשבו.',
+      mode: 'digits', answer: fmt12(ans), answerText: fmt12(ans), options: R.shuffle(opts),
+      explain: readExplain(t) + ' ' + (back ? subExplain(t, d, fmt12) : addExplain(t, d, fmt12)),
+      check: { t: t, d: d, back: back, ans: ans }
+    };
+  }
+
+  /* Going back in 24-hour time, usually across noon: "עכשיו 13:20, מה השעה לפני שעתיים ורבע?" */
+  function earlier24Q(L, R) {
+    var t, d;
+    if (R.randInt(0, 2)) {
+      t = R.randInt(12, 14) * 60 + R.randInt(0, 11) * 5;          // crosses noon backwards
+      d = Math.ceil(Math.max(t - 12 * 60 + 5, R.randInt(6, 30) * 5) / 5) * 5;
+      if (d > 270) d = 270;
+    } else {
+      t = R.randInt(13, 22) * 60 + R.randInt(0, 11) * 5;
+      d = R.randInt(8, 54) * 5;
+    }
+    var ans = t - d;
+    var cands = [];
+    if (ans < 780 && ans >= 720) cands.push(ans + 720);              // 12:xx written as 0:xx / 24:xx mix-up
+    cands = cands.concat(R.shuffle([ans + 60, ans - 60, t + d, ans + 10, ans - 10]));
+    if (minOf(t) < d % 60) cands.unshift(ans + 60);                // forgetting to borrow the hour
+    cands = cands.concat([ans + 5, ans - 5, ans + 30]);
+    var dis = pickDistinct(fmt24(ans), cands, fmt24, R, function () { return ans + R.randInt(-20, 20) * 5; });
+    var opts = [ans].concat(dis).map(function (x) { return { key: fmt24(x), main: fmt24(x), sub: '' }; });
+    return {
+      kind: 'earlier24', clocks: [{ t: norm12(t) }],
+      status: 'מה הייתה השעה לפני ' + dur(d) + '?',
+      prompt: 'עכשיו ' + ltr(fmt24(t)) + ' ' + partOfDay(t) + '. ענו בשעון של 24 שעות.',
+      mode: 'digits', answer: fmt24(ans), answerText: fmt24(ans), options: R.shuffle(opts),
+      explain: subExplain(t, d, fmt24),
+      check: { t: t, d: d, ans: ans }
+    };
+  }
+
+  var NIGHTS = [
+    ['הלכנו לישון ב־', ' וקמנו ב־', 'כמה זמן ישנו?'],
+    ['הטיסה המריאה ב־', ' ונחתה ב־', 'כמה זמן נמשכה הטיסה?'],
+    ['המשמרת התחילה ב־', ' ונגמרה ב־', 'כמה זמן נמשכה המשמרת?'],
+    ['האוטובוס הלילי יצא ב־', ' והגיע ב־', 'כמה זמן נמשכה הנסיעה?']
+  ];
+
+  /* Time that passes over midnight, e.g. from 22:40 to 6:15 the next morning. */
+  function overnightQ(L, R) {
+    var t1 = R.randInt(20, 23) * 60 + R.randInt(0, 11) * 5;
+    var d = R.randInt(L >= 27 ? 30 : 24, L >= 27 ? 120 : 108) * 5;  // 2 to 10 hours
+    var t2 = t1 + d;
+    if (t2 <= 1440) { t2 = 1440 + R.randInt(1, 6) * 60 + R.randInt(0, 11) * 5; d = t2 - t1; }
+    var trip = R.pick(NIGHTS);
+    return {
+      kind: 'overnight', clocks: [], digital: [t1, t2],
+      status: trip[2],
+      prompt: trip[0] + ltr(fmt24(t1)) + (t1 < 22 * 60 ? ' בערב' : ' בלילה') + trip[1] + ltr(fmt24(t2)) + ' למחרת.',
+      mode: 'dur', answer: dur(d), answerText: dur(d), options: durOptions(d, R),
+      explain: elapsedExplain(t1, t2, fmt24),
+      check: { t1: t1, t2: t2, d: d }
+    };
+  }
+
   function makeQuestion(level, R, prevKind) {
     var L = clampLevel(level);
     var pool = POOLS[L];
     var kind = R.pick(pool), tries = 0;
     while (pool.length > 1 && kind === prevKind && tries++ < 10) kind = R.pick(pool);
+    if (kind === 'laterRead' || kind === 'earlierRead') return laterReadQ(L, R, kind);
+    if (kind === 'earlier24') return earlier24Q(L, R);
+    if (kind === 'overnight') return overnightQ(L, R);
     if (kind.slice(0, 4) === 'read' && kind !== 'read24') return timeQ(L, R, kind);
     if (kind === 'later' || kind === 'earlier') return laterQ(L, R, kind);
     if (kind === 'elapsed') return elapsedQ(L, R);

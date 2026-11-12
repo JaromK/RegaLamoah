@@ -9,7 +9,7 @@
   var DIV = '÷';     // ÷
   var SP = ' ';      // thin space keeps long expressions on one line
 
-  // Per level (1–20): which expression kinds may appear, the value range and how
+  // Per level (1–30): which expression kinds may appear, the value range and how
   // close the two sides are (maxDiff). Each step adds a little size or a new kind.
   var LEVELS = [
     { kinds: ['num'], min: 2, max: 20, diff: 6, noEqual: true },               // 1
@@ -31,7 +31,17 @@
     { kinds: ['mulAdd', 'mulSub', 'div'], min: 4, max: 60, diff: 2, mulMax: 9, cMax: 10 },              // 17
     { kinds: ['mulAdd', 'mulSub', 'addSub', 'div'], min: 6, max: 70, diff: 2, mulMax: 9, cMax: 12 },    // 18
     { kinds: ['mulAdd', 'mulSub', 'mulMul', 'div'], min: 8, max: 80, diff: 1, mulMax: 9, cMax: 15 },    // 19
-    { kinds: ['mulAdd', 'mulSub', 'mulMul', 'addSub', 'div'], min: 10, max: 90, diff: 1, mulMax: 9, cMax: 20 } // 20
+    { kinds: ['mulAdd', 'mulSub', 'mulMul', 'addSub', 'div'], min: 10, max: 90, diff: 1, mulMax: 9, cMax: 20 }, // 20
+    { kinds: ['mulAdd', 'mulSub', 'mulMul', 'addSub', 'div'], min: 15, max: 100, diff: 1, mulMax: 9, cMax: 25 }, // 21
+    { kinds: ['mulAdd', 'mulSub', 'mulPlus', 'div'], min: 20, max: 100, diff: 1, mulMax: 9, cMax: 25 },          // 22
+    { kinds: ['mulAdd', 'mulSub', 'mulMul', 'mulPlus'], min: 20, max: 110, diff: 1, mulMax: 10, cMax: 30 },      // 23
+    { kinds: ['bigAdd', 'bigSub', 'mulAdd', 'mulPlus'], min: 40, max: 150, diff: 1, mulMax: 10, cMax: 30 },      // 24
+    { kinds: ['bigAdd', 'bigSub', 'mulMul', 'mulPlus', 'div'], min: 30, max: 150, diff: 1, mulMax: 11, cMax: 35 }, // 25
+    { kinds: ['mulAdd', 'mulSub', 'mulMul', 'mulPlus', 'bigSub'], min: 40, max: 160, diff: 1, mulMax: 12, cMax: 40 }, // 26
+    { kinds: ['div2', 'mulPlus', 'mulMul', 'bigAdd'], min: 12, max: 140, diff: 1, mulMax: 12, cMax: 40 },        // 27
+    { kinds: ['div2', 'mulAdd', 'mulSub', 'mulMul', 'mulPlus', 'bigSub'], min: 15, max: 160, diff: 1, mulMax: 12, cMax: 40 }, // 28
+    { kinds: ['div2', 'mulAdd', 'mulMul', 'mulPlus', 'bigAdd', 'bigSub'], min: 20, max: 180, diff: 1, mulMax: 12, cMax: 45 }, // 29
+    { kinds: ['div2', 'mulAdd', 'mulSub', 'mulMul', 'mulPlus', 'bigAdd', 'bigSub'], min: 20, max: 200, diff: 1, mulMax: 12, cMax: 50 } // 30
   ];
 
   function ri(rng, a, b) { return a + Math.floor(rng() * (b - a + 1)); }
@@ -82,6 +92,25 @@
       case 'div':
         b = ri(rng, 2, Math.min(mm, 9));
         if (v > 12) return null;
+        return { text: j(v * b, DIV, b), value: v };
+      case 'mulPlus': // a × b + c × d  (two products added)
+        for (i = 0; i < 60; i++) {
+          a = ri(rng, 2, mm); b = ri(rng, 2, mm);
+          c = ri(rng, 2, 9); var e = v - a * b - c;
+          if (e < 0) continue;
+          if (e % c === 0 && e / c >= 2 && e / c <= 9) return { text: j(a, TIMES, b, '+', c, TIMES, e / c), value: v };
+        }
+        return null;
+      case 'bigAdd': // two two-digit (or larger) numbers
+        if (v < 25) return null;
+        a = ri(rng, 11, v - 11);
+        return { text: j(a, '+', v - a), value: v };
+      case 'bigSub':
+        b = ri(rng, 11, 99);
+        return { text: j(v + b, MINUS, b), value: v };
+      case 'div2': // two-digit result, e.g. 96 ÷ 4
+        if (v < 11 || v > 30) return null;
+        b = ri(rng, 3, 9);
         return { text: j(v * b, DIV, b), value: v };
     }
     return null;

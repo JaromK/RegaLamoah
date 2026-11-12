@@ -21,6 +21,8 @@
   --bad: #b2412b;
   --bad-soft: #f7e0da;
   --focus: #f2b33d;
+  --silver: #8d9aa3;
+  --silver-soft: #e9eef1;
 
   --memory: #6550c9;    --memory-soft: #e7e3f8;
   --attention: #c2502f; --attention-soft: #f8e3dc;
@@ -43,7 +45,7 @@
     --bg: #101a1c; --surface: #18262a; --surface-2: #213236; --ink: #e8f0ee; --ink-soft: #a9bbb8;
     --line: #34484c; --accent: #4fc0b6; --accent-hover: #6fd2c9; --accent-ink: #0b1a1b; --accent-soft: #173d3b;
     --sun: #f2be5c; --sun-soft: #3d3220; --good: #6fd08a; --good-soft: #193a24; --bad: #f08a72; --bad-soft: #43231c;
-    --focus: #f2be5c;
+    --focus: #f2be5c; --silver: #c4cfd6; --silver-soft: #2a3438;
     --memory: #a998f2; --memory-soft: #2a2550; --attention: #f0987b; --attention-soft: #44261d;
     --logic: #7cbbe8; --logic-soft: #1a3247; --language: #84cf92; --language-soft: #1c3a22;
     --perception: #ec8fbf; --perception-soft: #45213a; --executive: #e3ac68; --executive-soft: #3f2e19;
@@ -55,7 +57,7 @@
   --bg: #101a1c; --surface: #18262a; --surface-2: #213236; --ink: #e8f0ee; --ink-soft: #a9bbb8;
   --line: #34484c; --accent: #4fc0b6; --accent-hover: #6fd2c9; --accent-ink: #0b1a1b; --accent-soft: #173d3b;
   --sun: #f2be5c; --sun-soft: #3d3220; --good: #6fd08a; --good-soft: #193a24; --bad: #f08a72; --bad-soft: #43231c;
-  --focus: #f2be5c;
+  --focus: #f2be5c; --silver: #c4cfd6; --silver-soft: #2a3438;
   --memory: #a998f2; --memory-soft: #2a2550; --attention: #f0987b; --attention-soft: #44261d;
   --logic: #7cbbe8; --logic-soft: #1a3247; --language: #84cf92; --language-soft: #1c3a22;
   --perception: #ec8fbf; --perception-soft: #45213a; --executive: #e3ac68; --executive-soft: #3f2e19;
@@ -371,7 +373,7 @@ p { margin: 0; }
 /* ---------- level path ---------- */
 .level-box { display: flex; flex-direction: column; gap: .7rem; padding-top: .5rem; border-top: 1px solid var(--line); }
 .path { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; width: 100%; }
-@media (min-width: 640px) { .path { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 640px) { .path { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .path-stage {
   display: flex; flex-direction: column; gap: .45rem; padding: .7rem; border-radius: var(--radius-sm);
   background: var(--surface-2); border: 2px solid transparent;
@@ -455,12 +457,15 @@ button.path-dot:hover { background: var(--accent-soft); }
 .trophy-icon svg, .card-trophy svg { width: 100%; height: 100%; }
 .trophy-icon .tr-cup, .card-trophy .tr-cup { fill: var(--sun); }
 .trophy-icon .tr-handle, .card-trophy .tr-handle { stroke: var(--sun); }
+.is-silver .tr-cup { fill: var(--silver); }
+.is-silver .tr-handle { stroke: var(--silver); }
 .trophy-icon .tr-base, .card-trophy .tr-base { fill: var(--ink-soft); }
 .trophy-icon .tr-star, .card-trophy .tr-star { fill: var(--surface); }
 .trophy-card {
   width: 100%; display: flex; align-items: center; gap: 1rem; text-align: start;
   background: var(--sun-soft); border: 2px solid var(--sun); border-radius: var(--radius); padding: 1rem 1.2rem;
 }
+.trophy-card.is-silver { background: var(--silver-soft); border-color: var(--silver); }
 .trophy-card .trophy-icon { width: 5.5rem; height: 5.5rem; animation: trophy-pop .6s ease-out; }
 .trophy-text { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
 .trophy-title { font-size: 1.7rem; font-weight: 900; }
@@ -470,7 +475,12 @@ button.path-dot:hover { background: var(--accent-soft); }
   display: flex; align-items: center; gap: .4rem; padding: .3rem .9rem .3rem .5rem; border-radius: 999px;
   background: var(--sun-soft); font-weight: 700;
 }
+.trophy-item.is-silver { background: var(--silver-soft); }
 .trophy-item .trophy-icon { width: 2rem; height: 2rem; }
+.trophy-kind { font-weight: 600; color: var(--ink-soft); font-size: .95rem; }
+.trophy-counts { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin: 0 0 .7rem; font-weight: 700; }
+.trophy-counts span { display: inline-flex; align-items: center; gap: .35rem; }
+.trophy-counts .trophy-icon { width: 1.6rem; height: 1.6rem; }
 .card-trophy { display: inline-block; width: 1.3rem; height: 1.3rem; vertical-align: -.15rem; margin-inline-start: .4rem; }
 @keyframes trophy-pop { 0% { transform: scale(.4) rotate(-12deg); } 70% { transform: scale(1.1) rotate(4deg); } 100% { transform: scale(1); } }
 @media (max-width: 420px) { .trophy-card { flex-direction: column; text-align: center; } }

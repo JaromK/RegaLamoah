@@ -33,7 +33,7 @@
 
   function clampLevel(l) {
     l = Math.round(Number(l) || 1);
-    return Math.max(1, Math.min(20, l));
+    return Math.max(1, Math.min(30, l));
   }
 
   BrainGames.register({
@@ -53,9 +53,10 @@
       var level = clampLevel(ctx.level);
       var cols = Math.min(7, 4 + Math.floor((level - 1) / 4));         // 4 → 7
       var cells = cols * cols;
-      var totalItems = Math.round(cells * (0.35 + 0.015 * (level - 1))); // 6 → 31
-      var tLo = 2 + Math.floor((level - 1) / 3);                          // 2 → 8
-      var tHi = tLo + 2 + Math.floor(level / 8);                          // 4 → 12
+      // The picture never grows past 7 × 7; levels 21–30 get a little denser and ask harder questions.
+      var totalItems = Math.round(cells * Math.min(0.7, 0.35 + 0.015 * (level - 1))); // 6 → 31 → 34
+      var tLo = Math.min(9, 2 + Math.floor((level - 1) / 3));             // 2 → 8 → 9
+      var tHi = Math.min(14, tLo + 2 + Math.floor(level / 8));            // 4 → 12 → 14
       var sameFamilyRatio = Math.max(0, Math.min(0.85, (level - 3) / 12));
       var distractorKinds = Math.min(5, 2 + Math.floor((level - 1) / 5)); // 2 → 5
 
@@ -86,17 +87,34 @@
 
       function playRound() {
         root.innerHTML = '';
-        var twoKind = level >= 16 && (round % 2 === 0 || level >= 19);
+        // mode: 'one' kind, 'two' kinds added, 'diff' = how many more of one kind, 'three' kinds added
+        var mode = level >= 16 && (round % 2 === 0 || level >= 19) ? 'two' : 'one';
+        if (level >= 23 && level <= 25 && round % 2 === 0) mode = 'diff';
+        if (level >= 26) mode = round % (level >= 28 ? 2 : 3) === 0 ? 'three' : (round % 2 ? 'diff' : 'two');
+        var twoKind = mode !== 'one';
         var famIdx = ctx.randInt(0, FAMILIES.length - 1);
         var fam = ctx.shuffle(FAMILIES[famIdx]);
-        var targets = twoKind ? fam.slice(0, 2) : fam.slice(0, 1);
+        var targets = fam.slice(0, mode === 'three' ? 3 : twoKind ? 2 : 1);
         var sameRest = fam.slice(targets.length);
         var otherKinds = ctx.shuffle(FAMILIES.filter(function (_, i) { return i !== famIdx; })
           .map(function (f) { return ctx.pick(f); }));
 
         var answer = Math.min(ctx.randInt(tLo, tHi), totalItems - 2);
         var counts = {};
-        if (twoKind) {
+        if (mode === 'diff') {
+          // more of the first kind than the second; the answer is the difference
+          var big = Math.min(answer - 2, Math.ceil(answer / 2) + ctx.randInt(1, 3));
+          counts[targets[0]] = big;
+          counts[targets[1]] = answer - big;
+          answer = big - (answer - big);
+        } else if (mode === 'three') {
+          var a3 = ctx.randInt(2, Math.max(2, Math.floor(answer / 2) - 1));
+          var b3 = ctx.randInt(2, Math.max(2, answer - a3 - 2));
+          counts[targets[0]] = a3;
+          counts[targets[1]] = b3;
+          counts[targets[2]] = Math.max(1, answer - a3 - b3);
+          answer = a3 + b3 + counts[targets[2]];
+        } else if (twoKind) {
           var a = ctx.randInt(Math.max(1, Math.floor(answer / 3)), answer - 1);
           counts[targets[0]] = a;
           counts[targets[1]] = answer - a;
@@ -107,7 +125,8 @@
         // Distractor kinds: some from the same family (look-alikes), the rest from other families.
         var nSameKinds = Math.min(sameRest.length, Math.round(distractorKinds * sameFamilyRatio));
         var kinds = sameRest.slice(0, nSameKinds).concat(otherKinds.slice(0, distractorKinds - nSameKinds));
-        var distractCount = totalItems - answer;
+        var targetCount = Object.keys(counts).reduce(function (s, k) { return s + counts[k]; }, 0);
+        var distractCount = totalItems - targetCount;
         var pieces = [];
         Object.keys(counts).forEach(function (k) { for (var i = 0; i < counts[k]; i++) pieces.push({ e: k, hit: true }); });
         for (var d = 0; d < distractCount; d++) pieces.push({ e: kinds[d % kinds.length], hit: false });
@@ -131,11 +150,17 @@
           board.appendChild(node);
         });
 
-        var question = twoKind
-          ? el('p', { class: 'g-prompt ci-q' }, ['כמה', el('span', { class: 'ci-em' }, targets[0]), 'ועוד',
-            el('span', { class: 'ci-em' }, targets[1]), 'יש ביחד?'])
-          : el('p', { class: 'g-prompt ci-q' }, ['כמה', el('span', { class: 'ci-em' }, targets[0]), 'יש בתמונה?']);
-        ctx.setStatus(twoKind ? 'ספרו את שני הסוגים יחד' : 'ספרו בעיון, אין מגבלת זמן');
+        function em(t) { return el('span', { class: 'ci-em' }, t); }
+        var question = mode === 'diff'
+          ? el('p', { class: 'g-prompt ci-q' }, ['כמה', em(targets[0]), 'יש יותר מ־', em(targets[1]), '?'])
+          : mode === 'three'
+            ? el('p', { class: 'g-prompt ci-q' }, ['כמה', em(targets[0]), 'ועוד', em(targets[1]), 'ועוד', em(targets[2]), 'יש ביחד?'])
+            : twoKind
+              ? el('p', { class: 'g-prompt ci-q' }, ['כמה', em(targets[0]), 'ועוד', em(targets[1]), 'יש ביחד?'])
+              : el('p', { class: 'g-prompt ci-q' }, ['כמה', em(targets[0]), 'יש בתמונה?']);
+        ctx.setStatus(mode === 'diff' ? 'ספרו כל סוג לחוד, ואז בדקו את ההפרש'
+          : mode === 'three' ? 'ספרו את שלושת הסוגים יחד'
+            : twoKind ? 'ספרו את שני הסוגים יחד' : 'ספרו בעיון, אין מגבלת זמן');
 
         var opts = choiceSet(answer);
         var answered = false;
@@ -158,7 +183,12 @@
           });
           board.classList.add('ci-done');
           var msg;
-          if (twoKind) {
+          if (mode === 'diff') {
+            msg = 'היו ' + counts[targets[0]] + ' ' + targets[0] + ' ו־' + counts[targets[1]] + ' ' + targets[1] + ', כלומר ' + answer + ' יותר';
+          } else if (mode === 'three') {
+            msg = 'היו ' + counts[targets[0]] + ' ' + targets[0] + ' ועוד ' + counts[targets[1]] + ' ' + targets[1] +
+              ' ועוד ' + counts[targets[2]] + ' ' + targets[2] + ' = ' + answer;
+          } else if (twoKind) {
             msg = 'היו ' + counts[targets[0]] + ' ' + targets[0] + ' ועוד ' + counts[targets[1]] + ' ' + targets[1] + ' = ' + answer;
           } else {
             msg = 'היו ' + answer + ' ' + targets[0];

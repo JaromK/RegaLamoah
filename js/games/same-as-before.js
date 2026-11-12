@@ -46,14 +46,26 @@
     { n: 3, pool: 4, lure: 0.2 },  // 17
     { n: 3, pool: 5, lure: 0.3 },  // 18
     { n: 3, pool: 6, lure: 0.45 }, // 19
-    { n: 3, pool: 8, lure: 0.6 }   // 20
+    { n: 3, pool: 8, lure: 0.6 },  // 20
+    // 21–30: more look-alikes at three back, then four cards back
+    { n: 3, pool: 9, lure: 0.65 },  // 21
+    { n: 3, pool: 10, lure: 0.65 }, // 22
+    { n: 3, pool: 10, lure: 0.75 }, // 23
+    { n: 3, pool: 12, lure: 0.75 }, // 24
+    { n: 4, pool: 4, lure: 0.2 },   // 25
+    { n: 4, pool: 5, lure: 0.3 },   // 26
+    { n: 4, pool: 6, lure: 0.4 },   // 27
+    { n: 4, pool: 8, lure: 0.5 },   // 28
+    { n: 4, pool: 10, lure: 0.6 },  // 29
+    { n: 4, pool: 12, lure: 0.7 }   // 30
   ];
 
-  var BACK_WORDS = { 1: 'קלף אחד', 2: 'שני קלפים', 3: 'שלושה קלפים' };
+  var BACK_WORDS = { 1: 'קלף אחד', 2: 'שני קלפים', 3: 'שלושה קלפים', 4: 'ארבעה קלפים' };
   var QUESTION = {
     1: 'האם זה כמו הקלף הקודם?',
     2: 'האם זה כמו הקלף של שניים לפני?',
-    3: 'האם זה כמו הקלף של שלושה לפני?'
+    3: 'האם זה כמו הקלף של שלושה לפני?',
+    4: 'האם זה כמו הקלף של ארבעה לפני?'
   };
 
   function svg(name) {
@@ -151,13 +163,14 @@
       function explain() {
         // Before an n ≥ 2 session: a short worked example.
         root.innerHTML = '';
-        ctx.setStatus(N === 2 ? 'זכרו שני קלפים אחורה' : 'זכרו שלושה קלפים אחורה');
-        var demo = N === 2 ? ['star', 'circle', 'star'] : ['heart', 'square', 'circle', 'heart'];
+        ctx.setStatus('זכרו ' + BACK_WORDS[N] + ' אחורה');
+        var demo = N === 2 ? ['star', 'circle', 'star'] : N === 3 ? ['heart', 'square', 'circle', 'heart']
+          : ['moon', 'square', 'circle', 'star', 'moon'];
         var row = el('div', { class: 'sab-demo-row', 'aria-hidden': 'true' }, demo.map(function (name, i) {
           return el('span', { class: 'sab-mini' + (i === 0 || i === demo.length - 1 ? ' sab-hit' : ''), html: svg(name) });
         }));
         root.appendChild(el('p', { class: 'sab-text' },
-          'לא לקלף שממש לפני, אלא ל' + (N === 2 ? 'זה שלפניו' : 'זה ששלושה לפני') + '.'));
+          'לא לקלף שממש לפני, אלא ל' + (N === 2 ? 'זה שלפניו' : N === 3 ? 'זה ששלושה לפני' : 'זה שארבעה לפני') + '.'));
         root.appendChild(el('div', { class: 'sab-demo' }, [
           row,
           el('p', { class: 'sab-demo-cap' }, 'הקלפים המסומנים זהים, לכן בקלף האחרון עונים "כן"')

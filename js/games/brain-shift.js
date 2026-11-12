@@ -5,7 +5,7 @@
   var TRIALS = 16;
   var NUMBERS = [1, 2, 3, 4, 6, 7, 8, 9]; // 5 is left out so "greater than 5" is never ambiguous
 
-  // Per level (1–20): how many times the number moves to the other half during the 16 cards,
+  // Per level (1–30): how many times the number moves to the other half during the 16 cards,
   // and how strongly the halves are colour-coded (2 = full colour, 1 = faint, 0 = neutral).
   var LEVELS = [
     { switches: 2,  color: 2 }, // 1
@@ -27,7 +27,18 @@
     { switches: 13, color: 0 }, // 17
     { switches: 14, color: 0 }, // 18
     { switches: 14, color: 0 }, // 19
-    { switches: 15, color: 0 }  // 20 — the half changes on every card
+    { switches: 15, color: 0 }, // 20 — the half changes on every card
+    // 21–30: a short sum (later also a subtraction) instead of the number: first solve, then answer.
+    { switches: 15, color: 0, expr: 0.25 },                      // 21
+    { switches: 15, color: 0, expr: 0.4 },                       // 22
+    { switches: 15, color: 0, expr: 0.55 },                      // 23
+    { switches: 15, color: 0, expr: 0.7 },                       // 24
+    { switches: 15, color: 0, expr: 0.85 },                      // 25
+    { switches: 15, color: 0, expr: 1, sub: 0.25 },              // 26
+    { switches: 15, color: 0, expr: 1, sub: 0.4 },               // 27
+    { switches: 15, color: 0, expr: 1, sub: 0.5, big: true },    // 28
+    { switches: 15, color: 0, expr: 1, sub: 0.55, big: true },   // 29
+    { switches: 15, color: 0, expr: 1, sub: 0.6, big: true }     // 30
   ];
 
   var QUESTIONS = {
@@ -39,9 +50,24 @@
     return half === 'top' ? num % 2 === 0 : num > 5;
   }
 
-  function explain(half, num) {
-    if (half === 'top') return num + (num % 2 === 0 ? ' הוא זוגי' : ' הוא אי-זוגי');
-    return num + (num > 5 ? ' גדול מ-5' : ' קטן מ-5');
+  function explain(half, num, text) {
+    var pre = text ? '⁦' + text + ' = ' + num + '⁩. ' : ''; // LTR-isolated "3+4 = 7"
+    if (half === 'top') return pre + num + (num % 2 === 0 ? ' הוא זוגי' : ' הוא אי-זוגי');
+    return pre + num + (num > 5 ? ' גדול מ-5' : ' קטן מ-5');
+  }
+
+  var MINUS = '−';
+
+  // A short exercise whose result is num (1–9, never 5), e.g. "3+4" or (big) "14−6".
+  function exprFor(num, spec, randInt) {
+    if (Math.random() < (spec.sub || 0)) {
+      var b = spec.big ? randInt(3, 9) : randInt(1, Math.min(5, 9 - 1));
+      if (num + b > (spec.big ? 18 : 9)) b = Math.max(1, (spec.big ? 18 : 9) - num);
+      return (num + b) + MINUS + b;
+    }
+    if (num < 2) return null;
+    var a = randInt(1, num - 1);
+    return a + '+' + (num - a);
   }
 
   // Which half each card appears in, with exactly `switches` changes.
@@ -90,6 +116,7 @@
     '.bsh-c1 .bsh-bottom{border-color:var(--sun);}',
     /* neutral (level 16+): the plain grey of .bsh-half */
     '.bsh-half.bsh-active{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink-soft);}',
+    '.bsh-num.bsh-expr{padding:0 .6rem;font-size:2.4rem;white-space:nowrap;}',
     '.bsh-answers{width:100%;max-width:24rem;grid-template-columns:1fr 1fr;}',
     '.bsh-answers .g-choice{min-height:4.2rem;font-size:1.6rem;}'
   ].join('');
@@ -101,7 +128,7 @@
     tagline: 'עברו בין שתי שאלות לפי מקום המספר',
     benefit: 'גמישות מחשבתית ומעבר בין משימות',
     instructions: [
-      'מספר יופיע בחצי העליון או בחצי התחתון של הכרטיס.',
+      'מספר יופיע בחצי העליון או בחצי התחתון של הכרטיס. ברמות הגבוהות יופיע תרגיל קצר: פתרו אותו קודם.',
       'למעלה ענו: האם המספר זוגי? למטה ענו: האם המספר גדול מ-5?',
       'לחצו "כן" או "לא". השאלות כתובות תמיד על הכרטיס.',
       'אין שעון — חשבו רגע לפני שעונים.'
@@ -114,9 +141,11 @@
 
       var halves = makeHalves(spec.switches, ctx.shuffle);
       var nums = [];
+      var texts = []; // the exercise shown instead of the number (levels 21+), or null
       for (var i = 0; i < TRIALS; i++) {
         var choices = NUMBERS.filter(function (n) { return n !== nums[i - 1]; });
         nums.push(ctx.pick(choices));
+        texts.push(spec.expr && Math.random() < spec.expr ? exprFor(nums[i], spec, ctx.randInt) : null);
       }
 
       var trial = 0;
@@ -156,7 +185,9 @@
         bottom.slot.innerHTML = '';
         top.box.classList.toggle('bsh-active', h === 'top');
         bottom.box.classList.toggle('bsh-active', h === 'bottom');
-        (h === 'top' ? top : bottom).slot.appendChild(el('div', { class: 'bsh-num', 'data-num': nums[trial] }, String(nums[trial])));
+        (h === 'top' ? top : bottom).slot.appendChild(el('div', {
+          class: 'bsh-num' + (texts[trial] ? ' bsh-expr' : ''), 'data-num': nums[trial], dir: 'ltr'
+        }, texts[trial] || String(nums[trial])));
         ctx.setStatus(h === 'top' ? 'למעלה: זוגי?' : 'למטה: גדול מ-5?');
         [yesBtn, noBtn].forEach(function (b) { b.className = 'g-choice'; b.disabled = false; });
         accepting = true;
@@ -167,7 +198,7 @@
         accepting = false;
         yesBtn.disabled = true;
         noBtn.disabled = true;
-        var h = halves[trial], num = nums[trial];
+        var h = halves[trial], num = nums[trial], text = texts[trial];
         var right = answerFor(h, num);
         var ok = said === right;
         var switched = trial > 0 && halves[trial - 1] !== h;
@@ -178,11 +209,11 @@
         var done;
         if (ok) {
           ctx.sound('good');
-          ctx.setStatus('✓ ' + explain(h, num));
+          ctx.setStatus('✓ ' + explain(h, num, text));
           done = ctx.wait(800);
         } else {
-          ctx.setStatus((h === 'top' ? 'למעלה: ' : 'למטה: ') + explain(h, num));
-          done = ctx.feedback(false, explain(h, num)).then(function () { return ctx.wait(500); });
+          ctx.setStatus((h === 'top' ? 'למעלה: ' : 'למטה: ') + explain(h, num, text));
+          done = ctx.feedback(false, explain(h, num, text)).then(function () { return ctx.wait(500); });
         }
         done.then(function () {
           top.slot.innerHTML = '';

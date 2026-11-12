@@ -10,7 +10,7 @@
   /* Isolate a math snippet as LTR inside Hebrew text (LRI ... PDI). */
   function ltr(s) { return '⁦' + s + '⁩'; }
 
-  var MAX_L = 20;
+  var MAX_L = 30;
 
   /* Per level: pattern pool, difficulty of the numbers (d, the old 1–10 scale),
      sequence length n, and how often the gap is in the middle instead of the end. */
@@ -34,7 +34,18 @@
     17: { pool: ['inter', 'altops', 'incdiff', 'squares', 'fib'], d: 10, n: 6, mid: 0.45 },
     18: { pool: ['primes', 'inter', 'altops', 'fib'], d: 10, n: 6, mid: 0.45 },
     19: { pool: ['inter', 'altops', 'dbl1', 'primes', 'squares'], d: 11, n: 6, mid: 0.5 },
-    20: { pool: ['inter', 'altops', 'dbl1', 'primes', 'fib', 'squares'], d: 12, n: 6, mid: 0.5 }
+    20: { pool: ['inter', 'altops', 'dbl1', 'primes', 'fib', 'squares'], d: 12, n: 6, mid: 0.5 },
+    // 21–30: new kinds of rules, and the gap is more often in the middle
+    21: { pool: ['incdiff2', 'inter', 'altops', 'dbl1', 'squares', 'fib'], d: 12, n: 6, mid: 0.5 },
+    22: { pool: ['incdiff2', 'diffmul', 'inter', 'altops', 'primes'], d: 12, n: 6, mid: 0.5 },
+    23: { pool: ['diffmul', 'half', 'dblm1', 'inter', 'fib'], d: 12, n: 6, mid: 0.55 },
+    24: { pool: ['cubes', 'incdiff2', 'diffmul', 'altops', 'dbl1'], d: 12, n: 6, mid: 0.55 },
+    25: { pool: ['sqplus', 'half', 'tri', 'inter', 'primes'], d: 12, n: 6, mid: 0.6 },
+    26: { pool: ['tri', 'mulinc', 'diffmul', 'cubes', 'altops'], d: 12, n: 6, mid: 0.6 },
+    27: { pool: ['sqplus', 'mulinc', 'dblm1', 'incdiff2', 'inter'], d: 12, n: 6, mid: 0.6 },
+    28: { pool: ['tri', 'cubes', 'diffmul', 'half', 'sqplus'], d: 12, n: 6, mid: 0.65 },
+    29: { pool: ['mulinc', 'tri', 'sqplus', 'cubes', 'dblm1', 'diffmul'], d: 12, n: 6, mid: 0.65 },
+    30: { pool: ['mulinc', 'tri', 'sqplus', 'cubes', 'dblm1', 'diffmul', 'half', 'incdiff2'], d: 12, n: 6, mid: 0.7 }
   };
 
   var PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
@@ -46,7 +57,54 @@
 
   function build(type, L, n, R) {
     var seq = [], i, explain, step = 1;
-    if (type === 'inter') {
+    if (type === 'incdiff2') {
+      // the difference grows by 2 or 3 each time: +2, +4, +6…
+      var g = R.randInt(2, 3), dd = R.randInt(1, 4), w2 = R.randInt(1, 15);
+      for (i = 0; i < n; i++) { seq.push(w2); w2 += dd + i * g; }
+      step = dd + (n - 2) * g;
+      explain = 'ההפרש גדל כל פעם ב־' + g + ': ' + ltr('+' + dd + ', +' + (dd + g) + ', +' + (dd + 2 * g) + '…');
+    } else if (type === 'diffmul') {
+      // the difference doubles: +1, +2, +4, +8…
+      var dm = R.randInt(1, 3), sm = R.randInt(1, 12);
+      for (i = 0; i < n; i++) { seq.push(sm); sm += dm * Math.pow(2, i); }
+      step = dm * Math.pow(2, n - 2);
+      explain = 'ההפרש מוכפל כל פעם: ' + ltr('+' + dm + ', +' + (2 * dm) + ', +' + (4 * dm) + ', +' + (8 * dm) + '…');
+    } else if (type === 'dblm1') {
+      var y0 = R.randInt(3, 6);
+      seq.push(y0);
+      for (i = 1; i < n; i++) seq.push(seq[i - 1] * 2 - 1);
+      step = seq[n - 2];
+      explain = 'כל מספר הוא המספר שלפניו כפול 2, פחות 1';
+    } else if (type === 'cubes') {
+      var c0 = R.randInt(1, 2);
+      for (i = 0; i < n; i++) seq.push(Math.pow(c0 + i, 3));
+      step = seq[n - 1] - seq[n - 2];
+      explain = 'כל מספר כפול עצמו ועוד פעם כפול עצמו: ' + ltr(c0 + TIMES + c0 + TIMES + c0 + ', ' + (c0 + 1) + TIMES + (c0 + 1) + TIMES + (c0 + 1) + '…');
+    } else if (type === 'half') {
+      var h0 = R.randInt(1, 5) * Math.pow(2, n - 1);
+      for (i = 0; i < n; i++) seq.push(h0 / Math.pow(2, i));
+      step = seq[n - 1];
+      explain = 'כל מספר הוא חצי מהמספר שלפניו';
+    } else if (type === 'tri') {
+      var t1 = R.randInt(1, 3), t2 = R.randInt(1, 3), t3 = R.randInt(2, 4);
+      seq.push(t1, t2, t3);
+      for (i = 3; i < n; i++) seq.push(seq[i - 1] + seq[i - 2] + seq[i - 3]);
+      step = seq[n - 2];
+      explain = 'כל מספר הוא סכום שלושת המספרים שלפניו';
+    } else if (type === 'sqplus') {
+      var add = R.pick([1, 2, -1]), q0 = R.randInt(add < 0 ? 2 : 1, 5);
+      for (i = 0; i < n; i++) seq.push((q0 + i) * (q0 + i) + add);
+      step = 2 * (q0 + n - 1) - 1;
+      explain = 'מספר כפול עצמו, ' + (add > 0 ? 'ועוד ' + add : 'פחות ' + (-add)) + ': ' +
+        ltr((q0 + TIMES + q0) + (add > 0 ? '+' : '−') + Math.abs(add) + ', ' + ((q0 + 1) + TIMES + (q0 + 1)) + (add > 0 ? '+' : '−') + Math.abs(add) + '…');
+    } else if (type === 'mulinc') {
+      // ×2, ×3, ×4…
+      var u0 = R.randInt(1, 2);
+      seq.push(u0);
+      for (i = 1; i < n; i++) seq.push(seq[i - 1] * (i + 1));
+      step = seq[n - 1] - seq[n - 2];
+      explain = 'כופלים כל פעם במספר גדול יותר: ' + ltr(TIMES + '2, ' + TIMES + '3, ' + TIMES + '4…');
+    } else if (type === 'inter') {
       // two interleaved series (positions 0,2,4… and 1,3,5…)
       var a0 = R.randInt(1, 15), d1 = R.randInt(2, 6);
       var down = L >= 11 && R.randInt(0, 1);
@@ -156,7 +214,7 @@
     var n = cfg.n;
     var b = build(type, cfg.d, n, R);
     var missing = n - 1;
-    if (R.randInt(1, 100) <= cfg.mid * 100) missing = R.randInt(2, n - 2);
+    if (R.randInt(1, 100) <= cfg.mid * 100) missing = R.randInt(type === 'tri' ? 3 : 2, n - 2); // 'tri' needs its first three numbers
     var ans = b.seq[missing];
     return {
       type: type,

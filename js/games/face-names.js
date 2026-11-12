@@ -52,13 +52,17 @@
     '.fn-ask .fn-face{font-size:5rem;background:var(--memory-soft);border:3px solid var(--memory);border-radius:50%;',
     'width:8rem;height:8rem;display:grid;place-items:center;}',
     '.fn-choices{max-width:30rem;}',
+    '.fn-label-q{font-size:1.45rem;font-weight:800;text-align:center;background:var(--memory-soft);border:2px solid var(--memory);',
+    'border-radius:var(--radius);padding:.6rem 1.2rem;margin:0;text-wrap:balance;}',
+    '.fn-choices.fn-faces{grid-template-columns:repeat(2,minmax(0,1fr));max-width:20rem;}',
+    '.fn-face-choice .fn-face{font-size:3rem;}',
     '.fn-choices.fn-wide{grid-template-columns:1fr;}',
     '.fn-choices .g-choice{font-size:1.25rem;line-height:1.3;}'
   ].join('');
 
   function clampLevel(l) {
     l = Math.round(Number(l) || 1);
-    return Math.max(1, Math.min(20, l));
+    return Math.max(1, Math.min(30, l));
   }
 
   BrainGames.register({
@@ -70,7 +74,7 @@
     instructions: [
       'יופיעו כמה דמויות, ולכל אחת שם (ובשלבים מתקדמים גם מקצוע ועיר).',
       'זכרו מי זה מי, ולחצו "זכרתי, הלאה" כשתהיו מוכנים.',
-      'כל דמות תופיע שוב לבד. בחרו את השם הנכון מתוך ארבע אפשרויות.'
+      'כל דמות תופיע שוב לבד. בחרו את השם הנכון מתוך ארבע אפשרויות (ברמות הגבוהות לפעמים להפך: בחרו את הדמות).'
     ],
     css: css,
     start: function (root, ctx) {
@@ -79,6 +83,12 @@
       var n = Math.min(8, 2 + Math.round((level - 1) * 6 / 19));   // 2 → 8 people
       var withProf = level >= 8;
       var withCity = level >= 15;
+      // Levels 21–30 keep 8 people but make them easier to mix up: everyone on a board is the same
+      // gender (21+), the names sound alike (24+), and some questions go the other way (26+):
+      // the details are shown and the player picks the face.
+      var sameGender = level >= 21;
+      var similarNames = level >= 24;
+      var reverseShare = level >= 26 ? (level >= 28 ? 0.5 : 0.35) : 0;
       var totalQ = n >= MIN_QUESTIONS ? n : Math.min(MAX_QUESTIONS, n * Math.ceil(MIN_QUESTIONS / n));
 
       var asked = 0;
@@ -96,7 +106,29 @@
         return d ? p.name + ', ' + d : p.name;
       }
 
+      // Names that share a first letter with another name (רחל, רותי, רינה...), shuffled within groups.
+      function similarNameList(g) {
+        var groups = {};
+        NAMES[g].forEach(function (nm) { (groups[nm.charAt(0)] = groups[nm.charAt(0)] || []).push(nm); });
+        var out = [];
+        ctx.shuffle(Object.keys(groups)).forEach(function (k) {
+          if (groups[k].length >= 2) out = out.concat(ctx.shuffle(groups[k]));
+        });
+        return out;
+      }
+
       function makePeople() {
+        if (sameGender) {
+          var g0 = ctx.pick(['m', 'f']);
+          var pool = ctx.shuffle(CHARS.filter(function (c) { return c.g === g0 || c.g === 'n'; })).slice(0, n);
+          var names = similarNames ? similarNameList(g0) : ctx.shuffle(NAMES[g0]);
+          if (names.length < n) names = names.concat(ctx.shuffle(NAMES[g0].filter(function (x) { return names.indexOf(x) === -1; })));
+          var profs0 = ctx.shuffle(PROFS.map(function (_, i) { return i; }));
+          var cities0 = ctx.shuffle(CITIES.map(function (_, i) { return i; }));
+          return pool.map(function (c, i) {
+            return { emoji: c.e, g: g0, name: names[i], prof: profs0[i], city: cities0[i] };
+          });
+        }
         var chars = ctx.shuffle(CHARS).slice(0, n);
         var usedNames = {};
         var profs = ctx.shuffle(PROFS.map(function (_, i) { return i; }));
@@ -220,6 +252,7 @@
         ctx.setProgress(asked + 1, totalQ);
         root.innerHTML = '';
         var she = p.g === 'f';
+        if (reverseShare && Math.random() < reverseShare) { askFace(order, i, people); return; }
         ctx.setStatus(withProf ? (she ? 'מי זאת?' : 'מי זה?') : (she ? 'איך קוראים לה?' : 'איך קוראים לו?'));
         var choices = buildChoices(p, people);
         var answered = false;
@@ -247,6 +280,42 @@
             else if (x === c) buttons[k].classList.add('is-wrong');
           });
           ctx.feedback(ok, ok ? undefined : (she ? 'זאת ' : 'זה ') + labelOf(p)).then(function () {
+            return ctx.wait(500);
+          }).then(function () { ask(order, i + 1, people); });
+        }
+      }
+
+      // Reverse question: the name and details are shown, the player picks the face.
+      function askFace(order, i, people) {
+        var p = order[i];
+        var she = p.g === 'f';
+        ctx.setStatus(she ? 'איזו דמות היא?' : 'איזו דמות הוא?');
+        var choices = ctx.shuffle([p].concat(ctx.shuffle(people.filter(function (q) { return q !== p; })).slice(0, 3)));
+        var answered = false;
+        var buttons = choices.map(function (c) {
+          return el('button', {
+            class: 'g-choice fn-face-choice', type: 'button', 'aria-label': 'דמות ' + c.emoji,
+            onclick: function () { choose(c); }
+          }, el('span', { class: 'fn-face', 'aria-hidden': 'true' }, c.emoji));
+        });
+        root.appendChild(el('div', { class: 'fn-ask' }, [
+          el('p', { class: 'fn-label-q' }, labelOf(p)),
+          el('p', { class: 'g-hint' }, 'בחרו את הדמות הנכונה')
+        ]));
+        root.appendChild(el('div', { class: 'g-choices fn-choices fn-faces' }, buttons));
+
+        function choose(c) {
+          if (answered) return;
+          answered = true;
+          buttons.forEach(function (b) { b.disabled = true; });
+          var ok = c === p;
+          asked++;
+          if (ok) score++;
+          choices.forEach(function (x, k) {
+            if (x === p) buttons[k].classList.add('is-correct');
+            else if (x === c) buttons[k].classList.add('is-wrong');
+          });
+          ctx.feedback(ok, ok ? undefined : labelOf(p) + ' ' + (she ? 'היא ' : 'הוא ') + p.emoji).then(function () {
             return ctx.wait(500);
           }).then(function () { ask(order, i + 1, people); });
         }

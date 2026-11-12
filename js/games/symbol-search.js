@@ -62,7 +62,20 @@
     { cols: 4, rows: 5, t: 7, sim: 4 }, // 17
     { cols: 4, rows: 5, t: 6, sim: 5 }, // 18
     { cols: 4, rows: 5, t: 7, sim: 5 }, // 19
-    { cols: 4, rows: 5, t: 8, sim: 5 }  // 20
+    { cols: 4, rows: 5, t: 8, sim: 5 }, // 20
+    // 21–30: still 4 × 5. The number of targets changes from board to board (t = [min, max]), and from 22
+    // there are TWO symbols to find at once (sim 6: two shapes, 7: two letters, 8: two look-alike
+    // letters, 9: two look-alike shapes), with their look-alikes in between.
+    { cols: 4, rows: 5, t: [6, 9], sim: 5 }, // 21
+    { cols: 4, rows: 5, t: [6, 8], sim: 6 }, // 22
+    { cols: 4, rows: 5, t: [7, 9], sim: 6 }, // 23
+    { cols: 4, rows: 5, t: [6, 8], sim: 7 }, // 24
+    { cols: 4, rows: 5, t: [7, 9], sim: 7 }, // 25
+    { cols: 4, rows: 5, t: [6, 8], sim: 8 }, // 26
+    { cols: 4, rows: 5, t: [7, 9], sim: 8 }, // 27
+    { cols: 4, rows: 5, t: [6, 8], sim: 9 }, // 28
+    { cols: 4, rows: 5, t: [7, 9], sim: 9 }, // 29
+    { cols: 4, rows: 5, t: [7, 10], sim: 8 } // 30
   ];
 
   var css = [
@@ -71,6 +84,7 @@
     'border:3px solid var(--attention);border-radius:var(--radius);}',
     '.ss-target .ss-svg{width:66%;}',
     '.ss-target .ss-letter{font-size:2.8rem;}',
+    '.ss-targets{display:flex;gap:.5rem;flex:none;}',
     '.ss-svg{display:block;width:60%;height:auto;fill:currentColor;}',
     '.ss-letter{font-family:var(--font-body);font-weight:800;line-height:1;font-size:clamp(1.5rem,7vw,2.3rem);}',
     '.ss-grid{max-width:15.5rem;}',
@@ -114,7 +128,8 @@
       var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var cols = spec.cols, rows = spec.rows;
-      var count = Math.min(spec.t, cols * rows - 2);
+      var tRange = Array.isArray(spec.t) ? spec.t : [spec.t, spec.t];
+      var count = Math.min(tRange[1], cols * rows - 2);
 
       var round = 0;
       var score = 0;
@@ -125,6 +140,21 @@
       function makeSet() {
         var sim = spec.sim;
         var target, siblings, easy;
+        if (sim >= 6) {
+          // two targets: from two different families (6, 7) or from the same family (8, 9)
+          var fams = sim === 6 || sim === 9 ? SHAPE_FAMILIES : LETTER_FAMILIES;
+          var tg, sib;
+          if (sim === 6 || sim === 7) {
+            var two = ctx.shuffle(fams.slice()).slice(0, 2);
+            tg = two.map(function (f) { return ctx.pick(f); });
+            sib = two[0].concat(two[1]).filter(function (s) { return tg.indexOf(s) === -1; });
+          } else {
+            var f2 = ctx.shuffle(ctx.pick(fams).slice());
+            tg = f2.slice(0, 2);
+            sib = f2.slice(2);
+          }
+          return { target: tg[0], targets: tg, pool: sib, siblings: sib, share: 1 };
+        }
         if (sim === 0) {
           target = ctx.pick(EASY);
           easy = EASY.filter(function (s) { return s !== target; });
@@ -160,9 +190,11 @@
         root.innerHTML = '';
         var n = cols * rows;
         var set = makeSet();
+        var targets = set.targets || [set.target];
+        count = Math.min(ctx.randInt(tRange[0], tRange[1]), cols * rows - 2);
         var cells = [];
         var i;
-        for (i = 0; i < count; i++) cells.push(set.target);
+        for (i = 0; i < count; i++) cells.push(targets[i % targets.length]);
         var others = [];
         for (i = 0; i < n - count; i++) {
           var useSib = set.siblings.length && Math.random() < set.share;
@@ -196,10 +228,12 @@
         var doneBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: check }, 'סיימתי');
         var actions = el('div', { class: 'g-actions' }, doneBtn);
 
-        ctx.setStatus('מצאו וסמנו את כל הסמלים הזהים');
+        ctx.setStatus(targets.length > 1 ? 'מצאו וסמנו את כל הסמלים משני הסוגים' : 'מצאו וסמנו את כל הסמלים הזהים');
         // The target, the running count and (early levels) the hint share one compact row above the board.
         root.appendChild(el('div', { class: 'ss-top' }, [
-          el('div', { class: 'ss-target', role: 'img', 'aria-label': 'הסמל לחיפוש' }, glyph(el, set.target)),
+          el('div', { class: 'ss-targets' }, targets.map(function (t) {
+            return el('div', { class: 'ss-target', role: 'img', 'aria-label': 'סמל לחיפוש' }, glyph(el, t));
+          })),
           el('div', { class: 'ss-side' }, [
             level <= 5 ? el('p', { class: 'g-hint' }, 'יש ' + count + ' כאלה בלוח') : null,
             countLine
@@ -243,7 +277,7 @@
           tiles.forEach(function (t, idx) {
             t.disabled = true;
             t.classList.remove('ss-picked');
-            var isTarget = cells[idx] === set.target;
+            var isTarget = targets.indexOf(cells[idx]) !== -1;
             if (picked[idx] && isTarget) { mark(t, 'is-correct', '✓'); hits++; }
             else if (picked[idx]) { mark(t, 'is-wrong', '✗'); wrong++; }
             else if (isTarget) { mark(t, 'ss-missed', '●'); missed++; }

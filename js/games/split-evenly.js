@@ -7,7 +7,7 @@
   var BASKET = '🧺';
   // Toast text is plain RTL, so explanations use words ("חלקי") rather than ÷ symbols.
 
-  // Per level (1–20): item range, basket range and question kinds.
+  // Per level (1–30): item range, basket range and question kinds.
   // share = "how many in each basket?" (always divides evenly)
   // can   = "can it be split evenly?" (yes / no)
   // left  = "how many are left over?"
@@ -33,7 +33,19 @@
     { min: 16, max: 24, pMin: 4, pMax: 6, kinds: ['left', 'can', 'left'] },    // 17
     { min: 16, max: 24, pMin: 5, pMax: 6, kinds: ['share', 'left', 'left'] },  // 18
     { min: 18, max: 24, pMin: 5, pMax: 6, kinds: ['can', 'left', 'left'] },    // 19
-    { min: 18, max: 24, pMin: 5, pMax: 6, kinds: ['left', 'left', 'share'] }   // 20
+    { min: 18, max: 24, pMin: 5, pMax: 6, kinds: ['left', 'left', 'share'] },  // 20
+    // 21–30: the same pile (at most 24); new questions: how many to add so it splits evenly (need),
+    // and how many are missing so every basket gets T (target)
+    { min: 18, max: 24, pMin: 5, pMax: 6, kinds: ['left', 'need', 'share'] },  // 21
+    { min: 18, max: 24, pMin: 5, pMax: 6, kinds: ['need', 'left', 'need'] },   // 22
+    { min: 20, max: 24, pMin: 4, pMax: 6, kinds: ['need', 'can', 'left'] },    // 23
+    { min: 20, max: 24, pMin: 5, pMax: 6, kinds: ['need', 'need', 'left'] },   // 24
+    { min: 20, max: 24, pMin: 5, pMax: 6, kinds: ['need', 'left', 'share'] },  // 25
+    { min: 20, max: 24, pMin: 5, pMax: 6, kinds: ['target', 'need', 'left'] }, // 26
+    { min: 20, max: 24, pMin: 5, pMax: 6, kinds: ['target', 'need', 'target'] }, // 27
+    { min: 21, max: 24, pMin: 5, pMax: 6, kinds: ['target', 'need', 'left'] }, // 28
+    { min: 21, max: 24, pMin: 6, pMax: 6, kinds: ['target', 'target', 'need'] }, // 29
+    { min: 22, max: 24, pMin: 6, pMax: 6, kinds: ['target', 'need', 'target'] }  // 30
   ];
 
   function ri(rng, a, b) { return a + Math.floor(rng() * (b - a + 1)); }
@@ -55,11 +67,21 @@
       }
       if (items < s.min || items > s.max || items < plates) continue;
       if (kind === 'can' && (items % plates === 0) !== wantYes) continue;
+      if (kind === 'need' && items % plates === 0) continue;
       break;
     }
     var q = Math.floor(items / plates), r = items % plates;
-    var answer, choices;
-    if (kind === 'share') {
+    var answer, choices, goal = 0;
+    if (kind === 'need' || kind === 'target') {
+      goal = kind === 'need' ? q + 1 : q + ri(rng, r ? 1 : 2, 2);
+      answer = plates * goal - items;
+      var c2 = [answer - 1, answer + 1, r, plates, answer + plates, answer - plates, answer + 2].filter(function (v) {
+        return v >= 1 && v !== answer;
+      });
+      var u2 = [];
+      c2.forEach(function (v) { if (u2.indexOf(v) === -1) u2.push(v); });
+      choices = [answer].concat(u2.slice(0, 3)).sort(function (a, b) { return a - b; });
+    } else if (kind === 'share') {
       answer = q;
       var cand = [q - 1, q + 1, q + 2, q - 2, plates, items - plates].filter(function (v) {
         return v >= 1 && v !== q;
@@ -78,7 +100,7 @@
       if (choices.indexOf(r) === -1) choices[0] = r;
       choices.sort(function (a, b) { return a - b; });
     }
-    return { kind: kind, items: items, plates: plates, each: q, rest: r, answer: answer, choices: choices };
+    return { kind: kind, items: items, plates: plates, each: q, rest: r, goal: goal, answer: answer, choices: choices };
   }
 
   var css = [
@@ -107,6 +129,10 @@
 
   // Short Hebrew explanation, used in the toast after a mistake.
   function explain(r) {
+    if (r.kind === 'need' || r.kind === 'target') {
+      return 'כדי שבכל סלסלה יהיו ' + r.goal + ' צריך ' + r.plates + ' כפול ' + r.goal + ' = ' + (r.plates * r.goal) +
+        ' פירות. יש ' + r.items + ', אז חסרים ' + r.answer;
+    }
     if (r.rest === 0) {
       return r.items + ' חלקי ' + r.plates + ' הם ' + r.each +
         (r.kind === 'can' ? ', בלי שארית' : r.kind === 'left' ? ', לא נשאר כלום' : '');
@@ -158,7 +184,9 @@
         ctx.setStatus({
           share: 'כמה יהיו בכל סלסלה?',
           can: 'אפשר לחלק שווה בלי שארית?',
-          left: 'כמה יישארו בחוץ?'
+          left: 'כמה יישארו בחוץ?',
+          need: 'כמה פירות צריך להוסיף, לכל הפחות, כדי שהחלוקה תצא שווה?',
+          target: 'כמה פירות חסרים כדי שבכל סלסלה יהיו ' + r.goal + '?'
         }[r.kind]);
 
         var blocks = [];
@@ -213,12 +241,18 @@
           });
           if (!ok) btn.classList.add('is-wrong');
           // Show the fair share in every basket and the division on one line.
-          counts.forEach(function (n) { n.textContent = String(r.each); });
+          var adding = r.kind === 'need' || r.kind === 'target';
+          counts.forEach(function (n) { n.textContent = String(adding ? r.goal : r.each); });
           qLine.innerHTML = '';
           qLine.classList.add('se-done');
-          qLine.appendChild(el('span', { class: 'se-eq' }, eqText(r)));
-          if (r.rest) qLine.appendChild(document.createTextNode('  ·  נשארים ' + r.rest));
-          ctx.setStatus(ok ? 'נכון!' : (r.rest ? 'נשארים ' + r.rest : 'מתחלק בדיוק'));
+          if (adding) {
+            qLine.appendChild(el('span', { class: 'se-eq' }, r.plates + ' × ' + r.goal + ' = ' + (r.plates * r.goal)));
+            qLine.appendChild(document.createTextNode('  ·  חסרים ' + r.answer));
+          } else {
+            qLine.appendChild(el('span', { class: 'se-eq' }, eqText(r)));
+            if (r.rest) qLine.appendChild(document.createTextNode('  ·  נשארים ' + r.rest));
+          }
+          ctx.setStatus(ok ? 'נכון!' : adding ? 'חסרים ' + r.answer : (r.rest ? 'נשארים ' + r.rest : 'מתחלק בדיוק'));
           ctx.feedback(ok, ok ? undefined : explain(r)).then(function () {
             if (ok) return ctx.wait(900).then(nextRound);
             // After a mistake the player decides when to move on.

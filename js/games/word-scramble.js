@@ -60,9 +60,12 @@
 
   /* Word length range by level (index = level - 1). */
   var LEN = [[3, 3], [3, 3], [3, 4], [4, 4], [4, 4], [4, 5], [5, 5], [5, 5], [5, 6], [5, 6],
-             [6, 6], [6, 6], [6, 7], [6, 7], [7, 7], [7, 7], [7, 8], [7, 8], [8, 9], [8, 9]];
+             [6, 6], [6, 6], [6, 7], [6, 7], [7, 7], [7, 7], [7, 8], [7, 8], [8, 9], [8, 9],
+             [7, 8], [7, 9], [6, 8], [7, 8], [7, 9], [6, 8], [7, 8], [7, 9], [7, 9], [8, 9]];
   // Extra letter tiles that do not belong to the word.
-  var DECOY_N = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1];
+  var DECOY_N = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3];
+  // From this level the category hint is hidden (only the number of letters is shown).
+  var NO_CATEGORY_FROM = 23;
 
   /* Shuffle tile order so the word letters never appear in the original order
      and never spell any word from the bank. */
@@ -119,14 +122,14 @@
     tagline: 'סדרו את האותיות למילה הנכונה',
     benefit: 'שליפת מילים, איות וגמישות מחשבתית',
     instructions: [
-      'האותיות של מילה אחת מעורבבות. הרמז אומר לאיזה תחום היא שייכת.',
+      'האותיות של מילה אחת מעורבבות. הרמז אומר לאיזה תחום היא שייכת (ברמות הגבוהות אין רמז).',
       'לחצו על האותיות לפי הסדר כדי לבנות את המילה, מימין לשמאל.',
       'לחצו על אות שכבר הנחתם כדי להחזיר אותה, או על "ניקוי" כדי להתחיל מחדש.',
       'נתקעתם? לחצו "רמז" ותקבלו את האות הבאה.'
     ],
     css: CSS,
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(20, Math.round(Number(ctx.level) || 1)));
+      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
       var range = LEN[level - 1];
       var nDecoy = DECOY_N[level - 1];
       var round = 0;
@@ -196,12 +199,12 @@
         if (level === 1) placeLocked(0);
 
         // One short line: the category and the length. Extra guidance goes to the status line.
-        if (nDecoy) ctx.setStatus('סדרו את המילה. יש אות אחת מיותרת');
+        if (nDecoy) ctx.setStatus('סדרו את המילה. ' + (nDecoy === 1 ? 'יש אות אחת מיותרת' : 'יש ' + nDecoy + ' אותיות מיותרות'));
         else if (level === 1) ctx.setStatus('האות הראשונה כבר במקום. השלימו');
 
         root.innerHTML = '';
         root.appendChild(ctx.el('div', { class: 'ws-wrap' }, [
-          ctx.el('span', { class: 'ws-cat', text: 'רמז: ' + word.label + ' · ' + n + ' אותיות' }),
+          ctx.el('span', { class: 'ws-cat', text: level >= NO_CATEGORY_FROM ? n + ' אותיות' : 'רמז: ' + word.label + ' · ' + n + ' אותיות' }),
           slotsEl,
           tilesEl,
           ctx.el('div', { class: 'g-actions' }, [hintBtn, clearBtn]),

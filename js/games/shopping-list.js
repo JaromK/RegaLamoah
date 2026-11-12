@@ -46,6 +46,9 @@
     '.sl2-item.is-wrong{background:var(--bad-soft);border-color:var(--bad);border-width:3px;color:var(--bad);}',
     '.sl2-item.sl2-missed{background:var(--surface);border:3px dashed var(--sun);}',
     '.sl2-item.sl2-dim{opacity:.45;}',
+    '.sl2-qty{font-weight:900;color:var(--memory);margin-inline-start:auto;font-variant-numeric:tabular-nums;}',
+    '.sl2-count{font-size:1rem;font-weight:900;color:var(--memory);min-height:1.1rem;line-height:1.1;}',
+    '.sl2-item.is-correct .sl2-count{color:var(--good);}',
     '.sl2-legend{display:flex;flex-wrap:wrap;gap:.3rem .9rem;justify-content:center;color:var(--ink-soft);font-size:1.1rem;line-height:1.3;margin:0;}',
     '.sl2-legend span{display:inline-flex;align-items:center;gap:.35rem;}',
     '.sl2-sw{display:inline-block;width:1rem;height:1rem;border-radius:4px;border:2px solid var(--line);}',
@@ -56,7 +59,7 @@
 
   function clampLevel(l) {
     l = Math.round(Number(l) || 1);
-    return Math.max(1, Math.min(20, l));
+    return Math.max(1, Math.min(30, l));
   }
 
   BrainGames.register({
@@ -69,18 +72,23 @@
       'תופיע רשימת קניות. קראו וזכרו את כל הפריטים.',
       'כשתהיו מוכנים לחצו "זכרתי, הלאה".',
       'על המדף יופיעו מוצרים רבים. לחצו על כל מה שהיה ברשימה.',
-      'לחצו "בדיקה" כדי לראות מה זכרתם.'
+      'לחצו "בדיקה" כדי לראות מה זכרתם. ברמות הגבוהות זכרו גם כמה: כל לחיצה מוסיפה עוד אחד.'
     ],
     css: css,
     start: function (root, ctx) {
       var el = ctx.el;
       var level = clampLevel(ctx.level);
-      var listLen = Math.round(3 + (level - 1) * 7 / 19);              // 3 → 10
+      // Levels 21–30 keep the level-20 shelf (15 tiles, no extra scrolling) and add quantities:
+      // some items must be bought 2 or 3 times ("חלב ×2"); a tap adds one, a tap past 3 clears.
+      var QTY_LEN = [6, 7, 7, 8, 8, 8, 9, 9, 10, 10];
+      var QTY_SHARE = [0.3, 0.4, 0.4, 0.5, 0.5, 0.6, 0.6, 0.7, 0.7, 0.8];
+      var withQty = level >= 21;
+      var listLen = withQty ? QTY_LEN[level - 21] : Math.round(3 + (level - 1) * 7 / 19); // 3 → 10
       // Shelf size is capped so every tile stays big and the round fits one phone screen
       // (12 tiles = 4 rows of 3 up to level 15; at 16–20 a little scrolling is allowed).
       var shelfMax = level <= 15 ? 12 : 15;
       var distractors = Math.min(listLen + Math.floor((level - 1) / 6), shelfMax - listLen);
-      var sameCatRatio = 0.9 * (level - 1) / 19;                         // 0 → 0.9
+      var sameCatRatio = Math.min(0.9, 0.9 * (level - 1) / 19);          // 0 → 0.9
 
       var round = 0;
       var score = 0;
@@ -114,7 +122,13 @@
         var fromOther = other.slice(0, distractors - picks.length);
         picks = picks.concat(fromOther);
         if (picks.length < distractors) picks = picks.concat(same.slice(nSame, nSame + distractors - picks.length));
-        return { list: list, inList: inList, shelf: ctx.shuffle(list.concat(picks)) };
+        var qty = {};
+        list.forEach(function (it) { qty[it.id] = 1; });
+        if (withQty) {
+          var nQty = Math.max(1, Math.round(listLen * QTY_SHARE[level - 21]));
+          ctx.shuffle(list).slice(0, nQty).forEach(function (it) { qty[it.id] = ctx.randInt(2, 3); });
+        }
+        return { list: list, inList: inList, qty: qty, shelf: ctx.shuffle(list.concat(picks)) };
       }
 
       function playRound() {
@@ -126,7 +140,10 @@
         var note = el('div', { class: 'sl2-note' }, [
           el('p', { class: 'sl2-note-title' }, '🛒 צריך לקנות (' + listLen + ' פריטים):'),
           el('ul', { class: 'sl2-list' }, data.list.map(function (it) {
-            return el('li', null, [el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji), el('span', null, it.word)]);
+            return el('li', null, [
+              el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji), el('span', null, it.word),
+              data.qty[it.id] > 1 ? el('span', { class: 'sl2-qty' }, '×' + data.qty[it.id]) : null
+            ]);
           }))
         ]);
         var readyBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: startPick }, 'זכרתי, הלאה');
@@ -146,7 +163,8 @@
         }
 
         function showShelf() {
-          ctx.setStatus('לחצו על ' + listLen + ' המוצרים שהיו ברשימה');
+          ctx.setStatus(withQty ? 'לחצו על המוצרים שברשימה. לחיצה נוספת מוסיפה עוד אחד'
+            : 'לחצו על ' + listLen + ' המוצרים שהיו ברשימה');
           var picked = {};
           var pickedCount = 0;
           var accepting = true;
@@ -155,7 +173,8 @@
             var b = el('button', {
               class: 'sl2-item', type: 'button', 'aria-pressed': 'false',
               onclick: function () { toggle(it, b); }
-            }, [el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji), el('span', { class: 'sl2-word' }, it.word)]);
+            }, [el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji), el('span', { class: 'sl2-word' }, it.word),
+              withQty ? el('span', { class: 'sl2-count', 'aria-hidden': 'true' }) : null]);
             return b;
           });
           var shelf = el('div', { class: 'sl2-shelf' }, buttons);
@@ -173,6 +192,18 @@
           function toggle(it, b) {
             if (!accepting) return;
             ctx.sound('tap');
+            if (withQty) {
+              // 1 → 2 → 3 → none
+              var c = ((picked[it.id] || 0) + 1) % 4;
+              if (!picked[it.id]) pickedCount++;
+              if (c) picked[it.id] = c; else { delete picked[it.id]; pickedCount--; }
+              b.classList.toggle('sl2-picked', !!c);
+              b.setAttribute('aria-pressed', c ? 'true' : 'false');
+              b.setAttribute('aria-label', it.word + (c ? ', כמות ' + c : ''));
+              b.querySelector('.sl2-count').textContent = c ? '×' + c : '';
+              updateCount();
+              return;
+            }
             if (picked[it.id]) { delete picked[it.id]; pickedCount--; b.classList.remove('sl2-picked'); b.setAttribute('aria-pressed', 'false'); }
             else { picked[it.id] = true; pickedCount++; b.classList.add('sl2-picked'); b.setAttribute('aria-pressed', 'true'); }
             updateCount();
@@ -183,13 +214,21 @@
             accepting = false;
             checkBtn.disabled = true;
             buttons.forEach(function (b) { b.disabled = true; });
-            var hits = 0, wrong = 0;
+            var hits = 0, wrong = 0, badQty = 0;
             data.shelf.forEach(function (it, i) {
               var b = buttons[i];
               b.classList.remove('sl2-picked');
-              if (picked[it.id] && data.inList[it.id]) { b.classList.add('is-correct'); hits++; }
+              if (withQty && picked[it.id] && data.inList[it.id] && picked[it.id] !== data.qty[it.id]) {
+                // right product, wrong amount: show the amount that was on the list
+                b.classList.add('sl2-missed');
+                b.querySelector('.sl2-count').textContent = '×' + data.qty[it.id] + ' (לא ×' + picked[it.id] + ')';
+                badQty++;
+              } else if (picked[it.id] && data.inList[it.id]) { b.classList.add('is-correct'); hits++; }
               else if (picked[it.id]) { b.classList.add('is-wrong'); wrong++; }
-              else if (data.inList[it.id]) { b.classList.add('sl2-missed'); }
+              else if (data.inList[it.id]) {
+                b.classList.add('sl2-missed');
+                if (withQty && data.qty[it.id] > 1) b.querySelector('.sl2-count').textContent = '×' + data.qty[it.id];
+              }
               else { b.classList.add('sl2-dim'); }
             });
             itemsHit += hits;
@@ -200,6 +239,7 @@
             if (ok) msg = undefined;
             else {
               msg = 'זכרתם ' + hits + ' מתוך ' + listLen;
+              if (badQty) msg += badQty === 1 ? ', במוצר אחד הכמות לא נכונה' : ', ב-' + badQty + ' מוצרים הכמות לא נכונה';
               if (wrong) msg += wrong === 1 ? ', ומוצר אחד לא היה ברשימה' : ', ו-' + wrong + ' מוצרים לא היו ברשימה';
             }
             ctx.setStatus(ok ? 'מצוין! זכרתם את כל הרשימה' : 'זכרתם ' + hits + ' מתוך ' + listLen + (wrong ? ' · ' + (wrong === 1 ? 'טעות אחת' : wrong + ' טעויות') : ''));

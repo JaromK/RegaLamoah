@@ -6,6 +6,38 @@
 
   // Per level (1–20): how many steps of the task to order. Small steps, never speed.
   var LEVELS = [3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 8, 8];
+  // Levels 21–30 never show more than the 8 lines of level 20: n real steps plus extra steps that
+  // belong to a different task (intr) and must be left without a number; noTitle hides the task name.
+  var EXTRA = [
+    { n: 5, intr: 1 }, { n: 6, intr: 1 }, { n: 7, intr: 1 },                                  // 21–23
+    { n: 6, intr: 1, noTitle: true }, { n: 7, intr: 1, noTitle: true },                       // 24–25
+    { n: 5, intr: 2 }, { n: 6, intr: 2 },                                                     // 26–27
+    { n: 5, intr: 2, noTitle: true }, { n: 6, intr: 2, noTitle: true }, { n: 6, intr: 2, noTitle: true } // 28–30
+  ];
+  var MAX_LEVEL = LEVELS.length + EXTRA.length;
+
+  // Intruder steps come from a task in another group, so they cannot fit the current task.
+  var GROUP = {
+    'הכנת כוס תה': 'k', 'אפיית עוגה': 'k', 'הכנת סלט': 'k', 'הכנת חביתה': 'k', 'בישול פסטה': 'k',
+    'הכנת כריך': 'k', 'הכנת מיץ תפוזים': 'k', 'שטיפת כלים': 'k',
+    'כביסה': 'h', 'החלפת נורה': 'h', 'צחצוח שיניים': 'h', 'השקיית הגינה': 'h', 'שתילת פרח': 'h',
+    'סידור המיטה': 'h', 'תליית תמונה': 'h', 'עטיפת מתנה': 'h'
+  }; // everything else (errands, phone, travel) is group 'o'
+
+  // Content words of a text, without one leading prefix letter (ה, ו, ב, ל, מ, ש, כ).
+  function stems(text) {
+    var out = {};
+    text.replace(/[^\u05d0-\u05ea ]/g, ' ').split(' ').forEach(function (w) {
+      if (w.length < 3) return;
+      out[w] = true;
+      if (w.length >= 4 && 'הובלמשכ'.indexOf(w.charAt(0)) !== -1) out[w.slice(1)] = true;
+    });
+    return out;
+  }
+  function sharesWord(a, b) {
+    var sa = stems(a), sb = stems(b);
+    return Object.keys(sa).some(function (w) { return sb[w]; });
+  }
 
   // Each task lists its steps in the only sensible order. Every step clearly depends on the one
   // before it, so any subsequence of steps also has exactly one right order.
@@ -242,6 +274,7 @@
     '.do-num{flex:none;width:2.1rem;height:2.1rem;display:grid;place-items:center;border-radius:50%;',
     'border:2px dashed var(--line);font-weight:800;font-size:1.15rem;font-variant-numeric:tabular-nums;}',
     '.do-text{flex:1;min-width:0;}',
+    '.do-from{flex:none;font-size:.95rem;font-weight:700;color:var(--ink-soft);}',
     '.do-step.is-placed{border-color:var(--executive);background:var(--executive-soft);}',
     '.do-step.is-placed .do-num{border:0;background:var(--executive);color:var(--surface);}',
     '.do-step.is-correct .do-num{border:0;background:var(--good);color:var(--surface);}',
@@ -258,13 +291,15 @@
       'מופיעה משימה יומיומית, והשלבים שלה מעורבבים.',
       'לחצו על השלבים לפי הסדר: קודם הראשון, אחר כך השני, וכן הלאה. כל שלב מקבל מספר.',
       'טעיתם? לחצו שוב על שלב ממוספר כדי לבטל את המספר שלו.',
-      'כשכל השלבים במקום, לחצו "בדיקה".'
+      'כשכל השלבים במקום, לחצו "בדיקה". ברמות הגבוהות יש שלב שלא שייך למשימה: השאירו אותו בלי מספר.'
     ],
     css: css,
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
-      var count = LEVELS[level - 1];
+      var level = Math.max(1, Math.min(MAX_LEVEL, Math.round(Number(ctx.level)) || 1));
+      var extra = level > LEVELS.length ? EXTRA[level - LEVELS.length - 1] : null;
+      var count = extra ? extra.n : LEVELS[level - 1];
+      var nIntr = extra ? extra.intr : 0;
 
       var pool = TASKS.filter(function (t) { return t.steps.length >= count; });
       var tasks = ctx.shuffle(pool).slice(0, ROUNDS);
@@ -278,7 +313,8 @@
           ctx.finish({
             correct: score,
             total: ROUNDS,
-            note: 'סידרתם נכון ' + score + ' מתוך ' + ROUNDS + ' משימות של ' + count + ' שלבים'
+            note: 'סידרתם נכון ' + score + ' מתוך ' + ROUNDS + ' משימות של ' + count + ' שלבים' +
+              (nIntr ? ' (ומצאתם את מה שלא שייך)' : '')
           });
           return;
         }
@@ -296,15 +332,34 @@
         return [steps[0]].concat(keep.map(function (i) { return steps[i]; }), [steps[steps.length - 1]]);
       }
 
+      // Steps from other-group tasks that share no word with the current task.
+      function intruders(task, k) {
+        var g = GROUP[task.title] || 'o';
+        var all = task.title + ' ' + task.steps.join(' ');
+        var pool = [];
+        TASKS.forEach(function (t) {
+          if ((GROUP[t.title] || 'o') === g) return;
+          t.steps.forEach(function (s) { if (!sharesWord(s, all)) pool.push({ s: s, from: t.title }); });
+        });
+        var out = [];
+        ctx.shuffle(pool).forEach(function (p) {
+          if (out.length < k && out.every(function (o) { return o.from !== p.from && !sharesWord(o.s, p.s); })) out.push(p);
+        });
+        return out;
+      }
+
       function playRound(task) {
         root.innerHTML = '';
         var steps = chooseSteps(task.steps, count);
-        var n = steps.length;
+        var n = steps.length;          // real steps, indexes 0..n-1 in the right order
+        var extraSteps = nIntr ? intruders(task, nIntr) : [];
+        extraSteps.forEach(function (p) { steps.push(p.s); }); // intruders: indexes n, n+1
+        var total = steps.length;
         var order = [];
-        for (var i = 0; i < n; i++) order.push(i);
+        for (var i = 0; i < total; i++) order.push(i);
         var shuffled = ctx.shuffle(order);
         // Never show the steps already in the right order.
-        while (n > 1 && shuffled.join() === order.join()) shuffled = ctx.shuffle(order);
+        while (total > 1 && shuffled.join() === order.join()) shuffled = ctx.shuffle(order);
 
         var placed = []; // step indexes in the order the player chose
         var locked = false;
@@ -325,14 +380,17 @@
         var checkBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', disabled: true, onclick: check }, 'בדיקה');
         var actions = el('div', { class: 'g-actions' }, checkBtn);
 
+        var titleEl = el('p', { class: 'do-title' }, extra && extra.noTitle ? 'איזו משימה זו? ❓' : task.title);
         var wrap = el('div', { class: 'do-wrap' }, [
-          el('p', { class: 'do-title' }, task.title),
+          titleEl,
           list,
           actions
         ]);
         root.appendChild(wrap);
 
-        ctx.setStatus('לחצו על השלבים לפי הסדר הנכון');
+        ctx.setStatus(!extraSteps.length ? 'לחצו על השלבים לפי הסדר הנכון'
+          : extraSteps.length === 1 ? 'שלב אחד לא שייך למשימה: השאירו אותו בלי מספר'
+            : 'שני שלבים לא שייכים למשימה: השאירו אותם בלי מספר');
         render();
 
         function render() {
@@ -350,10 +408,12 @@
           if (locked) return;
           ctx.sound('tap');
           var pos = placed.indexOf(idx);
-          if (pos === -1) placed.push(idx);
-          else placed.splice(pos, 1);
+          if (pos === -1) {
+            if (placed.length >= n) { ctx.setStatus('כבר מספרתם ' + n + ' שלבים. מה שנשאר בלי מספר לא שייך'); return; }
+            placed.push(idx);
+          } else placed.splice(pos, 1);
           render();
-          if (placed.length === n) ctx.setStatus('הכול ממוספר? לחצו "בדיקה"');
+          if (placed.length === n) ctx.setStatus(extraSteps.length ? 'מה שנשאר בלי מספר לא שייך. לחצו "בדיקה"' : 'הכול ממוספר? לחצו "בדיקה"');
           else if (pos === -1) ctx.setStatus('ומה השלב הבא?');
           else ctx.setStatus('בוטל. בחרו את שלב ' + (placed.length + 1));
         }
@@ -375,6 +435,20 @@
             it.btn.setAttribute('aria-label', 'שלב ' + (idx + 1) + ': ' + steps[idx] + (right ? '' : '. שמתם אותו במקום ' + (chosen + 1)));
             list.appendChild(it.li);
           }
+          // The steps from another task go last, marked "לא שייך" (green if left without a number).
+          for (var x = n; x < total; x++) {
+            var ix = items[x];
+            var left = placed.indexOf(x) === -1;
+            if (!left) ok = false;
+            ix.btn.disabled = true;
+            ix.btn.classList.remove('is-placed');
+            ix.btn.classList.add(left ? 'is-correct' : 'is-wrong');
+            ix.num.textContent = '✗';
+            ix.btn.setAttribute('aria-label', 'לא שייך: ' + steps[x] + ' (מתוך "' + extraSteps[x - n].from + '")');
+            ix.btn.appendChild(el('span', { class: 'do-from' }, 'לא שייך · ' + extraSteps[x - n].from));
+            list.appendChild(ix.li);
+          }
+          titleEl.textContent = task.title;
           if (ok) score++;
           ctx.setStatus(ok ? 'מצוין! זה הסדר הנכון' : 'כמעט. כך הסדר הנכון');
           checkBtn.hidden = true;

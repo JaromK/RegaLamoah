@@ -4,7 +4,7 @@
 
   var ROUNDS = 6;
 
-  // Per level (1–20): fish in the pond, how many to follow, swim time (ms),
+  // Per level (1–30): fish in the pond, how many to follow, swim time (ms),
   // speed (share of the pond width per second) and gentle wandering from level 11.
   // At most 8 big fish; past that, swim time and wandering grow instead. Speed barely moves.
   var LEVELS = [
@@ -27,7 +27,18 @@
     { n: 8, k: 4, ms: 8500, speed: 0.21, wander: 0.7 }, // 17
     { n: 8, k: 4, ms: 9000, speed: 0.21, wander: 0.8 }, // 18
     { n: 8, k: 4, ms: 9000, speed: 0.22, wander: 0.9 }, // 19
-    { n: 8, k: 4, ms: 9000, speed: 0.22, wander: 1 }  // 20
+    { n: 8, k: 4, ms: 9000, speed: 0.22, wander: 1 }, // 20
+    // 21–30: still 8 fish and the same speed; longer swims, more wandering, and 5 fish to follow from 23
+    { n: 8, k: 4, ms: 9500, speed: 0.22, wander: 1.1 },  // 21
+    { n: 8, k: 4, ms: 10000, speed: 0.22, wander: 1.2 }, // 22
+    { n: 8, k: 5, ms: 8000, speed: 0.22, wander: 0.9 },  // 23
+    { n: 8, k: 5, ms: 8500, speed: 0.22, wander: 1 },    // 24
+    { n: 8, k: 5, ms: 9000, speed: 0.22, wander: 1.1 },  // 25
+    { n: 8, k: 5, ms: 9500, speed: 0.22, wander: 1.2 },  // 26
+    { n: 8, k: 5, ms: 10000, speed: 0.22, wander: 1.2 }, // 27
+    { n: 8, k: 5, ms: 10500, speed: 0.22, wander: 1.3 }, // 28
+    { n: 8, k: 5, ms: 11000, speed: 0.22, wander: 1.4 }, // 29
+    { n: 8, k: 5, ms: 12000, speed: 0.22, wander: 1.4 }  // 30
   ];
 
   var STEP_MS = 550; // reduced motion: show a new position only this often

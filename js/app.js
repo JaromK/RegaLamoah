@@ -56,17 +56,18 @@
     window.scrollTo(0, 0);
   }
 
-  function clampLevel(n) { return Math.max(BG.MIN_LEVEL, Math.min(BG.MAX_LEVEL, n | 0)); }
+  // id: clamp to that game's own top level (a game may stop before BG.MAX_LEVEL, see GAME_API.md)
+  function clampLevel(n, id) { return Math.max(BG.MIN_LEVEL, Math.min(id ? BG.maxLevelOf(id) : BG.MAX_LEVEL, n | 0)); }
 
   // a game may start new players lower than the usual level (its `startLevel`)
   function startLevel(id) {
     var g = BG.getGame(id);
-    return g && g.startLevel ? clampLevel(g.startLevel) : BG.START_LEVEL;
+    return g && g.startLevel ? clampLevel(g.startLevel, id) : BG.START_LEVEL;
   }
 
   function getLevel(id) {
     var lv = BG.state.levels[id];
-    return typeof lv === 'number' ? clampLevel(lv) : startLevel(id);
+    return typeof lv === 'number' ? clampLevel(lv, id) : startLevel(id);
   }
 
   // new players may still pick the warm-up levels below the starting level
@@ -222,7 +223,7 @@
       levelNow.appendChild(el('span', null, BG.stageOf(lv).name));
       pathWrap.innerHTML = '';
       pathWrap.appendChild(levelPath({
-        level: lv, best: getBest(gameId),
+        level: lv, best: getBest(gameId), max: BG.maxLevelOf(gameId),
         onPick: function (picked) {
           var best = getBest(gameId);
           var name = BG.getGame(gameId).name;
@@ -370,7 +371,7 @@
 
     var allSection = el('section', { class: 'section' }, [
       el('h2', { class: 'section-title' }, 'כל המשחקים'),
-      el('p', { class: 'section-lead' }, 'רוצים לשחק עוד? בחרו כל משחק שתרצו. בכל משחק יש ' + BG.MAX_LEVEL + ' רמות.'),
+      el('p', { class: 'section-lead' }, 'רוצים לשחק עוד? בחרו כל משחק שתרצו. בכל משחק יש עד ' + BG.MAX_LEVEL + ' רמות.'),
       el('div', { class: 'skill-groups' }, Object.keys(BG.SKILLS).map(function (skill) {
         var games = BG.all().filter(function (g) { return g.skill === skill; });
         if (!games.length) return null;
@@ -381,7 +382,10 @@
             return el('li', null, el('button', { class: 'game-card', type: 'button', onclick: function () { renderIntro(g, false); } }, [
               el('span', { class: 'game-card-name' }, [
                 g.name,
-                BG.state.trophies[g.id] ? el('span', { class: 'card-trophy', title: 'זכיתם בגביע', html: TROPHY_SVG }) : null
+                trophyKind(g.id) ? el('span', {
+                  class: 'card-trophy' + (trophyKind(g.id) === 'silver' ? ' is-silver' : ''),
+                  title: trophyKind(g.id) === 'gold' ? 'זכיתם בגביע הזהב' : 'זכיתם בגביע הכסף', html: TROPHY_SVG
+                }) : null
               ]),
               el('span', { class: 'game-card-tag' }, g.tagline),
               el('span', { class: 'game-card-level' }, [
@@ -389,7 +393,7 @@
                 el('span', { class: 'game-card-stage' }, BG.stageOf(lv).name)
               ]),
               el('span', { class: 'mini-bar', 'aria-hidden': 'true' },
-                el('span', { class: 'mini-bar-fill', style: { width: Math.round(lv / BG.MAX_LEVEL * 100) + '%' } }))
+                el('span', { class: 'mini-bar-fill', style: { width: Math.round(lv / BG.maxLevelOf(g.id) * 100) + '%' } }))
             ]));
           }))
         ]);
@@ -408,14 +412,31 @@
         el('p', { class: 'thought-text' }, U.pick(DAILY_THOUGHTS, thoughtRng))
       ])
     ]));
-    var won = BG.all().filter(function (g) { return BG.state.trophies[g.id]; });
+    // Gold first, then silver; each game shows its best trophy once.
+    var won = BG.all().filter(function (g) { return trophyKind(g.id); }).sort(function (a, b) {
+      return (trophyKind(a.id) === 'gold' ? 0 : 1) - (trophyKind(b.id) === 'gold' ? 0 : 1);
+    });
     if (won.length) {
+      var golds = won.filter(function (g) { return trophyKind(g.id) === 'gold'; }).length;
+      var silvers = BG.all().filter(function (g) {
+        var t = BG.state.trophies[g.id];
+        return t && t.silver && BG.maxLevelOf(g.id) > BG.SILVER_LEVEL;
+      }).length;
       app.appendChild(el('section', { class: 'section trophies' }, [
-        el('h2', { class: 'section-title' }, 'הגביעים שלי (' + won.length + ' מתוך ' + BG.all().length + ')'),
+        el('h2', { class: 'section-title' }, 'הגביעים שלי'),
+        el('p', { class: 'trophy-counts' }, [
+          el('span', null, [el('span', { class: 'trophy-icon', html: TROPHY_SVG }), 'זהב: ' + golds + ' מתוך ' + BG.all().length]),
+          el('span', null, [el('span', { class: 'trophy-icon is-silver', html: TROPHY_SVG }), 'כסף: ' + silvers + ' מתוך ' + BG.all().length])
+        ]),
         el('ul', { class: 'trophy-list' }, won.map(function (g) {
-          return el('li', { class: 'trophy-item' }, [el('span', { class: 'trophy-icon', html: TROPHY_SVG }), el('span', null, g.name)]);
+          var gold = trophyKind(g.id) === 'gold';
+          return el('li', { class: 'trophy-item' + (gold ? '' : ' is-silver') }, [
+            el('span', { class: 'trophy-icon' + (gold ? '' : ' is-silver'), html: TROPHY_SVG }),
+            el('span', null, g.name),
+            el('span', { class: 'trophy-kind' }, gold ? 'זהב' : 'כסף')
+          ]);
         })),
-        el('p', { class: 'trophy-call' }, 'רוצים עוד רמות? התקשרו לירון.')
+        golds ? el('p', { class: 'trophy-call' }, 'רוצים עוד רמות? התקשרו לירון.') : null
       ]));
     }
     app.appendChild(allSection);
@@ -423,8 +444,8 @@
       el('h2', { class: 'section-title' }, 'איך זה עובד'),
       el('ul', { class: 'tips-list' }, [
         el('li', null, [el('strong', null, 'אין שעון. '), 'קחו את הזמן לחשוב. הדיוק חשוב יותר מהמהירות. מי שרוצה אתגר יכול להפעיל את השעון ב"הגדרות" למעלה.']),
-        el('li', null, [el('strong', null, 'גביע לאלופים. '), 'מי שמנצח ברמה ' + BG.MAX_LEVEL + ' במשחק מקבל גביע.']),
-        el('li', null, [el('strong', null, BG.MAX_LEVEL + ' רמות בכל משחק. '), 'כשמצליחים עולים רמה, וכשקשה יורדים רמה. אפשר גם לבחור רמה בעצמכם ב"הגדרות".']),
+        el('li', null, [el('strong', null, 'גביעים לאלופים. '), 'מי שמנצח ברמה ' + BG.SILVER_LEVEL + ' במשחק מקבל גביע כסף, וברמה ' + BG.MAX_LEVEL + ' גביע זהב.']),
+        el('li', null, [el('strong', null, 'עד ' + BG.MAX_LEVEL + ' רמות בכל משחק. '), 'כשמצליחים עולים רמה, וכשקשה יורדים רמה. אפשר גם לבחור רמה בעצמכם ב"הגדרות".']),
         el('li', null, [el('strong', null, 'קצת בכל יום. '), 'עשר דקות ביום עדיפות על שעה פעם בשבוע.'])
       ]),
       el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { openSettings(); } },
@@ -435,7 +456,8 @@
   /* ---------- level path ---------- */
   function levelPath(opts) {
     // opts: { level, best, selected, onPick, from }
-    return el('div', { class: 'path' }, BG.STAGES.map(function (stage) {
+    var max = opts.max || BG.MAX_LEVEL;
+    return el('div', { class: 'path' }, BG.STAGES.filter(function (stage) { return stage.from <= max; }).map(function (stage) {
       var dots = [];
       for (var lv = stage.from; lv <= stage.to; lv++) {
         (function (lv) {
@@ -482,7 +504,7 @@
       el('div', { class: 'intro-head' }, [
         skillIcon(game.skill),
         el('div', null, [
-          el('div', { class: 'intro-chips' }, [skillChip(game.skill), el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.MAX_LEVEL)]),
+          el('div', { class: 'intro-chips' }, [skillChip(game.skill), el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.maxLevelOf(game.id))]),
           el('h1', { class: 'intro-title' }, game.name),
           el('p', { class: 'intro-tag' }, game.tagline)
         ])
@@ -493,7 +515,7 @@
       el('div', { class: 'level-box level-box-compact' }, [
         el('p', { class: 'level-now' }, [
           el('strong', null, 'הרמה שלכם:'),
-          el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.MAX_LEVEL),
+          el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.maxLevelOf(game.id)),
           el('span', null, BG.stageOf(level).name)
         ]),
         el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { openSettings({ gameId: game.id }); } },
@@ -570,7 +592,7 @@
     endCurrent();
     clear();
     refreshScreen = null;
-    level = clampLevel(level || getLevel(game.id));
+    level = clampLevel(level || getLevel(game.id), game.id);
     var timed = !!BG.state.prefs.timer;
     var session = { game: game, active: true, daily: daily, cleanup: null, intervals: [], startedAt: Date.now() };
     current = session;
@@ -749,13 +771,27 @@
     '<path class="tr-star" d="M32 14l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z"/>' +
     '</svg>';
 
-  function trophyCard(game) {
-    return el('div', { class: 'trophy-card' }, [
-      el('span', { class: 'trophy-icon', html: TROPHY_SVG }),
-      el('div', { class: 'trophy-text' }, [
-        el('h2', { class: 'trophy-title' }, 'זכיתם בגביע!'),
-        el('p', null, 'ניצחתם ברמה ' + BG.MAX_LEVEL + ', הרמה הגבוהה ביותר ב"' + game.name + '". הישג מרשים במיוחד.'),
+  // 'gold', 'silver' or null: the best trophy won in a game
+  function trophyKind(id) {
+    var t = BG.state.trophies[id];
+    if (!t) return null;
+    // in a game that stops at level 20, winning 20 is its top: that counts as gold
+    if (t.gold || (t.silver && BG.maxLevelOf(id) <= BG.SILVER_LEVEL)) return 'gold';
+    return t.silver ? 'silver' : null;
+  }
+
+  function trophyCard(game, kind) {
+    var gold = kind === 'gold';
+    return el('div', { class: 'trophy-card' + (gold ? '' : ' is-silver') }, [
+      el('span', { class: 'trophy-icon' + (gold ? '' : ' is-silver'), html: TROPHY_SVG }),
+      el('div', { class: 'trophy-text' }, gold ? [
+        el('h2', { class: 'trophy-title' }, 'זכיתם בגביע הזהב!'),
+        el('p', null, 'ניצחתם ברמה ' + BG.maxLevelOf(game.id) + ', הרמה הגבוהה ביותר ב"' + game.name + '". הישג מרשים במיוחד.'),
         el('p', { class: 'trophy-call' }, 'רוצים עוד רמות? התקשרו לירון.')
+      ] : [
+        el('h2', { class: 'trophy-title' }, 'זכיתם בגביע הכסף!'),
+        el('p', null, 'ניצחתם ברמה ' + BG.SILVER_LEVEL + ' ב"' + game.name + '". הישג מרשים!'),
+        el('p', null, 'מחכות לכם עוד ' + (BG.MAX_LEVEL - BG.SILVER_LEVEL) + ' רמות בדרך לגביע הזהב.')
       ])
     ]);
   }
@@ -767,16 +803,24 @@
     var total = Math.max(0, result.total | 0);
     var acc = total ? correct / total : 0;
     var newLevel = playedLevel;
-    if (acc >= 0.85) newLevel = Math.min(BG.MAX_LEVEL, playedLevel + 1);
+    var top = BG.maxLevelOf(game.id);
+    if (acc >= 0.85) newLevel = Math.min(top, playedLevel + 1);
     else if (acc < 0.5) newLevel = Math.max(BG.MIN_LEVEL, playedLevel - 1);
 
     var oldBest = getBest(game.id);
     var oldStage = BG.stageOf(playedLevel);
     var newStage = BG.stageOf(newLevel);
-    // Winning the top level earns a trophy (once per game; replays still show it)
-    var wonTop = playedLevel === BG.MAX_LEVEL && acc >= 0.85;
-    var firstTrophy = wonTop && !BG.state.trophies[game.id];
-    if (firstTrophy) BG.state.trophies[game.id] = U.dateKey();
+    // Winning level 20 earns the silver trophy, the top level the gold one
+    // (each once per game; replays still show the card)
+    var won = acc >= 0.85;
+    var wonTop = playedLevel === top && won;
+    // a game that stops at level 20 gives its gold trophy there (no silver step)
+    var trophyWon = wonTop ? 'gold' : (playedLevel === BG.SILVER_LEVEL && won ? 'silver' : null);
+    if (trophyWon) {
+      var tr = BG.state.trophies[game.id] || {};
+      if (!tr[trophyWon]) tr[trophyWon] = U.dateKey();
+      BG.state.trophies[game.id] = tr;
+    }
 
     BG.state.levels[game.id] = newLevel;
     BG.state.best[game.id] = Math.max(oldBest, newLevel);
@@ -789,9 +833,9 @@
     var leveledUp = newLevel > playedLevel;
     var headline = acc >= 0.85 ? 'מצוין!' : acc >= 0.6 ? 'עבודה טובה!' : 'כל הכבוד על ההתמדה!';
     var levelMsg;
-    if (wonTop) levelMsg = 'סיימתם בהצלחה את רמה ' + BG.MAX_LEVEL + '!';
+    if (wonTop) levelMsg = 'סיימתם בהצלחה את רמה ' + top + '!';
     else if (leveledUp && newStage !== oldStage) levelMsg = 'עליתם לרמה ' + newLevel + ' ונכנסתם לשלב חדש: ' + newStage.name + '!';
-    else if (leveledUp && newLevel === BG.MAX_LEVEL) levelMsg = 'הגעתם לרמה הגבוהה ביותר, ' + BG.MAX_LEVEL + '. מדהים!';
+    else if (leveledUp && newLevel === top) levelMsg = 'הגעתם לרמה הגבוהה ביותר, ' + top + '. מדהים!';
     else if (leveledUp) levelMsg = 'עליתם לרמה ' + newLevel + '. בפעם הבאה יהיה קצת יותר מאתגר.';
     else if (newLevel < playedLevel) levelMsg = 'בפעם הבאה נשחק ברמה ' + newLevel + ', כדי שיהיה נוח יותר. זה חלק טבעי מהאימון.';
     else levelMsg = 'נשארים ברמה ' + newLevel + '. עוד קצת תרגול ותעלו רמה.';
@@ -822,7 +866,7 @@
         el('span', { class: 'meter-fill', style: { width: Math.round(acc * 100) + '%' } })),
       result.note ? el('p', { class: 'result-note' }, result.note) : null,
       elapsedMs !== null && elapsedMs !== undefined ? el('p', { class: 'result-time' }, 'זמן המשחק: ' + formatTime(elapsedMs)) : null,
-      wonTop ? trophyCard(game) : null,
+      trophyWon ? trophyCard(game, trophyWon) : null,
       el('p', { class: 'result-level' + (leveledUp || wonTop ? ' is-up' : '') }, levelMsg),
       el('div', { class: 'result-actions' }, actions)
     ]));

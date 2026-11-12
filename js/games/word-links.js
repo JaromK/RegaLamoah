@@ -196,6 +196,7 @@
 
   BrainGames.register({
     id: 'word-links',
+    maxLevel: 20, // harder levels would need new hand-checked phrases: this game stops at 20
     name: 'צירופי מילים',
     skill: 'language',
     tagline: 'השלימו את הצירוף המוכר',

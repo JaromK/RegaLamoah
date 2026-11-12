@@ -4,7 +4,7 @@
 
   var ROUNDS = 6;
 
-  // Per level (1–20): grid columns × rows, coloured cells, and how many colours (1 or 2).
+  // Per level (1–30): grid columns × rows, coloured cells, and how many colours (1 or 2).
   // At most 4 columns so every tile stays at least 56px wide on a phone, and at most 4×4 up to
   // level 15 so the model, the board and the button fit one screen. From level 11 a second colour
   // appears (the count drops back a little), and from 16 the board grows to 4×5.
@@ -28,7 +28,18 @@
     { cols: 4, rows: 5, count: 10, colors: 2 }, // 17
     { cols: 4, rows: 5, count: 11, colors: 2 }, // 18
     { cols: 4, rows: 5, count: 12, colors: 2 }, // 19
-    { cols: 4, rows: 5, count: 13, colors: 2 }  // 20
+    { cols: 4, rows: 5, count: 13, colors: 2 }, // 20
+    // 21–30: from 23 the drawing is copied as in a mirror (left ↔ right), starting smaller again
+    { cols: 4, rows: 5, count: 14, colors: 2 },               // 21
+    { cols: 4, rows: 5, count: 15, colors: 2 },               // 22
+    { cols: 4, rows: 4, count: 7, colors: 2, mirror: true },  // 23
+    { cols: 4, rows: 4, count: 8, colors: 2, mirror: true },  // 24
+    { cols: 4, rows: 5, count: 9, colors: 2, mirror: true },  // 25
+    { cols: 4, rows: 5, count: 10, colors: 2, mirror: true }, // 26
+    { cols: 4, rows: 5, count: 11, colors: 2, mirror: true }, // 27
+    { cols: 4, rows: 5, count: 12, colors: 2, mirror: true }, // 28
+    { cols: 4, rows: 5, count: 13, colors: 2, mirror: true }, // 29
+    { cols: 4, rows: 5, count: 14, colors: 2, mirror: true }  // 30
   ];
 
   var css = [
@@ -70,7 +81,7 @@
       'למעלה יש דוגמה קטנה עם משבצות צבועות. היא נשארת על המסך כל הזמן.',
       'לחצו על משבצות בלוח הגדול כדי לצבוע אותן בדיוק כמו בדוגמה.',
       'בשלבים מתקדמים יש שני צבעים: לחיצה אחת, שתיים, ושלישית מנקה.',
-      'כשסיימתם לחצו "בדיקה".'
+      'כשסיימתם לחצו "בדיקה". ברמות הגבוהות מעתיקים כמו במראה: ימין ושמאל מתחלפים.'
     ],
     css: css,
     start: function (root, ctx) {
@@ -91,7 +102,7 @@
             correct: score,
             total: ROUNDS,
             note: 'העתקתם בדיוק ' + score + ' מתוך ' + ROUNDS + ' דוגמאות של ' + count + ' משבצות' +
-              (colors === 2 ? ' בשני צבעים' : '')
+              (colors === 2 ? ' בשני צבעים' : '') + (spec.mirror ? ', כמו במראה' : '')
           });
           return;
         }
@@ -114,6 +125,12 @@
         var chosen = ctx.shuffle(all.slice()).slice(0, count);
         var bCount = colors === 2 ? Math.max(2, Math.floor(count * ctx.randInt(35, 50) / 100)) : 0;
         chosen.forEach(function (idx, k) { model[idx] = k < bCount ? 2 : 1; });
+        // What the board must look like: the model itself, or (mirror levels) the model flipped left ↔ right.
+        var goal = all.map(function (idx) {
+          if (!spec.mirror) return model[idx];
+          var r = Math.floor(idx / cols), c = idx % cols;
+          return model[r * cols + (cols - 1 - c)];
+        });
 
         var player = all.map(function () { return 0; });
         var accepting = true;
@@ -142,7 +159,7 @@
           el('span', null, [swatch(2), 'לחיצה 2']),
           el('span', null, [swatch(0), 'לחיצה 3'])
         ] : []);
-        var info = el('div', { class: 'cp-info' }, [el('p', { class: 'cp-label' }, 'הדוגמה'), countLine, legend]);
+        var info = el('div', { class: 'cp-info' }, [el('p', { class: 'cp-label' }, spec.mirror ? 'הדוגמה, במראה ⇆' : 'הדוגמה'), countLine, legend]);
         var checkBtn = el('button', {
           class: 'btn btn-primary btn-lg', type: 'button', disabled: true,
           onclick: check
@@ -153,7 +170,8 @@
         root.appendChild(board);
         root.appendChild(actions);
 
-        ctx.setStatus(colors === 2 ? 'העתיקו את הדוגמה, שימו לב לצבעים' : 'העתיקו את הדוגמה ללוח הגדול');
+        ctx.setStatus(spec.mirror ? 'ציירו את הדוגמה כמו במראה: מה שמימין עובר לשמאל'
+          : colors === 2 ? 'העתיקו את הדוגמה, שימו לב לצבעים' : 'העתיקו את הדוגמה ללוח הגדול');
         updateCount();
 
         function filled() {
@@ -185,7 +203,7 @@
           tiles.forEach(function (t) { t.disabled = true; });
           var wrong = 0, missed = 0, right = 0;
           tiles.forEach(function (t, idx) {
-            var m = model[idx], p = player[idx];
+            var m = goal[idx], p = player[idx];
             if (m && p === m) { t.classList.add('cp-ok'); right++; }
             else if (p) {
               t.classList.remove('cp-c' + p);

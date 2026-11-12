@@ -108,6 +108,12 @@
       var tiers = lv <= 4 ? [1] : lv <= 7 ? [1, 2] : lv <= 11 ? [2] : lv <= 14 ? [2, 3] : [3, 2, 3];
       LEVELS.push({ tiers: tiers, options: lv <= 9 ? 3 : 4, blankFirst: lv <= 12 });
     }
+    // 21–30: the word alone (no sentence to help), and some rounds flip the question:
+    // three words are spelled right and one is wrong, find the wrong one (rev = share of those rounds)
+    var REV = [0, 0.25, 0.35, 0.45, 0.5, 0.5, 0.55, 0.6, 0.6, 0.65];
+    for (lv = 21; lv <= 30; lv++) {
+      LEVELS.push({ tiers: lv >= 26 ? [3] : [3, 2, 3], options: 4, blankFirst: false, noSentence: true, rev: REV[lv - 21] });
+    }
   })();
 
   function pickWords(level, shuffle) {
@@ -139,7 +145,8 @@
     instructions: [
       'יופיעו כמה דרכים לכתוב אותה מילה. רק אחת מהן נכונה.',
       'קראו כל אפשרות לאט ובדקו כל אות.',
-      'לחצו על המילה שכתובה נכון. אין מגבלת זמן.'
+      'לחצו על המילה שכתובה נכון. אין מגבלת זמן.',
+      'ברמות הגבוהות לפעמים השאלה הפוכה: מצאו את המילה שכתובה עם שגיאה.'
     ],
     css: css,
     _pool: POOL,
@@ -177,11 +184,24 @@
       function playRound(item) {
         root.innerHTML = '';
         // Easier levels show the word inside a sentence; harder levels alternate with the word alone.
-        var withSentence = item.sentence && (spec.blankFirst || round % 2 === 1);
-        ctx.setStatus(withSentence ? 'איזו מילה חסרה? בחרו את הכתיב הנכון' : 'איזו מילה כתובה נכון?');
+        var withSentence = item.sentence && !spec.noSentence && (spec.blankFirst || round % 2 === 1);
+        // Reverse round (21+): find the one misspelled word among three correct ones.
+        var isRev = round > 1 && Math.random() < (spec.rev || 0);
+        var wrongWord = isRev ? ctx.pick(item.wrong) : null;
+        ctx.setStatus(isRev ? 'שימו לב, שאלה הפוכה: איזו מילה כתובה עם שגיאה?'
+          : withSentence ? 'איזו מילה חסרה? בחרו את הכתיב הנכון' : 'איזו מילה כתובה נכון?');
         var wrap = el('div', { class: 'sf-wrap' });
         var top = el('div', null, withSentence ? sentenceNode(item, false) : null);
-        var options = makeOptions(item, spec.options, ctx.shuffle);
+        var options;
+        if (isRev) {
+          var others = ctx.shuffle(POOL.filter(function (w) { return w !== item && w.word.length >= 3; }))
+            .sort(function (a, b) { return Math.abs(a.tier - item.tier) - Math.abs(b.tier - item.tier); })
+            .slice(0, spec.options - 1).map(function (w) { return w.word; });
+          options = ctx.shuffle([wrongWord].concat(others));
+        } else {
+          options = makeOptions(item, spec.options, ctx.shuffle);
+        }
+        var answer = isRev ? wrongWord : item.word;
         var answered = false;
         var buttons = options.map(function (w) {
           return el('button', {
@@ -199,19 +219,20 @@
           if (answered) return;
           answered = true;
           ctx.sound('tap');
-          var ok = w === item.word;
+          var ok = w === answer;
           if (ok) score++;
           buttons.forEach(function (b) {
             b.disabled = true;
-            if (b.textContent === item.word) b.classList.add('is-correct');
+            if (b.textContent === answer) b.classList.add('is-correct');
           });
           if (!ok) btn.classList.add('is-wrong');
           // Show the word in its sentence on the answer screen.
           top.innerHTML = '';
           if (item.sentence) top.appendChild(sentenceNode(item, true));
           else top.appendChild(el('p', { class: 'g-big' }, item.word));
-          ctx.setStatus(ok ? 'נכון!' : 'הכתיב הנכון: ' + item.word);
-          ctx.feedback(ok, ok ? undefined : 'הכתיב הנכון: ' + item.word).then(function () {
+          var fix = isRev ? '"' + wrongWord + '" כתובה עם שגיאה. הכתיב הנכון: ' + item.word : 'הכתיב הנכון: ' + item.word;
+          ctx.setStatus(ok ? (isRev ? 'נכון! הכתיב הנכון: ' + item.word : 'נכון!') : fix);
+          ctx.feedback(ok, ok ? undefined : fix).then(function () {
             if (ok) return ctx.wait(900).then(nextRound);
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: nextRound }, 'הלאה');
             after.appendChild(next);

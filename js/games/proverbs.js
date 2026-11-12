@@ -149,7 +149,25 @@
     { i: 'פרקליט השטן', m: 'מי שטוען בכוונה את העמדה ההפוכה כדי לבחון רעיון' },
     { i: 'טיפה בים', m: 'כמות זעירה לעומת מה שנדרש' },
     { i: 'ניצל בעור שיניו', m: 'ניצל ברגע האחרון ובקושי רב' },
-    { i: 'חתם בשתי ידיים', m: 'הסכים בשמחה ובלי היסוס' }
+    { i: 'חתם בשתי ידיים', m: 'הסכים בשמחה ובלי היסוס' },
+    // more expressions for levels 21–30
+    { i: 'לחתוך בבשר החי', m: 'לקבל החלטה קשה שפוגעת במשהו יקר' },
+    { i: 'להוציא את הערמונים מהאש', m: 'לעשות את העבודה הקשה או המסוכנת בשביל אחרים' },
+    { i: 'לשפוך את התינוק עם המים', m: 'לוותר על הדבר הטוב יחד עם הרע' },
+    { i: 'להפוך כל אבן', m: 'לחפש בכל מקום ולעשות כל מאמץ' },
+    { i: 'לטפס על עץ גבוה', m: 'להתעקש על עמדה שקשה לרדת ממנה' },
+    { i: 'הכדור בידיים שלך', m: 'עכשיו תורך להחליט ולפעול' },
+    { i: 'לשחות נגד הזרם', m: 'לפעול אחרת מרוב האנשים' },
+    { i: 'לבנות מגדלים באוויר', m: 'לתכנן תוכניות דמיוניות שלא יתגשמו' },
+    { i: 'ראש קטן', m: 'לעשות רק את המינימום, בלי לקחת אחריות' },
+    { i: 'הקש ששבר את גב הגמל', m: 'הדבר הקטן האחרון שגרם לקריסה' },
+    { i: 'לרקוד על שתי החתונות', m: 'לנסות להיות בשני צדדים או בשני מקומות בבת אחת' },
+    { i: 'ללכת על ביצים', m: 'להתנהג בזהירות רבה כדי לא לפגוע או להרגיז' },
+    { i: 'נפל בין הכיסאות', m: 'נשכח, כי אף אחד לא לקח עליו אחריות' },
+    { i: 'לשים את כל הביצים בסל אחד', m: 'לסמוך על אפשרות אחת בלבד ולהסתכן' },
+    { i: 'אור בקצה המנהרה', m: 'סימן לכך שתקופה קשה עומדת להסתיים' },
+    { i: 'ירד מהפסים', m: 'יצא משליטה והפסיק להתנהג כרגיל' },
+    { i: 'לא סוף העולם', m: 'זה לא אסון גדול, אפשר להתגבר' }
   ];
 
   /* Chance of each tier per level (index = level - 1). */
@@ -157,15 +175,20 @@
     [1, 0, 0], [1, 0, 0], [1, 0, 0], [0.85, 0.15, 0], [0.7, 0.3, 0],
     [0.55, 0.45, 0], [0.4, 0.6, 0], [0.3, 0.7, 0], [0.2, 0.7, 0.1], [0.1, 0.7, 0.2],
     [0.1, 0.6, 0.3], [0, 0.6, 0.4], [0, 0.5, 0.5], [0, 0.4, 0.6], [0, 0.3, 0.7],
-    [0, 0.25, 0.75], [0, 0.2, 0.8], [0, 0.15, 0.85], [0, 0.1, 0.9], [0, 0, 1]
+    [0, 0.25, 0.75], [0, 0.2, 0.8], [0, 0.15, 0.85], [0, 0.1, 0.9], [0, 0, 1],
+    [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1],
+    [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]
   ];
-  // Idiom-meaning rounds per session.
-  var IDIOM_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 3, 4];
+  // Idiom rounds per session, and (levels 21+) how many of them go the other way:
+  // the meaning is shown and the player picks the matching expression.
+  var IDIOM_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 6, 7, 7];
+  var REV_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4];
 
   var CSS = [
     '.pv-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:1.1rem}',
     '.pv-card{width:100%;max-width:34rem;padding:1.1rem 1.2rem;border-radius:var(--radius);background:var(--language-soft);color:var(--ink);',
     'font-family:var(--font-display);font-weight:700;font-size:clamp(1.45rem,6vw,1.9rem);line-height:1.45;text-align:center;text-wrap:balance;overflow-wrap:anywhere}',
+    '.pv-meaning{font-family:var(--font-body);font-size:clamp(1.3rem,5.5vw,1.6rem)}',
     '.pv-gap{display:inline-block;min-width:3.2em;border-bottom:3px solid var(--language);margin:0 .15em;line-height:1.1}',
     '.pv-fill{color:var(--language);text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:.2em}',
     '.pv-choices{max-width:34rem}',
@@ -189,11 +212,11 @@
       'קראו את הפתגם. מילה אחת בו חסרה.',
       'בחרו מבין ארבע האפשרויות את המילה החסרה.',
       'אחרי כל תשובה תראו את הפתגם המלא ואת פירושו. לחצו "המשך" כשתהיו מוכנים.',
-      'בשלבים מתקדמים תתבקשו לפעמים לבחור את הפירוש של ביטוי.'
+      'בשלבים מתקדמים תתבקשו לפעמים לבחור את הפירוש של ביטוי, או את הביטוי שמתאים לפירוש.'
     ],
     css: CSS,
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(20, Math.round(Number(ctx.level) || 1)));
+      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
       var weights = W[level - 1];
       var tiers = [T1, T2, T3];
       var used = [{}, {}, {}];
@@ -204,8 +227,9 @@
       var idiomCorrect = 0;
 
       var nIdiom = IDIOM_ROUNDS[level - 1];
+      var nRev = REV_ROUNDS[level - 1];
       var kinds = [];
-      for (var k = 0; k < ROUNDS - 1; k++) kinds.push(k < nIdiom ? 'idiom' : 'fill');
+      for (var k = 0; k < ROUNDS - 1; k++) kinds.push(k < nRev ? 'rev' : k < nIdiom ? 'idiom' : 'fill');
       kinds = ['fill'].concat(ctx.shuffle(kinds));
 
       function pickTier() {
@@ -259,10 +283,20 @@
           return;
         }
         ctx.setProgress(round, ROUNDS);
-        var isIdiom = kinds[round - 1] === 'idiom';
+        var isRev = kinds[round - 1] === 'rev';
+        var isIdiom = kinds[round - 1] === 'idiom' || isRev;
         var card, choicesList, answerText, item, idiom;
 
-        if (isIdiom) {
+        if (isRev) {
+          idiomTotal++;
+          idiom = pickIdiom();
+          item = idiom.item;
+          answerText = item.i;
+          var otherIdioms = ctx.shuffle(IDIOMS.filter(function (o) { return o !== item; })).slice(0, 3);
+          choicesList = ctx.shuffle([item.i].concat(otherIdioms.map(function (o) { return o.i; })));
+          ctx.setStatus('שימו לב, שאלה הפוכה: איזה ביטוי אומר את זה?');
+          card = ctx.el('p', { class: 'pv-card pv-meaning', text: item.m });
+        } else if (isIdiom) {
           idiomTotal++;
           idiom = pickIdiom();
           item = idiom.item;
@@ -283,7 +317,7 @@
           nextBtn.disabled = true;
           nextRound();
         } }, round === ROUNDS ? 'לתוצאות' : 'המשך');
-        var choices = ctx.el('div', { class: 'g-choices pv-choices' + (isIdiom ? ' is-long' : '') });
+        var choices = ctx.el('div', { class: 'g-choices pv-choices' + (isIdiom && !isRev ? ' is-long' : '') });
         var buttons = [];
         var answered = false;
 
