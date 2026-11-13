@@ -167,7 +167,7 @@
   function pts2str(pts) { return pts.map(function (p) { return p[0] + ',' + p[1]; }).join(' '); }
 
   var css = [
-    '.tg-board{width:min(100%,22rem,calc(100dvh - 24rem));min-width:13.5rem;aspect-ratio:1;display:block;touch-action:none;',
+    '.tg-board{width:min(100%,22rem,calc(100svh - 24rem));min-width:13.5rem;aspect-ratio:1;display:block;touch-action:none;',
     'background:var(--surface);border:2px solid var(--line);border-radius:var(--radius);}',
     '.tg-grid{stroke:var(--line);stroke-width:.03;}',
     '.tg-sil{fill:var(--ink-soft);fill-opacity:.28;}',

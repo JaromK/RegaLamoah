@@ -179,7 +179,7 @@
 
   var css = [
     '.fp-board{--n:4;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:3px;direction:ltr;',
-    'width:100%;max-width:min(13rem,calc(100dvh - 28rem));min-width:10rem;padding:5px;border-radius:var(--radius-sm);',
+    'width:100%;max-width:min(13rem,calc(100svh - 28rem));min-width:10rem;padding:5px;border-radius:var(--radius-sm);',
     'background:var(--surface);border:2px solid var(--line);}',
     '.fp-cell{aspect-ratio:1;border-radius:4px;background:var(--perception);}',
     '.fp-cell.fp-hole{background:var(--surface);border:2px dashed var(--ink-soft);}',

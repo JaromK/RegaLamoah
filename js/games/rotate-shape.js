@@ -49,12 +49,12 @@
     'padding:4px;border-radius:var(--radius-sm);background:var(--surface);border:2px solid var(--line);}',
     '.rs-cell{aspect-ratio:1;border-radius:3px;background:var(--surface-2);}',
     '.rs-cell.rs-on{background:var(--perception);}',
-    '.rs-target .rs-grid{width:min(8.5rem,18dvh);border-color:var(--perception);border-width:3px;}',
+    '.rs-target .rs-grid{width:min(8.5rem,18svh);border-color:var(--perception);border-width:3px;}',
     '.rs-hint{margin:0;font-size:1.1rem;line-height:1.3;}',
     /* options: two per row, sized by screen height so the whole round fits one phone screen */
     '.rs-opts{display:flex;flex-wrap:wrap;justify-content:center;gap:.7rem;width:100%;max-width:20rem;}',
     '.rs-opts .rs-opt.g-choice{flex:none;position:relative;padding:.5rem;min-height:0;display:flex;align-items:center;justify-content:center;}',
-    '.rs-opt .rs-grid{width:min(7rem,16dvh);border-color:transparent;}',
+    '.rs-opt .rs-grid{width:min(7rem,16svh);border-color:transparent;}',
     '.rs-mark{position:absolute;top:-.75rem;left:50%;transform:translateX(-50%);white-space:nowrap;',
     'font-size:1.1rem;font-weight:900;line-height:1.3;padding:0 .45rem;border-radius:999px;background:var(--surface);border:2px solid currentColor;}',
     '.rs-mark:empty{display:none;}'

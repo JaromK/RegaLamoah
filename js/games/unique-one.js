@@ -190,7 +190,7 @@
   }
 
   var css = [
-    '.uo-grid{max-width:min(24rem,calc((100dvh - 19rem) * var(--cols) / var(--rows)));gap:.6rem;}',
+    '.uo-grid{max-width:min(24rem,calc((100svh - 19rem) * var(--cols) / var(--rows)));gap:.6rem;}',
     '.uo-grid .g-tile{background:var(--surface);}',
     '.uo-grid .g-tile svg{width:84%;height:84%;display:block;}',
     '.uo-grid .g-tile.is-correct{border-width:4px;box-shadow:0 0 0 3px var(--good-soft);}',

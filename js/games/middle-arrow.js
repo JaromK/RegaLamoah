@@ -135,7 +135,7 @@
 
   var css = [
     '.ma-field{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:.3rem;',
-    'width:min(100%,calc(var(--cols) * 4.2rem),calc((100dvh - 19rem) * var(--cols) / var(--rows)));direction:ltr;}',
+    'width:min(100%,calc(var(--cols) * 4.2rem),calc((100svh - 19rem) * var(--cols) / var(--rows)));direction:ltr;}',
     '.ma-cell{aspect-ratio:1;display:grid;place-items:center;color:var(--ink);border-radius:50%;}',
     '.ma-cell .ma-rot{display:block;width:90%;height:90%;}',
     '.ma-cell svg{display:block;width:100%;height:100%;}',
@@ -145,7 +145,7 @@
     'background:var(--attention-soft);color:var(--attention);border:2px solid var(--attention);}',
     '.ma-rule.is-outer{background:var(--logic-soft);color:var(--logic);border-color:var(--logic);}',
     '.ma-rule.is-changed{box-shadow:0 0 0 4px var(--sun);}',
-    '.ma-rule + .ma-field{width:min(100%,calc(var(--cols) * 4.2rem),calc((100dvh - 21.5rem) * var(--cols) / var(--rows)));}',
+    '.ma-rule + .ma-field{width:min(100%,calc(var(--cols) * 4.2rem),calc((100svh - 21.5rem) * var(--cols) / var(--rows)));}',
     '.ma-pad{display:grid;gap:.6rem;direction:ltr;width:100%;max-width:20rem;}',
     '.ma-pad2{grid-template-columns:1fr 1fr;}',
     '.ma-pad4{grid-template-columns:repeat(4,1fr);max-width:24rem;}',

@@ -189,7 +189,7 @@
         var R = spec.r, C = spec.c, grid = pz.grid;
         var state = grid.map(function (row) { return row.map(function () { return 0; }); }); // 0 empty, 1 on, 2 x
         var done = false, hints = 0;
-        var cellPx = 'min(3.4rem, calc((100vw - 7.5rem) / ' + C + '), calc((100dvh - 22rem) / ' + (R + 1.6) + '))';
+        var cellPx = 'min(3.4rem, calc((100vw - 7.5rem) / ' + C + '), calc((100svh - 22rem) / ' + (R + 1.6) + '))';
 
         var colClues = [], rowClues = [], cellBtns = [];
         for (var c = 0; c < C; c++) {

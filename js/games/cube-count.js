@@ -136,11 +136,11 @@
   }
 
   var css = [
-    '.cc-fig{width:100%;max-width:min(20rem,calc(100dvh - 22rem));display:flex;justify-content:center;}',
+    '.cc-fig{width:100%;max-width:min(20rem,calc(100svh - 22rem));display:flex;justify-content:center;}',
     '.cc-two{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;width:100%;max-width:26rem;}',
     '.cc-two figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:.2rem;}',
     '.cc-two figcaption{font-weight:800;font-size:1.15rem;}',
-    '.cc-svg{width:100%;height:auto;max-height:calc(100dvh - 24rem);display:block;}',
+    '.cc-svg{width:100%;height:auto;max-height:calc(100svh - 24rem);display:block;}',
     '.cc-top{fill:var(--perception-soft);stroke:var(--ink);stroke-width:.03;stroke-linejoin:round;}',
     '.cc-front{fill:var(--perception);fill-opacity:.55;stroke:var(--ink);stroke-width:.03;stroke-linejoin:round;}',
     '.cc-side{fill:var(--perception);stroke:var(--ink);stroke-width:.03;stroke-linejoin:round;}',

@@ -51,7 +51,7 @@
   var css = [
     /* --ff-ar (width / height) is set per level: the pond grows taller as fish are added, up to the free screen height */
     '.ff-pond{--ff-ar:4/3;position:relative;width:100%;max-width:30rem;aspect-ratio:var(--ff-ar);',
-    'max-height:calc(100dvh - 21rem);border-radius:var(--radius);',
+    'max-height:calc(100svh - 21rem);border-radius:var(--radius);',
     'background:var(--attention-soft);border:2px solid var(--line);overflow:hidden;touch-action:manipulation;}',
     '.ff-fish{position:absolute;top:0;left:0;display:grid;place-items:center;padding:0;border-radius:50%;',
     'border:3px solid transparent;background:transparent;cursor:pointer;will-change:transform;',

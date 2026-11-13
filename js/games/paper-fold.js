@@ -152,8 +152,8 @@
     '.pf-fold{stroke:var(--perception);stroke-width:.1;stroke-dasharray:.3 .2;}',
     '.pf-arrow{fill:none;stroke:var(--perception);stroke-width:.12;}',
     '.pf-head{fill:var(--perception);}',
-    '.pf-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem;width:100%;max-width:min(20rem,calc(100dvh - 21rem));}',
-    '.pf-opts.is-tall{max-width:min(20rem,calc(100dvh - 25.5rem));}',
+    '.pf-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem;width:100%;max-width:min(20rem,calc(100svh - 21rem));}',
+    '.pf-opts.is-tall{max-width:min(20rem,calc(100svh - 25.5rem));}',
     '.pf-opt{padding:.3rem;border-radius:var(--radius-sm);border:3px solid var(--line);background:var(--surface);cursor:pointer;}',
     '.pf-opt.is-correct{border-color:var(--good);background:var(--good-soft);}',
     '.pf-opt.is-wrong{border-color:var(--bad);background:var(--bad-soft);}'

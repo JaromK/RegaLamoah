@@ -107,7 +107,7 @@
   }
 
   var css = [
-    '.dt-board{position:relative;width:100%;max-width:24rem;height:min(30rem,calc(100dvh - 17rem));min-height:20rem;',
+    '.dt-board{position:relative;width:100%;max-width:24rem;height:min(30rem,calc(100svh - 17rem));min-height:20rem;',
     'background:var(--surface-2);border:2px solid var(--line);border-radius:var(--radius);touch-action:manipulation;}',
     '.dt-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}',
     '.dt-lines line{stroke:var(--attention);stroke-width:1;stroke-linecap:round;vector-effect:non-scaling-stroke;}',

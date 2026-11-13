@@ -101,7 +101,7 @@
   }
 
   var css = [
-    '.sab-card{width:min(11rem,55vw,calc(100dvh - 22rem));aspect-ratio:1;border-radius:var(--radius);border:3px solid var(--line);',
+    '.sab-card{width:min(11rem,55vw,calc(100svh - 22rem));aspect-ratio:1;border-radius:var(--radius);border:3px solid var(--line);',
     'background:var(--surface-2);display:grid;place-items:center;color:var(--ink);box-shadow:var(--shadow);',
     'transition:opacity .25s,transform .25s;}',
     '.sab-card svg{width:62%;height:62%;}',

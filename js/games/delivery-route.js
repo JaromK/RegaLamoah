@@ -155,7 +155,7 @@
   }
 
   var css = [
-    '.dr-grid{--rows:5;gap:.4rem;max-width:min(22rem,calc((100dvh - 18rem) * var(--cols) / var(--rows)));}',
+    '.dr-grid{--rows:5;gap:.4rem;max-width:min(22rem,calc((100svh - 18rem) * var(--cols) / var(--rows)));}',
     '.dr-cell{position:relative;background:var(--surface);font-size:clamp(1.5rem,7vw,2.1rem);line-height:1;}',
     '.dr-cell.dr-wall{background:var(--surface-2);border-color:var(--surface-2);}',
     '.dr-cell.dr-depot{background:var(--executive-soft);border-color:var(--executive);}',

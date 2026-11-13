@@ -78,7 +78,7 @@ body {
   line-height: 1.6;
 }
 [hidden] { display: none !important; }
-button { font: inherit; color: inherit; }
+button { font: inherit; color: inherit; touch-action: manipulation; } /* no double-tap zoom on fast taps */
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
 h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; text-wrap: balance; margin: 0; }
 p { margin: 0; }

@@ -443,7 +443,7 @@
       '.ct-clocks{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%}',
       '.ct-clock{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 1 13rem;min-width:0}',
       '.ct-clocks.ct-two .ct-clock{flex-basis:13rem;max-width:calc(50% - 6px)}',
-      '.ct-svg{display:block;width:min(100%,12.5rem,28dvh);height:auto;color:var(--ink)}',
+      '.ct-svg{display:block;width:min(100%,12.5rem,28svh);height:auto;color:var(--ink)}',
       '.ct-face{fill:var(--surface);stroke:var(--ink);stroke-width:4}',
       '.ct-tick{stroke:var(--ink-soft);stroke-width:1.5}',
       '.ct-tick5{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round}',

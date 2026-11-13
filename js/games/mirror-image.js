@@ -43,7 +43,7 @@
 
   var css = [
     '.mi-stage{display:flex;direction:ltr;align-items:stretch;justify-content:center;gap:.6rem;width:100%;max-width:22rem;}',
-    '.mi-side{flex:0 1 auto;width:min(8rem,17dvh);min-width:0;display:flex;flex-direction:column;align-items:center;gap:.25rem;}',
+    '.mi-side{flex:0 1 auto;width:min(8rem,17svh);min-width:0;display:flex;flex-direction:column;align-items:center;gap:.25rem;}',
     '.mi-cap{direction:rtl;font-size:1.1rem;line-height:1.3;color:var(--ink-soft);font-weight:700;}',
     '.mi-mirror{flex:0 0 auto;width:.55rem;border-radius:.3rem;background:repeating-linear-gradient(to bottom,var(--accent) 0 .7rem,var(--accent-soft) .7rem 1.1rem);}',
     '.mi-q{width:100%;aspect-ratio:1;border:3px dashed var(--line);border-radius:var(--radius-sm);display:grid;place-items:center;',
@@ -57,7 +57,7 @@
     /* options: 2×2 grid sized by screen height so the whole round fits one phone screen */
     '.mi-opts{display:flex;flex-wrap:wrap;justify-content:center;gap:.7rem;width:100%;max-width:20rem;}',
     '.mi-opts .mi-opt.g-choice{flex:none;position:relative;padding:.5rem;min-height:0;display:flex;align-items:center;justify-content:center;}',
-    '.mi-opt .mi-grid{width:min(7rem,16dvh);border-color:transparent;}',
+    '.mi-opt .mi-grid{width:min(7rem,16svh);border-color:transparent;}',
     '.mi-mark{position:absolute;top:-.75rem;left:50%;transform:translateX(-50%);white-space:nowrap;',
     'font-size:1.1rem;font-weight:900;line-height:1.3;padding:0 .45rem;border-radius:999px;background:var(--surface);border:2px solid currentColor;}',
     '.mi-mark:empty{display:none;}'
