@@ -17,7 +17,7 @@
     PG: [[0, 0], [2, 0], [3, 1], [1, 1]]
   };
   var SET = ['LT', 'LT', 'MT', 'ST', 'ST', 'SQ', 'PG'];
-  var HUE = { LT: 'logic', MT: 'attention', ST: 'memory', SQ: 'language', PG: 'perception' };
+  var HUE = { LT: 'c-blue', MT: 'c-red', ST: 'c-yellow', SQ: 'c-green', PG: 'c-purple' }; // shared strong palette
   var NAME = { LT: 'משולש גדול', MT: 'משולש בינוני', ST: 'משולש קטן', SQ: 'ריבוע', PG: 'מקבילית' };
 
   /* Per level (1–30): pieces in the figure, pre = pieces already in place, lines = the outline of every

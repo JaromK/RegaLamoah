@@ -6,9 +6,9 @@
   var CAPS = [3, 2, 1];
   // Ball colours come from skill hues; each also carries a symbol so colour is never the only cue.
   var BALLS = [
-    { cls: 'bt-b0', sym: '▲', name: 'הכדור הכתום' },
+    { cls: 'bt-b0', sym: '▲', name: 'הכדור האדום' },
     { cls: 'bt-b1', sym: '■', name: 'הכדור הכחול' },
-    { cls: 'bt-b2', sym: '★', name: 'הכדור הירוק' }
+    { cls: 'bt-b2', sym: '★', name: 'הכדור הצהוב' }
   ];
   var PEG_NAMES = ['המוט הגבוה', 'המוט האמצעי', 'המוט הקצר'];
 
@@ -144,10 +144,11 @@
     '.bt-ball{position:relative;z-index:1;flex:none;width:var(--ball);height:var(--ball);border-radius:50%;',
     'display:grid;place-items:center;color:var(--surface);font-size:calc(var(--ball) * .46);line-height:1;',
     'font-weight:900;border:2px solid var(--surface);transition:transform .15s;}',
-    '.bt-b0{background:var(--attention);}',
-    '.bt-b1{background:var(--logic);}',
-    '.bt-b2{background:var(--language);}',
-    '.bt-ball.is-lifted{transform:translateY(-1.1rem);outline:4px solid var(--sun);outline-offset:2px;}',
+    /* strong colours from the shared palette, easy to tell apart */
+    '.bt-b0{background:var(--c-red);}',
+    '.bt-b1{background:var(--c-blue);}',
+    '.bt-b2{background:var(--c-yellow);color:var(--c-on-yellow);}',
+    '.bt-ball.is-lifted{transform:translateY(-1.1rem);outline:4px solid var(--ink);outline-offset:2px;}',
     '.bt-mini{width:8.5rem;max-width:8.5rem;gap:.45rem;border-bottom-width:4px;}',
     '.bt-mini .bt-peg{--ball:1.7rem;--gap:.15rem;cursor:default;padding:.15rem .1rem;',
     'height:calc(var(--cap) * (var(--ball) + var(--gap)) + .5rem);}',

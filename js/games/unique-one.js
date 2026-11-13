@@ -4,28 +4,29 @@
 
   var ROUNDS = 8;
 
-  // Feature values. Colours are CSS custom properties so dark mode works; no red/green pairing.
+  // Feature values. Colours come from the shared strong palette (style.css --c-*), far apart in hue and
+  // lightness so older eyes tell them apart; no red/green pairing (green is not used).
   var SHAPES = ['circle', 'square', 'triangle', 'star'];
-  var COLORS = ['--logic', '--attention', '--ink', '--memory'];
-  var COLOR_WORDS = { '--logic': 'כחול', '--attention': 'כתום', '--ink': 'כהה', '--memory': 'סגול' };
+  var COLORS = ['--c-red', '--c-blue', '--c-yellow', '--c-black'];
+  var COLOR_WORDS = { '--c-red': 'אדום', '--c-blue': 'כחול', '--c-yellow': 'צהוב', '--c-black': 'שחור' };
   var SHAPE_WORDS = { circle: 'עיגול', square: 'ריבוע', triangle: 'משולש', star: 'כוכב' };
   var FEATURES = ['shape', 'color', 'fill', 'count'];
 
-  // Per level: n items, columns, active features, values per shape/colour (fill has 2, count has 3),
+  // Per level: n items, columns (3 up to 12 items, so the pictures stay big on a phone), active features, values per shape/colour (fill has 2, count has 3),
   // gs = usual group size (3 = triples, 2 = pairs), sim = how close the unique one is to a group
   // ('far' differs in every feature where possible, 'any' random, 'near' differs from a group in one feature).
   var LEVELS = [
     { n: 6, cols: 3, f: ['shape', 'color'], v: 3, gs: 3, sim: 'far' },            // 1
-    { n: 8, cols: 4, f: ['shape', 'color'], v: 3, gs: 3, sim: 'far' },            // 2
-    { n: 8, cols: 4, f: ['shape', 'color'], v: 3, gs: 2, sim: 'any' },            // 3
+    { n: 8, cols: 3, f: ['shape', 'color'], v: 3, gs: 3, sim: 'far' },            // 2
+    { n: 8, cols: 3, f: ['shape', 'color'], v: 3, gs: 2, sim: 'any' },            // 3
     { n: 9, cols: 3, f: ['shape', 'color'], v: 3, gs: 2, sim: 'any' },            // 4
     { n: 9, cols: 3, f: ['shape', 'color'], v: 4, gs: 2, sim: 'near' },           // 5
     { n: 9, cols: 3, f: ['shape', 'color', 'fill'], v: 3, gs: 3, sim: 'far' },    // 6
-    { n: 12, cols: 4, f: ['shape', 'color', 'fill'], v: 3, gs: 3, sim: 'any' },   // 7
-    { n: 12, cols: 4, f: ['shape', 'color', 'fill'], v: 3, gs: 2, sim: 'any' },   // 8
-    { n: 12, cols: 4, f: ['shape', 'color', 'fill'], v: 3, gs: 2, sim: 'near' },  // 9
-    { n: 12, cols: 4, f: ['shape', 'color', 'count'], v: 3, gs: 2, sim: 'near' }, // 10
-    { n: 12, cols: 4, f: ['shape', 'fill', 'count'], v: 3, gs: 2, sim: 'near' },  // 11
+    { n: 12, cols: 3, f: ['shape', 'color', 'fill'], v: 3, gs: 3, sim: 'any' },   // 7
+    { n: 12, cols: 3, f: ['shape', 'color', 'fill'], v: 3, gs: 2, sim: 'any' },   // 8
+    { n: 12, cols: 3, f: ['shape', 'color', 'fill'], v: 3, gs: 2, sim: 'near' },  // 9
+    { n: 12, cols: 3, f: ['shape', 'color', 'count'], v: 3, gs: 2, sim: 'near' }, // 10
+    { n: 12, cols: 3, f: ['shape', 'fill', 'count'], v: 3, gs: 2, sim: 'near' },  // 11
     { n: 16, cols: 4, f: ['shape', 'color', 'fill'], v: 3, gs: 3, sim: 'near' },  // 12
     { n: 16, cols: 4, f: ['shape', 'color', 'fill'], v: 3, gs: 2, sim: 'near' },  // 13
     { n: 16, cols: 4, f: ['shape', 'color', 'count'], v: 3, gs: 2, sim: 'near' }, // 14
@@ -75,8 +76,8 @@
     }
     var feats = spec.f === 'all' ? FEATURES.slice() : spec.f || shuffle(FEATURES).slice(0, 3);
     // fixed look for the features that are not in play
-    var base = { shape: any(SHAPES.slice(0, 2)), color: '--ink', fill: 'solid', count: 1 };
-    if (feats.indexOf('color') === -1 && feats.indexOf('fill') !== -1) base.color = any(['--logic', '--memory']);
+    var base = { shape: any(SHAPES.slice(0, 2)), color: '--c-black', fill: 'solid', count: 1 };
+    if (feats.indexOf('color') === -1 && feats.indexOf('fill') !== -1) base.color = any(['--c-blue', '--c-red']);
 
     // every combination of the active features
     var combos = [base];
@@ -172,7 +173,7 @@
     }).join(' ') + '" ' + paint + '/>';
   }
 
-  var SPOTS = { 1: [[50, 50, 34]], 2: [[30, 30, 20], [70, 70, 20]], 3: [[25, 25, 16], [50, 50, 16], [75, 75, 16]] };
+  var SPOTS = { 1: [[50, 50, 40]], 2: [[29, 29, 25], [71, 71, 25]], 3: [[21, 21, 17], [50, 50, 17], [79, 79, 17]] };
 
   function itemSvg(it) {
     return '<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">' + SPOTS[it.count].map(function (p) {
@@ -190,12 +191,13 @@
   }
 
   var css = [
-    '.uo-grid{max-width:min(24rem,calc((100svh - 19rem) * var(--cols) / var(--rows)));gap:.6rem;}',
+    /* 16rem = header, status, card padding and the "next" button that shows after a miss */
+    '.uo-grid{max-width:min(26rem,calc((100svh - 16rem) * var(--cols) / var(--rows)));gap:.45rem;}',
     '.uo-grid .g-tile{background:var(--surface);}',
-    '.uo-grid .g-tile svg{width:84%;height:84%;display:block;}',
+    '.uo-grid .g-tile svg{width:92%;height:92%;display:block;overflow:visible;}',
     '.uo-grid .g-tile.is-correct{border-width:4px;box-shadow:0 0 0 3px var(--good-soft);}',
     '.uo-grid .g-tile.is-wrong{border-width:4px;}',
-    '.uo-grid .g-tile.uo-twin{border:3px dashed var(--sun);background:var(--sun-soft);}',
+    '.uo-grid .g-tile.uo-twin{border:4px dashed var(--ink);}', /* not yellow: yellow is a picture colour */
   ].join('');
 
   BrainGames.register({
@@ -265,7 +267,7 @@
           tiles[i].classList.add('is-wrong');
           var k0 = key(items[i]);
           items.forEach(function (it, k) { if (k !== i && key(it) === k0) tiles[k].classList.add('uo-twin'); });
-          ctx.setStatus('היחיד מסוגו בירוק, הזוג בצהוב');
+          ctx.setStatus('היחיד מסוגו בירוק, הזוג במסגרת מקווקוות');
           var btn = el('button', {
             class: 'btn btn-primary btn-lg', type: 'button',
             onclick: function () { btn.disabled = true; next(); }

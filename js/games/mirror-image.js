@@ -51,8 +51,8 @@
     '.mi-grid{--n:3;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:3px;direction:ltr;width:100%;',
     'padding:4px;border-radius:var(--radius-sm);background:var(--surface);border:2px solid var(--line);}',
     '.mi-cell{aspect-ratio:1;border-radius:3px;background:var(--surface-2);}',
-    '.mi-cell.mi-a{background:var(--perception);}',
-    '.mi-cell.mi-b{background:var(--sun);}',
+    '.mi-cell.mi-a{background:var(--c-blue);}',
+    '.mi-cell.mi-b{background:var(--c-yellow);}',
     '.mi-hint{margin:0;font-size:1.1rem;line-height:1.3;}',
     /* options: 2×2 grid sized by screen height so the whole round fits one phone screen */
     '.mi-opts{display:flex;flex-wrap:wrap;justify-content:center;gap:.7rem;width:100%;max-width:20rem;}',

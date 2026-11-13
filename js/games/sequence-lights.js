@@ -7,12 +7,13 @@
   var GAP_MS = 400;  // pause between lights
 
   var PADS = [
-    { hue: 'memory',    label: '1', shape: '●', name: 'עיגול',  freq: 330 },
-    { hue: 'attention', label: '2', shape: '▲', name: 'משולש', freq: 392 },
-    { hue: 'logic',     label: '3', shape: '■', name: 'ריבוע',  freq: 494 },
-    { hue: 'language',  label: '4', shape: '◆', name: 'מעוין',  freq: 587 },
-    { hue: 'sun',       label: '5', shape: '★', name: 'כוכב',   freq: 659 },
-    { hue: 'accent',    label: '6', shape: '♥', name: 'לב',     freq: 784 }
+    // hue = a colour from the shared strong palette (style.css --c-*)
+    { hue: 'red',    label: '1', shape: '●', name: 'עיגול',  freq: 330 },
+    { hue: 'blue',   label: '2', shape: '▲', name: 'משולש', freq: 392 },
+    { hue: 'yellow', label: '3', shape: '■', name: 'ריבוע',  freq: 494 },
+    { hue: 'green',  label: '4', shape: '◆', name: 'מעוין',  freq: 587 },
+    { hue: 'purple', label: '5', shape: '★', name: 'כוכב',   freq: 659 },
+    { hue: 'black',  label: '6', shape: '♥', name: 'לב',     freq: 784 }
   ];
 
   // Per level (1–30): sequence length + number of pads.
@@ -43,20 +44,15 @@
     '.sl-pad:disabled{cursor:default;}',
     '.sl-num{font-size:clamp(1.8rem,9vw,2.6rem);font-family:var(--font-display);}',
     '.sl-shape{font-size:clamp(1.3rem,6vw,1.8rem);}',
-    '.sl-memory{background:var(--memory-soft);border-color:var(--memory);color:var(--memory);}',
-    '.sl-attention{background:var(--attention-soft);border-color:var(--attention);color:var(--attention);}',
-    '.sl-logic{background:var(--logic-soft);border-color:var(--logic);color:var(--logic);}',
-    '.sl-language{background:var(--language-soft);border-color:var(--language);color:var(--language);}',
-    '.sl-sun{background:var(--sun-soft);border-color:var(--sun);color:var(--ink);}',
-    '.sl-accent{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}',
-    '.sl-memory.is-on{background:var(--memory);}',
-    '.sl-attention.is-on{background:var(--attention);}',
-    '.sl-logic.is-on{background:var(--logic);}',
-    '.sl-language.is-on{background:var(--language);}',
-    '.sl-sun.is-on{background:var(--sun);}',
-    '.sl-accent.is-on{background:var(--accent);}',
+    // each pad: pale fill + strong border; lit = the full strong colour
+    ['red', 'blue', 'yellow', 'green', 'purple', 'black'].map(function (h) {
+      return '.sl-' + h + '{--sl-c:var(--c-' + h + ');background:var(--c-' + h + '-soft);border-color:var(--sl-c);color:var(--sl-c);}' +
+        '.sl-' + h + '.is-on{background:var(--sl-c);}';
+    }).join(''),
+    '.sl-pad{border-width:4px;}',
+    '.sl-yellow{color:var(--ink);}',
     '.sl-pad.is-on{color:var(--surface);transform:scale(1.05);box-shadow:0 0 0 5px var(--sun);}',
-    '.sl-sun.is-on{color:var(--ink);box-shadow:0 0 0 5px var(--ink);}',
+    '.sl-yellow.is-on{color:var(--c-on-yellow);box-shadow:0 0 0 5px var(--ink);}',
     '.sl-dots{display:flex;gap:.45rem;justify-content:center;flex-wrap:wrap;min-height:1rem;}',
     '.sl-dot{width:.9rem;height:.9rem;border-radius:50%;border:2px solid var(--ink-soft);}',
     '.sl-dot.is-done{background:var(--accent);border-color:var(--accent);}',

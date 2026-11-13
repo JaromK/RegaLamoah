@@ -31,6 +31,16 @@
   --perception: #a3366f; --perception-soft: #f6e0eb;
   --executive: #95560f; --executive-soft: #f5e6d3;
 
+  /* Game colours that must be told apart at a glance (older eyes): strong, far apart in hue and in lightness.
+     Use these, not the skill colours, whenever colour is how a player tells items apart. --c-on-yellow = text on yellow. */
+  --c-red: #d7261e;    --c-red-soft: #fbe0de;
+  --c-blue: #1a5fd6;   --c-blue-soft: #dde8fb;
+  --c-yellow: #f2b800; --c-yellow-soft: #fdf1c7;
+  --c-green: #13893a;  --c-green-soft: #d9f1e0;
+  --c-purple: #8a2fd0; --c-purple-soft: #eedff9;
+  --c-black: #1b1b1b;  --c-black-soft: #e4e4e4;
+  --c-on-yellow: #1b1b1b;
+
   --font-display: "Frank Ruhl Libre", "David", "Times New Roman", serif;
   --font-body: "Assistant", "Arial Hebrew", "Segoe UI", Arial, sans-serif;
 
@@ -49,6 +59,8 @@
     --memory: #a998f2; --memory-soft: #2a2550; --attention: #f0987b; --attention-soft: #44261d;
     --logic: #7cbbe8; --logic-soft: #1a3247; --language: #84cf92; --language-soft: #1c3a22;
     --perception: #ec8fbf; --perception-soft: #45213a; --executive: #e3ac68; --executive-soft: #3f2e19;
+    --c-red: #ff5a4f; --c-red-soft: #4a1f1c; --c-blue: #5b9bff; --c-blue-soft: #1c2e4f; --c-yellow: #ffd23a; --c-yellow-soft: #45391a;
+    --c-green: #45d16e; --c-green-soft: #183d24; --c-purple: #c08cff; --c-purple-soft: #352552; --c-black: #f2f2f2; --c-black-soft: #3a3f40;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .25);
     color-scheme: dark;
   }
@@ -61,6 +73,8 @@
   --memory: #a998f2; --memory-soft: #2a2550; --attention: #f0987b; --attention-soft: #44261d;
   --logic: #7cbbe8; --logic-soft: #1a3247; --language: #84cf92; --language-soft: #1c3a22;
   --perception: #ec8fbf; --perception-soft: #45213a; --executive: #e3ac68; --executive-soft: #3f2e19;
+  --c-red: #ff5a4f; --c-red-soft: #4a1f1c; --c-blue: #5b9bff; --c-blue-soft: #1c2e4f; --c-yellow: #ffd23a; --c-yellow-soft: #45391a;
+  --c-green: #45d16e; --c-green-soft: #183d24; --c-purple: #c08cff; --c-purple-soft: #352552; --c-black: #f2f2f2; --c-black-soft: #3a3f40;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .25);
   color-scheme: dark;
 }
