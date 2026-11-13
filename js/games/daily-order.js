@@ -266,15 +266,18 @@
   ];
 
   var css = [
-    '.do-wrap{width:100%;max-width:34rem;display:flex;flex-direction:column;gap:.6rem;}',
+    '.do-wrap{width:100%;max-width:34rem;display:flex;flex-direction:column;gap:.45rem;}',
+    '.play-board:has(.do-wrap){gap:.6rem;padding-block:.75rem;}', /* up to 8 steps + the check button fit one phone screen */
+    '.do-wrap .g-actions .btn-lg,.play-board:has(.do-wrap) .btn-lg{min-height:3.3rem;padding-block:.4rem;}',
     '.do-title{font-size:1.2rem;font-weight:800;text-align:center;color:var(--executive);margin:0;line-height:1.25;}',
-    '.do-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem;}',
-    '.do-list .do-step{width:100%;min-height:3.2rem;display:flex;align-items:center;gap:.5rem;font-size:1.1rem;font-weight:700;',
-    'text-align:start;padding:.25rem .6rem;line-height:1.15;}',
-    '.do-num{flex:none;width:2.1rem;height:2.1rem;display:grid;place-items:center;border-radius:50%;',
+    /* full-width rows: 2.8rem (50px) tall is still an easy target */
+    '.do-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.3rem;}',
+    '.do-list .do-step{width:100%;min-height:2.7rem;display:flex;align-items:center;gap:.5rem;font-size:1.05rem;font-weight:700;',
+    'text-align:start;padding:.15rem .5rem;line-height:1.1;}',
+    '.do-num{flex:none;width:1.9rem;height:1.9rem;display:grid;place-items:center;border-radius:50%;',
     'border:2px dashed var(--line);font-weight:800;font-size:1.15rem;font-variant-numeric:tabular-nums;}',
     '.do-text{flex:1;min-width:0;}',
-    '.do-from{flex:none;font-size:.95rem;font-weight:700;color:var(--ink-soft);}',
+    '.do-from{flex:none;font-size:.9rem;font-weight:700;color:var(--ink-soft);}',
     '.do-step.is-placed{border-color:var(--executive);background:var(--executive-soft);}',
     '.do-step.is-placed .do-num{border:0;background:var(--executive);color:var(--surface);}',
     '.do-step.is-correct .do-num{border:0;background:var(--good);color:var(--surface);}',
@@ -389,8 +392,8 @@
         root.appendChild(wrap);
 
         ctx.setStatus(!extraSteps.length ? 'לחצו על השלבים לפי הסדר הנכון'
-          : extraSteps.length === 1 ? 'שלב אחד לא שייך למשימה: השאירו אותו בלי מספר'
-            : 'שני שלבים לא שייכים למשימה: השאירו אותם בלי מספר');
+          : extraSteps.length === 1 ? 'יש שלב אחד מיותר, דלגו עליו'
+            : 'יש 2 שלבים מיותרים, דלגו עליהם');
         render();
 
         function render() {
@@ -409,11 +412,11 @@
           ctx.sound('tap');
           var pos = placed.indexOf(idx);
           if (pos === -1) {
-            if (placed.length >= n) { ctx.setStatus('כבר מספרתם ' + n + ' שלבים. מה שנשאר בלי מספר לא שייך'); return; }
+            if (placed.length >= n) { ctx.setStatus('כבר מספרתם ' + n + ' שלבים. השאר לא שייך'); return; }
             placed.push(idx);
           } else placed.splice(pos, 1);
           render();
-          if (placed.length === n) ctx.setStatus(extraSteps.length ? 'מה שנשאר בלי מספר לא שייך. לחצו "בדיקה"' : 'הכול ממוספר? לחצו "בדיקה"');
+          if (placed.length === n) ctx.setStatus(extraSteps.length ? 'השאר לא שייך. לחצו "בדיקה"' : 'הכול ממוספר? לחצו "בדיקה"');
           else if (pos === -1) ctx.setStatus('ומה השלב הבא?');
           else ctx.setStatus('בוטל. בחרו את שלב ' + (placed.length + 1));
         }
@@ -445,7 +448,7 @@
             ix.btn.classList.add(left ? 'is-correct' : 'is-wrong');
             ix.num.textContent = '✗';
             ix.btn.setAttribute('aria-label', 'לא שייך: ' + steps[x] + ' (מתוך "' + extraSteps[x - n].from + '")');
-            ix.btn.appendChild(el('span', { class: 'do-from' }, 'לא שייך · ' + extraSteps[x - n].from));
+            ix.btn.appendChild(el('span', { class: 'do-from' }, 'לא שייך')); // short, so the row stays one line
             list.appendChild(ix.li);
           }
           titleEl.textContent = task.title;

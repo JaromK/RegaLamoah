@@ -3,8 +3,8 @@
   'use strict';
 
   var ROUNDS = 6;
-  var ON_MS = 900;   // each light stays on (never faster)
-  var GAP_MS = 400;  // pause between lights
+  var ON_MS = 1200;  // each light stays on (never faster): slow enough to follow easily
+  var GAP_MS = 650;  // pause between lights: a light that repeats clearly goes off and on again
 
   var PADS = [
     // hue = a colour from the shared strong palette (style.css --c-*)
@@ -144,7 +144,7 @@
           ? 'שימו לב: הפעם יש ' + padCount + ' כפתורים. צפו ברצף…'
           : 'צפו ברצף…');
         hint.textContent = 'ברצף יש ' + seq.length + ' אורות';
-        var chain = ctx.wait(800);
+        var chain = ctx.wait(1000);
         seq.forEach(function (idx) {
           chain = chain.then(function () {
             padEls[idx].classList.add('is-on');

@@ -51,6 +51,7 @@
   /* ---------- helpers ---------- */
   function clear() {
     U.stopSpeaking();
+    screenGame = null;
     document.body.classList.remove('is-playing', 'on-home');
     app.innerHTML = '';
     window.scrollTo(0, 0);
@@ -169,6 +170,32 @@
 
   /* ---------- settings: one dialog for name, text, sound, clock and levels ---------- */
   var refreshScreen = null; // redraws home/instructions after a settings change; null mid-game
+  var screenGame = null;    // the game on screen (intro, play, result): settings opens on its levels
+
+  /* ---------- phone "back" button ----------
+     Away from home, one extra history entry is kept. The phone's back button then pops it, and instead of
+     leaving the site we go back inside it: settings closes, a game asks "leave?", other screens go home.
+     On the home screen the entry is removed again, so back leaves the site as usual. */
+  var backGuard = false;   // the extra entry is in the history
+  var skipPop = 0;         // pops we caused ourselves (history.back from renderHome)
+  function guardBack() {
+    if (backGuard) return;
+    try { history.pushState({ rl: 1 }, ''); backGuard = true; } catch (e) { /* ignore */ }
+  }
+  function dropBackGuard() {
+    if (!backGuard) return;
+    backGuard = false;
+    skipPop++;
+    history.back();
+  }
+  window.addEventListener('popstate', function () {
+    if (skipPop) { skipPop--; return; }
+    backGuard = false;
+    var dialog = document.querySelector('dialog.settings[open]');
+    if (dialog) { dialog.close(); guardBack(); return; }
+    if (current && current.active && current.onBack) { current.onBack(); guardBack(); return; }
+    if (!document.body.classList.contains('on-home')) renderHome();
+  });
 
   function optionGroup(label, options, value, onChange) {
     var buttons = options.map(function (o) {
@@ -194,7 +221,7 @@
     if (document.querySelector('dialog.settings')) return;
     var p = BG.state.prefs;
     var games = BG.all();
-    var gameId = opts.gameId || (games[0] && games[0].id);
+    var gameId = opts.gameId || (screenGame && screenGame.id) || (games[0] && games[0].id);
     var dirty = false;
 
     var nameInput = el('input', {
@@ -285,7 +312,7 @@
     });
     document.body.appendChild(dialog);
     dialog.showModal();
-    if (opts.gameId) levelSection.scrollIntoView({ block: 'start' });
+    if (opts.gameId || screenGame) levelSection.scrollIntoView({ block: 'start' });
   }
 
   /* ---------- home ---------- */
@@ -396,6 +423,7 @@
   function renderHome() {
     endCurrent();
     if (!BG.state.welcomed) { renderWelcome(); return; }
+    dropBackGuard();
     clear();
     document.body.classList.add('on-home');
     refreshScreen = renderHome;
@@ -452,7 +480,7 @@
 
     var allSection = el('section', { class: 'section' }, [
       el('h2', { class: 'section-title' }, 'כל המשחקים'),
-      el('p', { class: 'section-lead' }, 'רוצים לשחק עוד? בחרו כל משחק שתרצו. בכל משחק יש עד ' + BG.MAX_LEVEL + ' רמות.'),
+      el('p', { class: 'section-lead' }, 'רוצים לשחק עוד? בחרו כל משחק שתרצו. בכל משחק יש ' + BG.MAX_LEVEL + ' רמות או יותר.'),
       el('div', { class: 'skill-groups' }, Object.keys(BG.SKILLS).map(function (skill) {
         var games = BG.all().filter(function (g) { return g.skill === skill; });
         if (!games.length) return null;
@@ -508,8 +536,8 @@
       el('h2', { class: 'section-title' }, 'איך זה עובד'),
       el('ul', { class: 'tips-list' }, [
         el('li', null, [el('strong', null, 'אין שעון. '), 'קחו את הזמן לחשוב. הדיוק חשוב יותר מהמהירות. מי שרוצה אתגר יכול להפעיל את השעון ב"הגדרות" למעלה.']),
-        el('li', null, [el('strong', null, 'גביעים לאלופים. '), 'מי שמנצח ברמה ' + BG.SILVER_LEVEL + ' במשחק מקבל גביע כסף, וברמה ' + BG.MAX_LEVEL + ' גביע זהב.']),
-        el('li', null, [el('strong', null, 'עד ' + BG.MAX_LEVEL + ' רמות בכל משחק. '), 'כשמצליחים עולים רמה, וכשקשה יורדים רמה. אפשר גם לבחור רמה בעצמכם ב"הגדרות".']),
+        el('li', null, [el('strong', null, 'גביעים לאלופים. '), 'מי שמנצח ברמה ' + BG.SILVER_LEVEL + ' במשחק מקבל גביע כסף, וברמה האחרונה של המשחק גביע זהב.']),
+        el('li', null, [el('strong', null, BG.MAX_LEVEL + ' רמות בכל משחק, ובחלק מהמשחקים יותר. '), 'כשמצליחים עולים רמה, וכשקשה יורדים רמה. אפשר גם לבחור רמה בעצמכם ב"הגדרות".']),
         el('li', null, [el('strong', null, 'קצת בכל יום. '), 'עשר דקות ביום עדיפות על שעה פעם בשבוע.'])
       ]),
       el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { openSettings(); } },
@@ -553,6 +581,8 @@
   function renderIntro(game, daily) {
     endCurrent();
     clear();
+    screenGame = game;
+    guardBack();
     refreshScreen = function () { renderIntro(game, daily); };
     var level = getLevel(game.id);
     var speakText = game.name + '. ' + game.instructions.join(' ');
@@ -655,6 +685,8 @@
   function startGame(game, daily, level) {
     endCurrent();
     clear();
+    screenGame = game;
+    guardBack();
     refreshScreen = null;
     level = clampLevel(level || getLevel(game.id), game.id);
     var timed = !!BG.state.prefs.timer;
@@ -677,6 +709,9 @@
     // both leave the round, so both ask first; "exit" goes back to the instructions, the house to home
     var leaveTo = null;
     function askLeave(target) { leaveTo = target; confirmBox.hidden = false; exitBtn.hidden = true; homeBtn.hidden = true; }
+    function keepPlaying() { confirmBox.hidden = true; exitBtn.hidden = false; homeBtn.hidden = false; }
+    // the phone's back button: ask before leaving; pressed again while asking, it keeps playing
+    session.onBack = function () { if (confirmBox.hidden) askLeave('intro'); else keepPlaying(); };
     var exitBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { askLeave('intro'); } }, 'יציאה');
     var homeBtn = el('button', {
       class: 'btn btn-quiet btn-sm play-settings', type: 'button', 'aria-label': 'לדף הבית', title: 'לדף הבית',
@@ -685,7 +720,7 @@
     var confirmBox = el('div', { class: 'confirm', hidden: true, role: 'group', 'aria-label': 'יציאה מהמשחק' }, [
       el('span', null, 'לצאת מהמשחק? הסיבוב הזה לא יישמר.'),
       el('span', { class: 'confirm-actions' }, [
-        el('button', { class: 'btn btn-primary btn-sm', type: 'button', onclick: function () { confirmBox.hidden = true; exitBtn.hidden = false; homeBtn.hidden = false; } }, 'להמשיך לשחק'),
+        el('button', { class: 'btn btn-primary btn-sm', type: 'button', onclick: keepPlaying }, 'להמשיך לשחק'),
         el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { if (leaveTo === 'home') renderHome(); else renderIntro(game, daily); } }, 'כן, לצאת')
       ])
     ]);
@@ -864,13 +899,15 @@
       ] : [
         el('h2', { class: 'trophy-title' }, 'זכיתם בגביע הכסף!'),
         el('p', null, 'ניצחתם ברמה ' + BG.SILVER_LEVEL + ' ב"' + game.name + '". הישג מרשים!'),
-        el('p', null, 'מחכות לכם עוד ' + (BG.MAX_LEVEL - BG.SILVER_LEVEL) + ' רמות בדרך לגביע הזהב.')
+        el('p', null, 'מחכות לכם עוד ' + (BG.maxLevelOf(game.id) - BG.SILVER_LEVEL) + ' רמות בדרך לגביע הזהב.')
       ])
     ]);
   }
 
   function renderResult(game, daily, playedLevel, result, elapsedMs) {
     clear();
+    screenGame = game;
+    guardBack();
     refreshScreen = null;
     var correct = Math.max(0, result.correct | 0);
     var total = Math.max(0, result.total | 0);
@@ -923,7 +960,11 @@
     } else if (daily) {
       actions.push(el('div', { class: 'done-banner' }, 'סיימתם את כל האימון של היום! נתראה מחר עם משחקים חדשים.'));
     }
-    actions.push(el('button', { class: 'btn ' + (actions.length ? 'btn-secondary' : 'btn-primary btn-lg'), type: 'button', onclick: function () { startGame(game, daily, newLevel); } }, 'לשחק שוב (רמה ' + newLevel + ')'));
+    // "play again" uses the saved level, so a level picked in settings after the round counts
+    var againBtn = el('button', { class: 'btn ' + (actions.length ? 'btn-secondary' : 'btn-primary btn-lg'), type: 'button',
+      onclick: function () { startGame(game, daily, getLevel(game.id)); } }, 'לשחק שוב (רמה ' + newLevel + ')');
+    actions.push(againBtn);
+    refreshScreen = function () { againBtn.textContent = 'לשחק שוב (רמה ' + getLevel(game.id) + ')'; };
     actions.push(el('button', { class: 'btn btn-quiet', type: 'button', onclick: renderHome }, 'לדף הבית'));
 
     app.appendChild(el('section', { class: 'result' }, [

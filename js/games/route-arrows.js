@@ -174,6 +174,7 @@
     ],
     css: [
       '.ra-steps[hidden]{display:none}',
+      '.play-board:has(.ra-map){gap:.55rem}', /* map, steps and choices fit one phone screen */
       '.ra-map{display:grid;grid-template-columns:repeat(var(--n),var(--ra-t));gap:4px;direction:ltr;padding:5px;',
       'border-radius:var(--radius);background:var(--surface-2);border:1px solid var(--line)}',
       '.ra-cell{position:relative;width:var(--ra-t);height:var(--ra-t);border-radius:8px;',
@@ -188,14 +189,14 @@
       'color:var(--surface);display:grid;place-items:center}',
       '.ra-badge .ra-ico{width:16px;height:16px}',
       '.ra-facing{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.1rem;background:var(--logic-soft);color:var(--ink);',
-      'padding:.35rem .8rem;border-radius:var(--radius-sm)}',
+      'padding:.25rem .8rem;border-radius:var(--radius-sm)}',
       '.ra-facing .ra-ico{width:1.6rem;height:1.6rem;color:var(--logic)}',
-      '.ra-steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.45rem;max-width:22rem}',
+      '.ra-steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.35rem;max-width:22rem}',
       '.ra-step{display:flex;align-items:center;gap:.15rem;padding:.1rem .5rem .1rem .35rem;border-radius:999px;',
-      'background:var(--surface-2);border:1px solid var(--line);font-size:1.35rem;font-weight:900;font-variant-numeric:tabular-nums}',
+      'background:var(--surface-2);border:1px solid var(--line);font-size:1.25rem;line-height:1.3;font-weight:900;font-variant-numeric:tabular-nums}',
       '.ra-step-n{flex:none;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--logic);color:var(--surface);',
       'display:grid;place-items:center;font-size:1.1rem;font-weight:800}',
-      '.ra-step .ra-ico{flex:none;width:1.6rem;height:1.6rem;color:var(--logic)}',
+      '.ra-step .ra-ico{flex:none;width:1.45rem;height:1.45rem;color:var(--logic)}',
       '.g-choices.ra-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:28rem}',
       '.g-choices.ra-choices .g-choice{min-height:3.2rem;display:flex;align-items:center;justify-content:center;gap:.4rem;font-size:1.2rem;line-height:1.15;padding:.3rem .4rem;white-space:nowrap}',
       '.ra-choices .g-choice span:first-child{font-size:1.6rem;line-height:1}',
@@ -225,7 +226,7 @@
         // Map tiles are look-only (not buttons) so the screen stays calm; sized to fit a phone.
         var map = ctx.el('div', {
           class: 'ra-map', dir: 'ltr', role: 'img', 'aria-label': 'מפה',
-          style: { '--n': N, '--ra-t': 'min(' + (N > 5 ? 40 : 46) + 'px, calc((100vw - 96px) / ' + N + '))' }
+          style: { '--n': N, '--ra-t': 'min(' + (N > 5 ? 37 : 44) + 'px, calc((100vw - 96px) / ' + N + '))' }
         });
         var cellEls = [];
         for (var i = 0; i < N * N; i++) {
@@ -246,7 +247,7 @@
         root.appendChild(map);
 
         if (q.relative) {
-          root.appendChild(ctx.el('div', { class: 'ra-facing', html: '<span>בהתחלה ההולך מסתכל ' + FACE_NAME[q.facing] + '</span>' + arrowSvg(q.facing) }));
+          root.appendChild(ctx.el('div', { class: 'ra-facing', html: '<span>ההולך מסתכל ' + FACE_NAME[q.facing] + '</span>' + arrowSvg(q.facing) }));
         }
         var list = ctx.el('ol', { class: 'ra-steps' });
         q.moves.forEach(function (m, idx) {
@@ -262,14 +263,14 @@
         var grid = ctx.el('div', { class: 'g-choices ra-choices' });
         if (q.hide) {
           // Memorise phase: only the map and the steps; the answers come after "זכרתי, הלאה".
-          ctx.setStatus('זכרו את הצעדים, ואז לחצו "זכרתי, הלאה"');
+          ctx.setStatus('זכרו את הצעדים ואת הכיוון');
           grid.hidden = true;
           var readyBtn = ctx.el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () {
             readyBtn.disabled = true;
             readyRow.remove();
             list.hidden = true;
             grid.hidden = false;
-            ctx.setStatus('לאן הגעתם? דמיינו את הצעדים על המפה');
+            ctx.setStatus('לאן הגעתם? דמיינו את הדרך');
           } }, 'זכרתי, הלאה');
           var readyRow = ctx.el('div', { class: 'g-actions' }, readyBtn);
           root.appendChild(readyRow);
@@ -324,7 +325,7 @@
           }, round >= ROUNDS ? 'לסיכום' : 'למסלול הבא');
           after.appendChild(nextBtn);
           var tip = ok ? 'נכון! הגעתם ל' + q.answer.n : 'הגעתם ל' + q.answer.n + ' ' + q.answer.e;
-          if (q.relative && !ok) tip += '. במסך: ' + q.moves.map(function (m) { return DIR_NAME[m.dir] + ' ' + m.n; }).join(', ');
+          // (the route is drawn on the map; a list of moves in the bubble would cover it)
           ctx.feedback(ok, tip);
           ctx.wait(50).then(function () { try { nextBtn.focus({ preventScroll: true }); } catch (e) { /* ignore */ } });
         }

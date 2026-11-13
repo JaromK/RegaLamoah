@@ -235,12 +235,12 @@
   }
 
   var css = [
-    '.bs-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:.5rem}',
+    '.bs-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:.3rem}',
     '.bs-label{font-size:1.1rem;font-weight:700;color:var(--ink-soft);margin:0}',
     // the question sits between the balanced scales and the question scale, with a divider above it
-    '.bs-qlabel{width:100%;margin:.2rem 0 0;padding-top:.6rem;border-top:2px dashed var(--line);',
+    '.bs-qlabel{width:100%;margin:.1rem 0 0;padding-top:.4rem;border-top:2px dashed var(--line);',
     'text-align:center;font-size:1.2rem;font-weight:800;color:var(--ink)}',
-    '.bs-known{width:100%;display:flex;flex-direction:column;align-items:center;gap:.5rem}',
+    '.bs-known{width:100%;display:flex;flex-direction:column;align-items:center;gap:.35rem}',
     '.bs-scale{width:100%;max-width:26rem;display:grid;grid-template-columns:minmax(0,1fr) 2.5rem minmax(0,1fr);',
     'grid-template-rows:auto auto auto;align-items:start;column-gap:.3rem;padding:.4rem 0 0}',
     '.bs-beam{grid-column:1/-1;grid-row:1;height:.45rem;border-radius:999px;background:var(--ink-soft);',
@@ -250,32 +250,39 @@
     '.bs-badge{order:-1;margin-top:-.2rem;width:2.2rem;height:2.2rem;border-radius:50%;display:grid;place-items:center;',
     'font-weight:900;font-size:1.25rem;background:var(--logic-soft);color:var(--logic);border:2px solid var(--logic)}',
     '.bs-base{width:2.5rem;height:1rem;color:var(--ink-soft);display:block}',
-    '.bs-pan{grid-row:2;min-height:3.4rem;margin-top:.5rem;padding:.3rem .2rem .45rem;border:3px solid var(--line);',
+    '.bs-pan{grid-row:2;min-height:3.2rem;margin-top:.4rem;padding:.3rem .2rem .45rem;border:3px solid var(--line);',
     'border-top-width:4px;border-top-color:var(--ink-soft);border-radius:.4rem .4rem 2rem 2rem;background:var(--surface);',
     'display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 .1rem;transition:transform .6s ease}',
     '.bs-known .bs-scale{padding:0;grid-template-columns:minmax(0,1fr) 2.1rem minmax(0,1fr)}',
     '.bs-known .bs-beam{height:.3rem}',
-    '.bs-known .bs-pan{min-height:2.7rem;margin-top:.25rem;padding:.1rem .2rem .3rem;border-width:2px;border-top-width:3px;',
+    '.bs-known .bs-pan{min-height:2.5rem;margin-top:.2rem;padding:.1rem .2rem .3rem;border-width:2px;border-top-width:3px;',
     'border-radius:.4rem .4rem 1.4rem 1.4rem}',
     '.bs-known .bs-badge{width:1.9rem;height:1.9rem;font-size:1.15rem;margin-top:-.15rem}',
     '.bs-known .bs-base{display:none}',
     '.bs-fruit{font-size:clamp(1.2rem,5vw,1.55rem);line-height:1.2}',
-    '.bs-known.bs-many .bs-fruit{font-size:clamp(1.1rem,4.6vw,1.4rem)}',
+    '.bs-known .bs-fruit{font-size:clamp(.85rem,3.8vw,1.35rem)}','.bs-known .bs-pan{gap:0;padding-inline:.1rem}',
     '.bs-chip{display:inline-flex;align-items:center;gap:.2rem;font-weight:800;font-size:1.15rem;color:var(--ink);',
     'font-variant-numeric:tabular-nums;white-space:nowrap}',
     '.bs-chip .bs-fruit{font-size:clamp(1.2rem,5vw,1.5rem)}',
     '.bs-ask{padding:.1rem .4rem;border-radius:var(--radius-sm);border:2px dashed var(--sun);background:var(--sun-soft)}',
     '.bs-ask.is-done{border-style:solid;border-color:var(--good);background:var(--good-soft);color:var(--good)}',
     '.bs-question .bs-badge{background:var(--sun-soft);color:var(--ink);border-color:var(--sun)}',
+    '.bs-question .bs-pan{column-gap:.25rem}.bs-question .bs-chip{font-size:1.05rem;gap:.1rem}.bs-question .bs-chip .bs-fruit{font-size:1.25rem}',
     '.bs-question.bs-tilt .bs-beam{transform:rotate(5deg)}',
     '.bs-question.bs-tilt .bs-pan.bs-heavy{transform:translateY(.75rem)}',
     '.bs-question.bs-tilt .bs-pan.bs-light{transform:translateY(-.55rem)}',
-    '.play-board .g-choices.bs-choices{max-width:26rem;grid-template-columns:repeat(2,minmax(0,1fr))}',
-    '.bs-choice{font-size:clamp(1.35rem,5.5vw,1.6rem);min-height:4rem;font-variant-numeric:tabular-nums}',
+    '.play-board .g-choices.bs-choices{max-width:26rem;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}',
+    '.bs-choice{font-size:clamp(1.35rem,5.5vw,1.6rem);min-height:3.2rem;font-variant-numeric:tabular-nums}',
     '.bs-choices .bs-choice.bs-gone{display:none}',
-    '.bs-explain{font-size:1.1rem;font-weight:600;text-align:center;text-wrap:balance;line-height:1.45;',
-    'padding:.45rem .8rem;border-radius:var(--radius-sm);max-width:34rem;width:100%;margin:0}',
+    '.bs-wrap .g-actions:empty{display:none}.play-board .bs-choices .bs-choice{padding-block:.25rem}',
+    '.bs-explain{font-size:1.05rem;font-weight:600;text-align:center;text-wrap:balance;line-height:1.35;',
+    'padding:.35rem .6rem;border-radius:var(--radius-sm);max-width:34rem;width:100%;margin:0}',
     '.bs-explain:empty{display:none}',
+    '.bs-done .bs-known{gap:.15rem}',
+    '.bs-done .bs-known .bs-pan{min-height:2rem;margin-top:.1rem}.bs-done{gap:.25rem}',
+    '.bs-done .bs-question .bs-pan{min-height:2.5rem;margin-top:.25rem}',
+    '.bs-done .bs-base{display:none}',
+    '.bs-done .bs-explain{font-size:1rem;line-height:1.25;padding-block:.25rem}',
     '.bs-explain.is-good{background:var(--good-soft);color:var(--good)}',
     '.bs-explain.is-bad{background:var(--bad-soft);color:var(--ink)}',
     '@media (prefers-reduced-motion:reduce){.bs-beam,.bs-pan{transition:none}}'
@@ -409,7 +416,7 @@
           choices.appendChild(b);
         });
 
-        root.appendChild(el('div', { class: 'bs-wrap' }, [
+        var wrap = el('div', { class: 'bs-wrap' }, [
           knownLabel,
           known,
           qLabel,
@@ -417,7 +424,8 @@
           choices,
           explain,
           actions
-        ]));
+        ]);
+        root.appendChild(wrap);
         ctx.setStatus('מצאו את המספר החסר');
 
         function answer(v, btn) {
@@ -440,13 +448,11 @@
 
           if (ok) {
             score++;
-            explain.className = 'bs-explain is-good';
-            explain.textContent = 'נכון! ' + p.why;
+            var expClass = 'bs-explain is-good', expText = 'נכון! ' + p.why;
             ctx.setStatus('מצוין, המאזניים מאוזנים!');
             ctx.feedback(true);
           } else {
-            explain.className = 'bs-explain is-bad';
-            explain.textContent = p.why;
+            var expClass = 'bs-explain is-bad', expText = p.why;
             ctx.setStatus('כך מגיעים לתשובה');
             ctx.feedback(false, 'התשובה הנכונה: ' + p.ans + ' ' + T.e);
           }
@@ -460,6 +466,10 @@
             choices.style.display = 'none';
             knownLabel.style.display = 'none';
             qLabel.style.display = 'none';
+            // the explanation takes the place of the choices (both at once would not fit a phone screen)
+            explain.className = expClass;
+            explain.textContent = expText;
+            wrap.classList.add('bs-done'); // smaller scales make room for the explanation
             actions.appendChild(next);
             try { next.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
           });

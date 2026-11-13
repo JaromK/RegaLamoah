@@ -46,10 +46,18 @@
     // Top row: the small model beside a short info column (label, count, legend).
     '.cp-top{display:flex;align-items:center;justify-content:center;gap:.8rem;width:100%;}',
     '.cp-model{flex:none;display:grid;grid-template-columns:repeat(var(--cols),1.6rem);gap:.25rem;',
-    'padding:.45rem;border-radius:var(--radius);background:var(--surface);border:2px solid var(--perception);}',
+    'padding:.4rem;border-radius:var(--radius);background:var(--surface);border:2px solid var(--perception);}',
     '.cp-mcell{aspect-ratio:1;border-radius:5px;background:var(--surface-2);border:1px solid var(--line);',
     'display:grid;place-items:center;line-height:1;}',
     '.cp-info{display:flex;flex-direction:column;gap:.3rem;min-width:0;font-size:1.1rem;line-height:1.3;}',
+    /* 5-row boards (levels 16+): a smaller model, so model + board + button fit one phone screen */
+    '.cp-tall .cp-model{grid-template-columns:repeat(var(--cols),1.1rem);gap:.2rem;padding:.35rem;}',
+    '.cp-tall .cp-info{font-size:1.05rem;gap:.15rem;}',
+    '.cp-tall .cp-legend{gap:.1rem;}.cp-tall .cp-sw{width:1.1rem;height:1.1rem;}',
+    '.cp-tall .g-actions .btn-lg{min-height:3.3rem;padding-block:.4rem;}',
+    '.play-board.cp-tall{gap:.6rem;}',
+    '.cp-tall .cp-board.g-grid{gap:.45rem;max-width:calc(var(--cols) * 56px + (var(--cols) - 1) * .45rem);min-width:0;}',
+    '.cp-count{white-space:nowrap;}',
     '.cp-label{font-weight:800;color:var(--perception);margin:0;}',
     '.cp-count{font-weight:700;margin:0;font-variant-numeric:tabular-nums;}',
     '.cp-legend{display:flex;flex-direction:column;gap:.2rem;color:var(--ink-soft);margin:0;}',
@@ -166,11 +174,12 @@
         }, 'בדיקה');
         var actions = el('div', { class: 'g-actions' }, checkBtn);
 
+        root.classList.toggle('cp-tall', spec.rows >= 5);
         root.appendChild(el('div', { class: 'cp-top' }, [modelGrid, info]));
         root.appendChild(board);
         root.appendChild(actions);
 
-        ctx.setStatus(spec.mirror ? 'ציירו את הדוגמה כמו במראה: מה שמימין עובר לשמאל'
+        ctx.setStatus(spec.mirror ? 'ציירו כמו במראה: ימין ושמאל מתחלפים'
           : colors === 2 ? 'העתיקו את הדוגמה, שימו לב לצבעים' : 'העתיקו את הדוגמה ללוח הגדול');
         updateCount();
 

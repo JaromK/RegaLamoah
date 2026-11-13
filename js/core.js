@@ -19,7 +19,8 @@
   };
 
   var MIN_LEVEL = 1;
-  var MAX_LEVEL = 30;
+  var MAX_LEVEL = 30;      // the usual top level
+  var MAX_GAME_LEVEL = 50; // a game may set maxLevel up to this (the photo games have 50)
   var START_LEVEL = 3; // level 1–2 stay available as warm-ups
   var SILVER_LEVEL = 20; // winning this level earns the silver trophy; MAX_LEVEL earns the gold one
 
@@ -30,7 +31,12 @@
     { from: 11, to: 15, name: 'בכושר' },
     { from: 16, to: 20, name: 'אלופים' },
     { from: 21, to: 25, name: 'מומחים' },
-    { from: 26, to: 30, name: 'אגדות' }
+    { from: 26, to: 30, name: 'אגדות' },
+    // only games with more than 30 levels reach these
+    { from: 31, to: 35, name: 'כוכבים' },
+    { from: 36, to: 40, name: 'גאונים' },
+    { from: 41, to: 45, name: 'מאסטרים' },
+    { from: 46, to: 50, name: 'שיאנים' }
   ];
 
   function stageOf(level) {
@@ -241,10 +247,10 @@
     return null;
   }
 
-  /* A game's top level: its own maxLevel (a game may stop early, e.g. at 20) or MAX_LEVEL. */
+  /* A game's top level: its own maxLevel (stop early, e.g. at 20, or go on up to MAX_GAME_LEVEL) or MAX_LEVEL. */
   function maxLevelOf(id) {
     var g = typeof id === 'string' ? getGame(id) : id;
-    return g && g.maxLevel ? Math.max(MIN_LEVEL, Math.min(MAX_LEVEL, g.maxLevel)) : MAX_LEVEL;
+    return g && g.maxLevel ? Math.max(MIN_LEVEL, Math.min(MAX_GAME_LEVEL, g.maxLevel)) : MAX_LEVEL;
   }
 
   /* Today's workout: 4 games, seeded by the date, covering as many skills as possible. */

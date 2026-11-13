@@ -20,35 +20,36 @@
   var HUE = { LT: 'c-blue', MT: 'c-red', ST: 'c-yellow', SQ: 'c-green', PG: 'c-purple' }; // shared strong palette
   var NAME = { LT: 'משולש גדול', MT: 'משולש בינוני', ST: 'משולש קטן', SQ: 'ריבוע', PG: 'מקבילית' };
 
-  /* Per level (1–30): pieces in the figure, pre = pieces already in place, lines = the outline of every
-     piece is drawn inside the silhouette, turn = pieces in the tray start turned, max = largest figure size. */
+  /* Per level (1–30): pieces in the figure (all placed by the player; no grey pieces are given), lines = the
+     outline of every piece is drawn inside the silhouette, turn = pieces in the tray start turned,
+     max = largest figure size (smaller = more compact, harder). pre stays 0 (kept for the model/tests). */
   var LEVELS = [
-    { pieces: 2, pre: 1, lines: true },                  // 1
-    { pieces: 3, pre: 2, lines: true },                  // 2
-    { pieces: 3, pre: 1, lines: true },                  // 3
-    { pieces: 3, pre: 1, lines: true, turn: true },      // 4
-    { pieces: 4, pre: 2, lines: true, turn: true },      // 5
-    { pieces: 4, pre: 1, lines: true, turn: true },      // 6
-    { pieces: 4, pre: 2 },                               // 7
-    { pieces: 4, pre: 1, turn: true },                   // 8
-    { pieces: 5, pre: 2, lines: true, turn: true },      // 9
-    { pieces: 5, pre: 2, turn: true },                   // 10
-    { pieces: 5, pre: 1, turn: true },                   // 11
-    { pieces: 5, pre: 0, turn: true },                   // 12
-    { pieces: 6, pre: 2, lines: true, turn: true },      // 13
-    { pieces: 6, pre: 2, turn: true },                   // 14
-    { pieces: 6, pre: 1, turn: true },                   // 15
-    { pieces: 6, pre: 0, turn: true },                   // 16
-    { pieces: 7, pre: 3, lines: true, turn: true },      // 17
-    { pieces: 7, pre: 3, turn: true },                   // 18
-    { pieces: 7, pre: 2, turn: true },                   // 19
-    { pieces: 7, pre: 2, turn: true, max: 7 },           // 20
-    { pieces: 7, pre: 1, turn: true },                   // 21
-    { pieces: 7, pre: 1, turn: true, max: 7 },           // 22
-    { pieces: 7, pre: 1, turn: true, max: 6 },           // 23
-    { pieces: 7, pre: 0, turn: true },                   // 24
+    { pieces: 2, pre: 0, lines: true },                  // 1
+    { pieces: 2, pre: 0, lines: true },                  // 2
+    { pieces: 3, pre: 0, lines: true },                  // 3
+    { pieces: 2, pre: 0, lines: true, turn: true },      // 4
+    { pieces: 3, pre: 0, lines: true, turn: true },      // 5
+    { pieces: 3, pre: 0, lines: true, turn: true },      // 6
+    { pieces: 3, pre: 0 },                               // 7
+    { pieces: 3, pre: 0, turn: true },                   // 8
+    { pieces: 4, pre: 0, lines: true, turn: true },      // 9
+    { pieces: 4, pre: 0, lines: true, turn: true },      // 10
+    { pieces: 4, pre: 0, turn: true },                   // 11
+    { pieces: 4, pre: 0, turn: true },                   // 12
+    { pieces: 5, pre: 0, lines: true, turn: true },      // 13
+    { pieces: 5, pre: 0, turn: true },                   // 14
+    { pieces: 5, pre: 0, turn: true },                   // 15
+    { pieces: 6, pre: 0, lines: true, turn: true },      // 16
+    { pieces: 6, pre: 0, turn: true },                   // 17
+    { pieces: 6, pre: 0, turn: true },                   // 18
+    { pieces: 6, pre: 0, turn: true, max: 7 },           // 19
+    { pieces: 7, pre: 0, lines: true, turn: true },      // 20
+    { pieces: 7, pre: 0, turn: true },                   // 21
+    { pieces: 7, pre: 0, turn: true },                   // 22
+    { pieces: 7, pre: 0, turn: true, max: 7 },           // 23
+    { pieces: 7, pre: 0, turn: true, max: 7 },           // 24
     { pieces: 7, pre: 0, turn: true, max: 7 },           // 25
-    { pieces: 7, pre: 0, turn: true, max: 7 },           // 26
+    { pieces: 7, pre: 0, turn: true, max: 6 },           // 26
     { pieces: 7, pre: 0, turn: true, max: 6 },           // 27
     { pieces: 7, pre: 0, turn: true, max: 6 },           // 28
     { pieces: 7, pre: 0, turn: true, max: 5 },           // 29

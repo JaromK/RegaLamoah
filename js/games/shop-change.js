@@ -142,7 +142,7 @@
       price: m * deal * 100,
       priceText: null,
       explain: it[0] + ': ' + qty + ' יחידות במבצע ' + dealText + ' = ' + moneyText(m * deal * 100),
-      hint: 'מבצע "' + dealText + '": ' + n + ' יחידות ביחד ב־' + moneyText(deal * 100) + '.',
+      hint: 'מבצע: ' + n + ' יחידות ב־' + moneyText(deal * 100) + '.',
       wrongPrices: [qty * deal * 100, m === 2 ? deal * 100 : null]
     };
   }
@@ -160,7 +160,7 @@
       price: paid,
       priceText: money(shelf * 100),
       explain: it[0] + ': ' + moneyText(shelf * 100) + ' פחות ' + pct + '% = ' + moneyText(paid),
-      hint: '"' + pct + '% הנחה": מורידים ' + pct + '% מהמחיר.',
+      hint: 'הנחה: מורידים ' + pct + '% מהמחיר.',
       wrongPrices: [shelf * 100, shelf > pct ? (shelf - pct) * 100 : null, shelf * pct]
     };
   }
@@ -243,8 +243,9 @@
     var hints = [];
     // one offer: explain it in the status line; two offers: the tags on the receipt lines say enough
     if (specs.length === 1) hints.push(specs[0].hint);
-    else if (specs.length > 1) hints.push('שימו לב לשני המבצעים בקבלה.');
-    if (kind === 'change' && pay.length > 1) hints.push('חברו קודם את כל מה ששילמתם.');
+    else if (specs.length > 1) hints.push('יש 2 מבצעים.');
+    // one hint at most, so the status stays one line on a phone (the payment row says "משלמים בשטרות")
+    if (kind === 'change' && pay.length > 1 && !hints.length) hints.push('חברו את השטרות.');
     return {
       kind: kind,
       lines: lines,
@@ -274,15 +275,20 @@
       'בחרו את התשובה הנכונה, ולחצו "לשאלה הבאה" כשתהיו מוכנים.'
     ],
     css: [
-      '.sc-scene{display:flex;flex-direction:column;align-items:center;gap:.6rem;width:100%}',
+      '.sc-scene{display:flex;flex-direction:column;align-items:center;gap:.45rem;width:100%}',
       '.sc-receipt{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:.35rem .9rem;width:100%;max-width:20rem}',
-      '.sc-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem;font-size:1.15rem;line-height:1.3;padding:.12rem 0}',
+      '.sc-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem;font-size:1.15rem;line-height:1.25;padding:.08rem 0}',
       '.sc-price{font-weight:800;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;white-space:nowrap}',
       '.sc-was{text-decoration:line-through;color:var(--ink-soft);font-weight:600;margin-inline-end:.35rem}',
       '.sc-sum{border-top:2px dashed var(--line);margin-top:.2rem;padding-top:.3rem;font-weight:800}',
       '.sc-sum .sc-price{color:var(--accent)}',
       '.sc-pay{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.6rem}',
       '.sc-pay-label{color:var(--ink-soft);font-weight:700;font-size:1.1rem}',
+      /* several notes/coins: the label gets its own line so they share one row */
+      '.sc-pay.sc-multi{row-gap:.25rem}.sc-pay.sc-multi .sc-pay-label{flex-basis:100%;text-align:center}',
+      '.sc-pay.sc-multi{column-gap:.4rem}.sc-multi .sc-note{min-width:0;padding-inline:.6rem}.sc-multi .sc-note-seal{display:none}',
+      /* coins are only shown, not tapped: small enough that a note and four coins share one row */
+      '.sc-multi .sc-coin{width:2.5rem;height:2.5rem;font-size:.85rem;border-width:2px}.sc-multi .sc-note-value{font-size:1.5rem}',
       '.sc-note{--sc-c:var(--language);--sc-s:var(--language-soft);display:flex;align-items:center;justify-content:center;gap:.45rem;',
       'min-width:7.5rem;min-height:3.5rem;padding:.35rem .9rem;border-radius:9px;background:var(--sc-s);color:var(--sc-t,var(--sc-c));',
       'border:2px solid var(--sc-c);box-shadow:inset 0 0 0 .22rem var(--sc-s),inset 0 0 0 .34rem var(--sc-c)}',
@@ -300,9 +306,9 @@
       '.sc-n200{--sc-c:var(--c-blue);--sc-s:var(--c-blue-soft)}',
       '.sc-ask{margin:0;font-size:1.25rem}',
       '.play-board .g-choices.sc-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:26rem}',
-      '.sc-choices .g-choice{font-size:1.5rem;font-variant-numeric:tabular-nums;padding-inline:.5rem}',
-      '.sc-explain{margin:0;font-size:1.15rem;font-weight:700;text-align:center;background:var(--sun-soft);color:var(--ink);',
-      'padding:.4rem .9rem;border-radius:var(--radius-sm);max-width:100%;text-wrap:balance;line-height:1.4}'
+      '.play-board .sc-choices .g-choice{font-size:1.5rem;font-variant-numeric:tabular-nums;padding:.3rem .5rem;min-height:3.3rem}',
+      '.sc-explain{margin:0;font-size:1.05rem;font-weight:700;text-align:center;background:var(--sun-soft);color:var(--ink);',
+      'padding:.35rem .7rem;border-radius:var(--radius-sm);max-width:100%;text-wrap:balance;line-height:1.35}'
     ].join(''),
     generate: makeQuestion,
     start: function (root, ctx) {
@@ -345,7 +351,7 @@
           return ctx.el('div', { class: 'sc-coin', role: 'img', dir: 'ltr', 'aria-label': v === 50 ? 'מטבע של חצי שקל' : 'מטבע של ' + (v / 100) + ' שקלים' }, money(v));
         });
         var payLabel = q.pay.length === 1 ? 'משלמים בשטר:' : notes === q.pay.length ? 'משלמים בשטרות:' : 'משלמים:';
-        var payRow = ctx.el('div', { class: 'sc-pay' }, [ctx.el('span', { class: 'sc-pay-label' }, payLabel)].concat(payEls));
+        var payRow = ctx.el('div', { class: 'sc-pay' + (payEls.length > 1 ? ' sc-multi' : '') }, [ctx.el('span', { class: 'sc-pay-label' }, payLabel)].concat(payEls));
         root.appendChild(ctx.el('div', { class: 'sc-scene' }, [receipt, payRow]));
         // the status line already asks the question unless it carries a hint
         var askEl = q.hint ? ctx.el('p', { class: 'g-prompt sc-ask' }, question) : null;
@@ -370,6 +376,8 @@
           buttons.forEach(function (o) {
             o.btn.disabled = true;
             if (o.val === q.answer) o.btn.classList.add('is-correct');
+            // keep only the chosen and the right answer (one row), so the explanation and button fit the screen
+            else if (o.btn !== btn) o.btn.style.display = 'none';
           });
           sumPrice.textContent = money(q.total);
           if (specPrice) {
