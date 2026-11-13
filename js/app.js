@@ -314,6 +314,85 @@
     ]);
   }
 
+  /* One card in the "all games" list (also used by the search results). */
+  function gameCard(g) {
+    var lv = getLevel(g.id);
+    return el('li', null, el('button', { class: 'game-card', type: 'button', onclick: function () { renderIntro(g, false); } }, [
+      el('span', { class: 'game-card-name' }, [
+        g.name,
+        trophyKind(g.id) ? el('span', {
+          class: 'card-trophy' + (trophyKind(g.id) === 'silver' ? ' is-silver' : ''),
+          title: trophyKind(g.id) === 'gold' ? 'זכיתם בגביע הזהב' : 'זכיתם בגביע הכסף', html: TROPHY_SVG
+        }) : null
+      ]),
+      el('span', { class: 'game-card-tag' }, g.tagline),
+      el('span', { class: 'game-card-level' }, [
+        levelPill(lv),
+        el('span', { class: 'game-card-stage' }, BG.stageOf(lv).name)
+      ]),
+      el('span', { class: 'mini-bar', 'aria-hidden': 'true' },
+        el('span', { class: 'mini-bar-fill', style: { width: Math.round(lv / BG.maxLevelOf(g.id) * 100) + '%' } }))
+    ]));
+  }
+
+  /* ---------- game search ---------- */
+  // Forgiving match: no niqqud, final letters = regular letters, no punctuation, any word order.
+  // loose = also ignore ו and י (זכרון = זיכרון); used only when the exact spelling finds nothing.
+  function searchKey(text, loose) {
+    var t = String(text || '').toLowerCase().replace(/[֑-ׇ]/g, '');
+    if (loose) t = t.replace(/[וי]/g, '');
+    return t
+      .replace(/ך/g, 'כ').replace(/ם/g, 'מ').replace(/ן/g, 'נ').replace(/ף/g, 'פ').replace(/ץ/g, 'צ')
+      .replace(/["'״׳?!.,:;()\-–]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  function findGames(query, loose) {
+    var words = searchKey(query, loose).split(' ').filter(Boolean);
+    if (!words.length) return [];
+    var hits = [];
+    BG.all().forEach(function (g) {
+      var name = searchKey(g.name, loose);
+      var all = [name, searchKey(g.tagline, loose), searchKey(BG.SKILLS[g.skill] && BG.SKILLS[g.skill].label, loose),
+        searchKey(g.benefit, loose)].join(' ').split(' ');
+      // each query word starts a word of the text, maybe after one prefix letter (וחשבון, השעה, לזכור…)
+      function has(w) {
+        return all.some(function (t) { return t.indexOf(w) === 0 || (t.indexOf(w) === 1 && 'בהולמשכ'.indexOf(t[0]) !== -1); });
+      }
+      if (!words.every(has)) return;
+      // the name first: starts with the query, then contains it, then found elsewhere
+      var q = words.join(' ');
+      hits.push({ g: g, rank: name.indexOf(q) === 0 ? 0 : name.indexOf(q) !== -1 ? 1 : words.every(function (w) { return name.indexOf(w) !== -1; }) ? 2 : 3 });
+    });
+    if (!hits.length && !loose) return findGames(query, true); // other spelling (with/without ו, י)
+    return hits.sort(function (a, b) { return a.rank - b.rank; }).map(function (h) { return h.g; });
+  }
+  function searchSection() {
+    var results = el('ul', { class: 'game-grid search-results' });
+    var note = el('p', { class: 'search-note', 'aria-live': 'polite' });
+    var input = el('input', {
+      class: 'text-input search-input', id: 'game-search', type: 'search', autocomplete: 'off', enterkeyhint: 'search',
+      placeholder: 'שם משחק, או למשל: זיכרון, מילים, חשבון',
+      oninput: show
+    });
+    function show() {
+      var q = input.value.trim();
+      results.innerHTML = '';
+      if (!q) { note.textContent = ''; return; }
+      var found = findGames(q);
+      note.textContent = found.length
+        ? (found.length === 1 ? 'נמצא משחק אחד' : 'נמצאו ' + found.length + ' משחקים')
+        : 'לא נמצא משחק. נסו מילה אחרת.';
+      found.forEach(function (g) { results.appendChild(gameCard(g)); });
+    }
+    var clearBtn = el('button', { class: 'btn btn-quiet btn-sm search-clear', type: 'button', 'aria-label': 'ניקוי החיפוש',
+      onclick: function () { input.value = ''; show(); input.focus(); } }, 'ניקוי');
+    return el('section', { class: 'section search' }, [
+      el('h2', { class: 'section-title' }, el('label', { for: 'game-search' }, 'חיפוש משחק')),
+      el('form', { class: 'search-row', role: 'search', onsubmit: function (e) { e.preventDefault(); input.blur(); } }, [input, clearBtn]),
+      note,
+      results
+    ]);
+  }
+
   function renderHome() {
     endCurrent();
     if (!BG.state.welcomed) { renderWelcome(); return; }
@@ -379,30 +458,13 @@
         if (!games.length) return null;
         return el('div', { class: 'skill-group' }, [
           el('h3', { class: 'skill-group-title' }, [skillIcon(skill), BG.SKILLS[skill].label]),
-          el('ul', { class: 'game-grid' }, games.map(function (g) {
-            var lv = getLevel(g.id);
-            return el('li', null, el('button', { class: 'game-card', type: 'button', onclick: function () { renderIntro(g, false); } }, [
-              el('span', { class: 'game-card-name' }, [
-                g.name,
-                trophyKind(g.id) ? el('span', {
-                  class: 'card-trophy' + (trophyKind(g.id) === 'silver' ? ' is-silver' : ''),
-                  title: trophyKind(g.id) === 'gold' ? 'זכיתם בגביע הזהב' : 'זכיתם בגביע הכסף', html: TROPHY_SVG
-                }) : null
-              ]),
-              el('span', { class: 'game-card-tag' }, g.tagline),
-              el('span', { class: 'game-card-level' }, [
-                levelPill(lv),
-                el('span', { class: 'game-card-stage' }, BG.stageOf(lv).name)
-              ]),
-              el('span', { class: 'mini-bar', 'aria-hidden': 'true' },
-                el('span', { class: 'mini-bar-fill', style: { width: Math.round(lv / BG.maxLevelOf(g.id) * 100) + '%' } }))
-            ]));
-          }))
+          el('ul', { class: 'game-grid' }, games.map(gameCard))
         ]);
       }))
     ]);
 
     app.appendChild(hero);
+    app.appendChild(searchSection());
     app.appendChild(el('section', { class: 'section' }, [
       el('h2', { class: 'section-title' }, 'האימון של היום'),
       dailyList

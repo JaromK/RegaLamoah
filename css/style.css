@@ -353,6 +353,14 @@ p { margin: 0; }
   background: var(--bg); border: 2px solid var(--line); border-radius: var(--radius-sm); width: 100%; max-width: 22rem;
 }
 .text-input:focus { border-color: var(--accent); outline: none; }
+/* game search on the home screen */
+.search { gap: .6rem; }
+.search-row { display: flex; gap: .5rem; align-items: stretch; width: 100%; max-width: 34rem; }
+.search-input { flex: 1; min-width: 0; max-width: none; background: var(--surface); font-size: 1.25rem; }
+.search-input::-webkit-search-cancel-button { display: none; }
+.search-row .search-clear { flex: none; }
+.search-note { color: var(--ink-soft); font-weight: 700; margin: 0; }
+.search-note:empty, .search-results:empty { display: none; }
 .size-options { display: flex; gap: .75rem; flex-wrap: wrap; }
 .size-option {
   display: flex; flex-direction: column; align-items: center; gap: .2rem; min-width: 7.5rem; padding: .7rem 1rem;

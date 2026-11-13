@@ -145,7 +145,7 @@
     '.tr-card{--tr-red:#d42a2f;--tr-green:#16924a;--tr-purple:#6a2c91;}',
     '@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tr-card{--tr-red:#ff6f6a;--tr-green:#5ad283;--tr-purple:#c18df2;}}',
     ':root[data-theme="dark"] .tr-card{--tr-red:#ff6f6a;--tr-green:#5ad283;--tr-purple:#c18df2;}',
-    '.tr-card{aspect-ratio:5/3;min-height:56px;padding:.2rem;border-radius:var(--radius-sm);border:3px solid var(--line);',
+    '.tr-card{height:clamp(56px,17vw,5rem);min-width:0;padding:.2rem;border-radius:var(--radius-sm);border:3px solid var(--line);',
     'background:var(--surface);cursor:pointer;display:grid;place-items:center;transition:border-color .15s,background-color .15s;}',
     '.tr-card svg{width:100%;height:100%;display:block;}',
     '.tr-card:hover:not(:disabled){border-color:var(--accent);}',
