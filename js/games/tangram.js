@@ -167,7 +167,7 @@
   function pts2str(pts) { return pts.map(function (p) { return p[0] + ',' + p[1]; }).join(' '); }
 
   var css = [
-    '.tg-board{width:min(100%,22rem,calc(100svh - 24rem));min-width:13.5rem;aspect-ratio:1;display:block;touch-action:none;',
+    '.tg-board{width:min(100%,22rem);min-width:11rem;aspect-ratio:1;display:block;touch-action:none;',
     'background:var(--surface);border:2px solid var(--line);border-radius:var(--radius);}',
     '.tg-grid{stroke:var(--line);stroke-width:.03;}',
     '.tg-sil{fill:var(--ink-soft);fill-opacity:.28;}',
@@ -247,10 +247,14 @@
         var flipBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: flipSel }, 'הפכו ⇆');
         var backBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: backSel }, 'החזירו');
         var hintBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: hint }, 'רמז');
-        var actions = el('div', { class: 'g-actions tg-actions' }, [rotBtn, flipBtn, backBtn, hintBtn]);
+        // board, tray and rotate/flip stay on screen while playing; undo, hint and solution sit below
+        // (scroll down for them), so the board can stay big on a phone
+        var actions = el('div', { class: 'g-actions tg-actions' }, [rotBtn, flipBtn]);
+        var extra = el('div', { class: 'g-actions tg-actions tg-extra' }, [backBtn, hintBtn]);
         root.appendChild(svg);
         root.appendChild(tray);
         root.appendChild(actions);
+        root.appendChild(extra);
         ctx.setStatus('מלאו את הצללית האפורה');
 
         function draw() {
@@ -442,6 +446,7 @@
 
         function showNext() {
           actions.innerHTML = '';
+          extra.remove();
           var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
             round >= ROUNDS ? 'לסיכום' : 'לצללית הבאה');
           actions.appendChild(next);
@@ -457,24 +462,37 @@
           ctx.setStatus('כך החלקים ממלאים את הצללית');
           ctx.feedback(false, 'הנה פתרון אחד').then(showNext);
         } }, 'הראו פתרון');
-        actions.appendChild(giveUp);
+        extra.appendChild(giveUp);
         draw();
         fitBoard();
       }
 
-      /* Once per round: when the pieces and buttons need more rows than the CSS size allows for,
-         shrink the board by the overflow (down to its min-width) so the round fits one screen. */
+      /* Once per round (and when the screen size really changes): shrink the board so the board, the tray
+         and the rotate/flip row fit one screen; the other buttons may sit below the fold. The height is the
+         small viewport (svh, address bar showing), so the board does not jump when the phone's bar hides. */
+      var lastW = 0, lastH = 0;
+      function screenH() {
+        var probe = document.createElement('div');
+        probe.style.cssText = 'position:fixed;top:0;height:100svh;width:0;visibility:hidden;pointer-events:none';
+        document.body.appendChild(probe);
+        var h = probe.offsetHeight || window.innerHeight;
+        probe.remove();
+        return h;
+      }
       function fitBoard() {
         var svg = root.querySelector('.tg-board');
-        if (!svg) return;
+        var keep = root.querySelector('.tg-actions');
+        if (!svg || !keep) return;
+        lastW = window.innerWidth; lastH = screenH();
         svg.style.width = '';
-        var over = document.documentElement.scrollHeight - window.innerHeight;
-        if (over > 0) svg.style.width = Math.max(0, svg.getBoundingClientRect().width - over - 4) + 'px';
+        var over = keep.getBoundingClientRect().bottom + window.scrollY + 12 - lastH;
+        if (over > 0) svg.style.width = Math.max(0, svg.getBoundingClientRect().width - over) + 'px';
       }
-      window.addEventListener('resize', fitBoard);
+      function onResize() { if (window.innerWidth !== lastW || screenH() !== lastH) fitBoard(); }
+      window.addEventListener('resize', onResize);
 
       nextRound();
-      return function cleanup() { if (cleanupDrag) cleanupDrag(); window.removeEventListener('resize', fitBoard); };
+      return function cleanup() { if (cleanupDrag) cleanupDrag(); window.removeEventListener('resize', onResize); };
     }
   });
 })();
