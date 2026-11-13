@@ -1,5 +1,7 @@
 /* מה זה? — see a picture (an animal, a tool, a vehicle…) and build its name from letter tiles.
-   Practises recalling the names of everyday things (memory / word retrieval). */
+   Practises recalling the names of everyday things (memory / word retrieval).
+   The rules live in wordPictureGame(cfg), which the photo version (photo-name.js, "מה בתמונה?") reuses
+   with real photos and 50 levels. */
 (function () {
   'use strict';
 
@@ -190,21 +192,32 @@
     '.wt-tile:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}',
     '.wt-tile.is-used{background:transparent;border-style:dashed;box-shadow:none;color:transparent}',
     '.wt-tile:disabled{cursor:default}',
+    /* photo mode: a big photo on top, the whole name on one line, hint / clear under the tiles */
+    '.wt-photo{position:relative;width:100%;max-width:20rem;border-radius:var(--radius);overflow:hidden;',
+    'background:var(--surface);border:3px solid var(--memory)}',
+    '.wt-photo img{width:100%;height:100%;display:block;object-fit:contain;transform-origin:var(--wt-ox,50%) var(--wt-oy,50%)}',
+    '.wt-photo.is-zoom img{object-fit:cover;transform:scale(var(--wt-z,1))}',
+    '.wt-photo .wt-cat{position:absolute;bottom:.35rem;left:50%;transform:translateX(-50%);white-space:nowrap;box-shadow:var(--shadow)}',
+    '.wt-slots.wt-one{grid-template-columns:repeat(var(--n),minmax(0,3.4rem));gap:min(.5rem,calc(8vw / var(--n)))}',
+    '.wt-one .wt-slot{height:min(3.2rem,calc(110vw / var(--n)));font-size:min(1.8rem,calc(55vw / var(--n)))}',
+    '.wt-actions{display:flex;gap:.6rem;justify-content:center}',
+    '.wt-wrap:has(.wt-photo) .wt-tile{width:3.3rem;height:3.25rem;font-size:1.9rem}.wt-wrap:has(.wt-photo){gap:.5rem}',
+    '.wt-actions .btn{min-width:6.5rem}'
   ].join('');
 
-  BrainGames.register({
-    id: 'what-is-this',
-    name: 'מה זה?',
-    skill: 'memory',
-    tagline: 'הסתכלו בתמונה וכתבו איך קוראים לה',
-    benefit: 'שליפת שמות של דברים מהזיכרון',
-    instructions: [
-      'תופיע תמונה: בעל חיים, כלי, כלי תחבורה ועוד.',
-      'לחצו על האותיות לפי הסדר כדי לכתוב את השם שלה, מימין לשמאל.',
-      'ברמות מתקדמות יש גם אותיות מיותרות. לחיצה על אות שהנחתם מחזירה אותה.',
-      'לא נזכרים? לחצו "רמז" ותקבלו את האות הבאה. אין שעון.'
-    ],
-    css: CSS,
+  /* cfg: id, name, skill, tagline, benefit, instructions, items ({ w, n, len, tier, label } + e (emoji) or src (photo)),
+     levels, maxLevel, rounds, photo (true = photo layout). A photo level may add zoom: show a zoomed-in part. */
+  function wordPictureGame(cfg) {
+    var ITEMS = cfg.items, LEVELS = cfg.levels, ROUNDS = cfg.rounds || 6;
+    return {
+    id: cfg.id,
+    name: cfg.name,
+    skill: cfg.skill,
+    tagline: cfg.tagline,
+    benefit: cfg.benefit,
+    instructions: cfg.instructions,
+    maxLevel: cfg.maxLevel,
+    css: cfg.photo ? '' : CSS, // one copy of the rules is enough: both games are always loaded
     _items: ITEMS,
     _levels: LEVELS,
     start: function (root, ctx) {
@@ -256,13 +269,15 @@
         var busy = false;
         var answered = false;
 
-        var slotCols = Math.ceil(n / Math.ceil(n / 5));
-        var slotsEl = ctx.el('div', { class: 'wt-slots', style: { '--n': slotCols }, 'aria-label': 'השם שכתבתם' });
+        // photos: the whole name on one line (smaller slots for long names); emoji: up to 5 per line
+        var slotCols = cfg.photo ? n : Math.ceil(n / Math.ceil(n / 5));
+        var slotsEl = ctx.el('div', { class: 'wt-slots' + (cfg.photo ? ' wt-one' : ''), style: { '--n': slotCols }, 'aria-label': 'השם שכתבתם' });
         var tilesEl = ctx.el('div', { class: 'wt-tiles', 'aria-label': 'אותיות' });
         // messages go to the status line above the board, so the board never grows mid-round
-        var baseStatus = spec.first ? 'מה זה? האות הראשונה כבר במקום'
-          : nDecoy ? 'מה זה? ' + (nDecoy === 1 ? 'יש אות אחת מיותרת' : 'יש ' + nDecoy + ' אותיות מיותרות')
-            : 'מה זה? כתבו את השם בעזרת האותיות';
+        var ask = spec.zoom ? 'מה רואים מקרוב?' : 'מה זה?';
+        var baseStatus = spec.first ? ask + ' האות הראשונה כבר במקום'
+          : nDecoy ? ask + ' ' + (nDecoy === 1 ? 'יש אות אחת מיותרת' : 'יש ' + nDecoy + ' אותיות מיותרות')
+            : ask + ' כתבו את השם בעזרת האותיות';
         function say(text) { ctx.setStatus(text || baseStatus); }
         var clearBtn = ctx.el('button', { class: 'btn btn-quiet', type: 'button', onclick: onClear }, 'ניקוי');
         var hintBtn = ctx.el('button', { class: 'btn btn-secondary', type: 'button', 'aria-label': 'רמז: גלו את האות הבאה', onclick: onHint }, 'רמז');
@@ -287,18 +302,38 @@
         say();
 
         root.innerHTML = '';
-        root.appendChild(ctx.el('div', { class: 'wt-wrap' }, [
-          ctx.el('div', { class: 'wt-top' }, [
-            hintBtn,
-            ctx.el('div', { class: 'wt-mid' }, [
-              ctx.el('div', { class: 'wt-pic', role: 'img', 'aria-label': 'תמונה לזיהוי' }, ctx.el('span', { 'aria-hidden': 'true' }, item.e)),
-              ctx.el('span', { class: 'wt-cat', text: (spec.cat ? item.label + ' · ' : '') + n + ' אותיות' })
+        var catPill = ctx.el('span', { class: 'wt-cat', text: (spec.cat ? item.label + ' · ' : '') + n + ' אותיות' });
+        if (cfg.photo) {
+          // the photo takes the height that is left after header, status, slots, tile rows and buttons
+          var rest = 360 + Math.ceil(tiles.length / 4) * 67;
+          var photo = ctx.el('div', { class: 'wt-photo' + (spec.zoom ? ' is-zoom' : ''), role: 'img', 'aria-label': 'תמונה לזיהוי',
+            style: { height: 'min(17rem, calc(100svh - ' + rest + 'px))' } }, [
+            ctx.el('img', { src: item.src, alt: '', draggable: 'false' }),
+            catPill
+          ]);
+          if (spec.zoom) {
+            // a zoomed-in part near the middle, where the subject usually is
+            photo.style.setProperty('--wt-z', String(spec.zoom));
+            photo.style.setProperty('--wt-ox', (35 + Math.random() * 30).toFixed(0) + '%');
+            photo.style.setProperty('--wt-oy', (35 + Math.random() * 30).toFixed(0) + '%');
+          }
+          root.appendChild(ctx.el('div', { class: 'wt-wrap' }, [
+            photo, slotsEl, tilesEl, ctx.el('div', { class: 'wt-actions' }, [hintBtn, clearBtn])
+          ]));
+        } else {
+          root.appendChild(ctx.el('div', { class: 'wt-wrap' }, [
+            ctx.el('div', { class: 'wt-top' }, [
+              hintBtn,
+              ctx.el('div', { class: 'wt-mid' }, [
+                ctx.el('div', { class: 'wt-pic', role: 'img', 'aria-label': 'תמונה לזיהוי' }, ctx.el('span', { 'aria-hidden': 'true' }, item.e)),
+                catPill
+              ]),
+              clearBtn
             ]),
-            clearBtn
-          ]),
-          slotsEl,
-          tilesEl
-        ]));
+            slotsEl,
+            tilesEl
+          ]));
+        }
         render();
 
         function letterAt(j) { return slots[j] ? tiles[slots[j].ti] : ''; }
@@ -426,5 +461,28 @@
       nextRound();
       return function cleanup() { root.innerHTML = ''; };
     }
-  });
+    };
+  }
+
+  BrainGames.register(wordPictureGame({
+    id: 'what-is-this',
+    name: 'מה זה?',
+    skill: 'memory',
+    tagline: 'הסתכלו בתמונה וכתבו איך קוראים לה',
+    benefit: 'שליפת שמות של דברים מהזיכרון',
+    instructions: [
+      'תופיע תמונה: בעל חיים, כלי, כלי תחבורה ועוד.',
+      'לחצו על האותיות לפי הסדר כדי לכתוב את השם שלה, מימין לשמאל.',
+      'ברמות מתקדמות יש גם אותיות מיותרות. לחיצה על אות שהנחתם מחזירה אותה.',
+      'לא נזכרים? לחצו "רמז" ותקבלו את האות הבאה. אין שעון.'
+    ],
+    items: ITEMS,
+    levels: LEVELS,
+    rounds: ROUNDS
+  }));
+
+  // the photo game ("מה בתמונה?") uses the same rules
+  BrainGames.wordPictureGame = wordPictureGame;
+  BrainGames.wordPictureGame.normLetters = normLetters;
+  BrainGames.wordPictureGame.LEVELS = LEVELS;
 })();
