@@ -34,25 +34,42 @@
     '.sl2-list li{display:flex;align-items:center;gap:.4rem;font-size:1.2rem;line-height:1.2;font-weight:700;padding:.3rem 0;border-bottom:1px dashed var(--line);min-width:0;}',
     '.sl2-list .sl2-em{font-size:1.5rem;line-height:1;flex:none;}',
     '.sl2-shelf{width:100%;max-width:26rem;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem;}',
-    '.sl2-item{min-height:4.6rem;padding:.2rem .25rem;border-radius:var(--radius-sm);border:2px solid var(--line);background:var(--surface);',
+    '.sl2-item{min-height:3.9rem;padding:.2rem .25rem;border-radius:var(--radius-sm);border:2px solid var(--line);background:var(--surface);',
     'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;cursor:pointer;color:var(--ink);font:inherit;min-width:0;',
     '}',
     '.sl2-item:hover:not(:disabled){border-color:var(--accent);}',
     '.sl2-item:disabled{cursor:default;}',
-    '.sl2-item .sl2-em{font-size:1.85rem;line-height:1.1;}',
-    '.sl2-item .sl2-word{font-size:1.1rem;font-weight:700;line-height:1.1;text-align:center;overflow-wrap:break-word;max-width:100%;}',
+    '.sl2-item .sl2-em{font-size:1.65rem;line-height:1.1;}',
+    '.sl2-item .sl2-word{font-size:1.05rem;font-weight:700;line-height:1.1;text-align:center;overflow-wrap:break-word;max-width:100%;}',
     '.sl2-item.sl2-picked{background:var(--memory-soft);border-color:var(--memory);border-width:3px;}',
     '.sl2-item.is-correct{background:var(--good-soft);border-color:var(--good);border-width:3px;color:var(--good);}',
     '.sl2-item.is-wrong{background:var(--bad-soft);border-color:var(--bad);border-width:3px;color:var(--bad);}',
     '.sl2-item.sl2-missed{background:var(--surface);border:3px dashed var(--sun);}',
     '.sl2-item.sl2-dim{opacity:.45;}',
-    /* a picked item gets a big "remove" badge, so a wrong tap is easy to take back */
-    '.sl2-cell{position:relative;display:flex;min-width:0;}',
-    '.sl2-cell>.sl2-item{flex:1;}',
-    '.sl2-undo{position:absolute;top:-.55rem;inset-inline-start:-.45rem;width:2.4rem;height:2.4rem;border-radius:999px;',
-    'border:3px solid var(--surface);background:var(--c-red);color:#fff;font-size:1.35rem;font-weight:900;line-height:1;',
-    'display:grid;place-items:center;cursor:pointer;padding:0;box-shadow:var(--shadow);}',
-    '.sl2-undo[hidden]{display:none;}',
+    '.sl2-item.sl2-inbag{border:3px dashed var(--line);background:var(--surface-2);}',
+    '.sl2-item.sl2-inbag .sl2-em,.sl2-item.sl2-inbag .sl2-word{opacity:.35;}',
+    '.sl2-item.sl2-inbag .sl2-count{color:var(--ink-soft);}',
+    '.sl2-bag{width:100%;max-width:26rem;border:3px solid var(--memory);border-radius:var(--radius) var(--radius) 1.6rem 1.6rem;',
+    'background:var(--memory-soft);padding:.35rem .5rem;display:flex;align-items:center;gap:.4rem;min-height:3.6rem;}',
+    '.sl2-bag-title{font-weight:700;color:var(--ink-soft);font-size:1.05rem;line-height:1.2;}',
+    '.sl2-bag-title:empty{display:none;}',
+    '.sl2-bag-head{display:flex;align-items:center;gap:.45rem;font-weight:800;font-size:1.05rem;line-height:1.2;}',
+    '.sl2-bag-icon{font-size:1.5rem;line-height:1;flex:none;}',
+    '.sl2-shelf.sl2-four{grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem;}',
+    '.sl2-four .sl2-item .sl2-word{font-size:.98rem;overflow-wrap:normal;hyphens:none;}',
+    '.sl2-bag-items{display:flex;flex-wrap:wrap;gap:.3rem;flex:1;min-width:0;}',
+    '.sl2-bag-items:empty{display:none;}',
+    '.sl2-chip{display:inline-flex;align-items:center;gap:.25rem;min-height:2.6rem;padding:.1rem .5rem;border-radius:999px;',
+    'border:2px solid var(--memory);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:1.05rem;cursor:pointer;}',
+    '.sl2-chip .sl2-em{font-size:1.35rem;line-height:1;}',
+    '.sl2-chip b{color:var(--memory);}',
+    '.sl2-chip .sl2-out{color:var(--ink-soft);font-size:1rem;}',
+    '.sl2-chip:disabled{cursor:default;}',
+    '.sl2-chip:disabled .sl2-out{display:none;}',
+    '.sl2-chip.is-correct{border-color:var(--good);background:var(--good-soft);}',
+    '.sl2-chip.is-wrong{border-color:var(--bad);background:var(--bad-soft);}',
+    '.sl2-fly{position:fixed;z-index:50;font-size:2.2rem;line-height:1;pointer-events:none;transform:translate(-50%,-50%);',
+    'transition:transform .5s ease-in-out,opacity .5s ease-in;}',
     '.sl2-qty{font-weight:900;color:var(--memory);margin-inline-start:auto;font-variant-numeric:tabular-nums;}',
     '.sl2-count{font-size:1rem;font-weight:900;color:var(--memory);min-height:1.1rem;line-height:1.1;}',
     '.sl2-item.is-correct .sl2-count{color:var(--good);}',
@@ -78,8 +95,8 @@
     instructions: [
       'תופיע רשימת קניות. קראו וזכרו את כל הפריטים.',
       'כשתהיו מוכנים לחצו "זכרתי, הלאה".',
-      'על המדף יופיעו מוצרים רבים. לחצו על כל מה שהיה ברשימה. טעיתם? לחצו על ✕ האדום כדי לבטל.',
-      'לחצו "בדיקה" כדי לראות מה זכרתם. ברמות הגבוהות זכרו גם כמה: כל לחיצה מוסיפה עוד אחד, ו־"−" האדום מוריד אחד.'
+      'על המדף יופיעו מוצרים רבים. לחצו על כל מה שהיה ברשימה, והוא ייכנס לסל. טעיתם? לחצו על המוצר בסל כדי להוציא אותו.',
+      'לחצו "בדיקה" כדי לראות מה זכרתם. ברמות הגבוהות זכרו גם כמה: כל לחיצה מוסיפה עוד אחד לסל, ולחיצה על המוצר בסל מוציאה אחד.'
     ],
     css: css,
     start: function (root, ctx) {
@@ -170,65 +187,104 @@
         }
 
         function showShelf() {
-          ctx.setStatus(withQty ? 'כל לחיצה מוסיפה אחד, ו־"−" מוריד אחד'
-            : 'לחצו על ' + listLen + ' המוצרים שהיו ברשימה. טעיתם? לחצו שוב או על ✕');
+          ctx.setStatus(withQty ? 'כל לחיצה על מוצר מכניסה עוד אחד לסל'
+            : 'לחצו על ' + listLen + ' המוצרים שהיו ברשימה. טעיתם? לחצו עליו בסל');
           var picked = {};
           var pickedCount = 0;
           var accepting = true;
 
-          var undos = [];
           var buttons = data.shelf.map(function (it, i) {
             var b = el('button', {
               class: 'sl2-item', type: 'button', 'aria-pressed': 'false',
-              onclick: function () { toggle(it, b, i); }
+              onclick: function () { putIn(i); }
             }, [el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji), el('span', { class: 'sl2-word' }, it.word),
-              withQty ? el('span', { class: 'sl2-count', 'aria-hidden': 'true' }) : null]);
-            undos[i] = el('button', {
-              class: 'sl2-undo', type: 'button', hidden: true, 'aria-label': (withQty ? 'להוריד אחד: ' : 'לבטל: ') + it.word,
-              onclick: function () { undo(it, b, i); }
-            }, withQty ? '−' : '✕');
+              el('span', { class: 'sl2-count', 'aria-hidden': 'true' })]);
             return b;
           });
-          var shelf = el('div', { class: 'sl2-shelf' }, buttons.map(function (b, i) {
-            return el('div', { class: 'sl2-cell' }, [b, undos[i]]);
-          }));
-          var checkBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', disabled: true, onclick: check, 'aria-live': 'polite' }, 'בדיקה');
+          var shelf = el('div', { class: 'sl2-shelf' + (buttons.length > 12 ? ' sl2-four' : '') }, buttons);
+          // the shopping bag: what was picked goes in, a tap on it takes it out again
+          var bagItems = el('div', { class: 'sl2-bag-items' });
+          var bagTitle = el('span', { class: 'sl2-bag-title' });
+          var bag = el('div', { class: 'sl2-bag', 'aria-live': 'polite' }, [
+            el('span', { class: 'sl2-bag-icon', 'aria-hidden': 'true' }, '🛍️'), bagTitle, bagItems
+          ]);
+          var checkBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', disabled: true, onclick: check }, 'בדיקה');
           var actions = el('div', { class: 'g-actions' }, checkBtn);
+          var chips = {}; // shelf index → chip in the bag
+          var bagOrder = [];
           root.appendChild(shelf);
+          root.appendChild(bag);
           root.appendChild(actions);
-          updateCount();
+          drawBag();
 
-          function updateCount() {
-            checkBtn.textContent = pickedCount ? 'בדיקה (נבחרו ' + pickedCount + ')' : 'בדיקה';
+          function drawBag() {
+            bagItems.innerHTML = '';
+            bagTitle.textContent = pickedCount ? '' : 'הסל ריק. מוצר שתלחצו עליו ייכנס לכאן';
+            bagOrder.forEach(function (i) {
+              var it = data.shelf[i];
+              var c = picked[it.id];
+              chips[i] = el('button', {
+                class: 'sl2-chip', type: 'button', 'aria-label': 'להוציא מהסל: ' + it.word + (withQty ? ' (' + c + ')' : ''),
+                onclick: function () { takeOut(i); }
+              }, [el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji), el('span', null, it.word),
+                withQty && c > 1 ? el('b', null, '×' + c) : null, el('span', { class: 'sl2-out', 'aria-hidden': 'true' }, '↩')]);
+              bagItems.appendChild(chips[i]);
+            });
+            checkBtn.textContent = pickedCount ? 'בדיקה (' + pickedCount + ' בסל)' : 'בדיקה';
             checkBtn.disabled = pickedCount === 0;
           }
 
-          // with amounts: a tap adds one (up to 3) and "−" takes one away; without: a tap picks or un-picks, ✕ un-picks
-          function setQty(it, b, i, c) {
-            if (!picked[it.id] && c) pickedCount++;
-            if (picked[it.id] && !c) pickedCount--;
-            if (c) picked[it.id] = withQty ? c : true; else delete picked[it.id];
-            b.classList.toggle('sl2-picked', !!c);
+          function drawTile(i) {
+            var it = data.shelf[i], b = buttons[i], c = picked[it.id] || 0;
+            // without amounts an item in the bag leaves an empty spot on the shelf
+            b.classList.toggle('sl2-inbag', !withQty && !!c);
+            b.classList.toggle('sl2-picked', withQty && !!c);
             b.setAttribute('aria-pressed', c ? 'true' : 'false');
-            if (withQty) {
-              b.setAttribute('aria-label', it.word + (c ? ', כמות ' + c : ''));
-              b.querySelector('.sl2-count').textContent = c ? '×' + c : '';
-            }
-            undos[i].hidden = !c;
-            updateCount();
+            b.setAttribute('aria-label', it.word + (c ? (withQty ? ', בסל ' + c : ', בסל') : ''));
+            b.querySelector('.sl2-count').textContent = c ? (withQty ? '×' + c : 'בסל ✓') : '';
           }
 
-          function toggle(it, b, i) {
-            if (!accepting) return;
-            ctx.sound('tap');
-            if (withQty) setQty(it, b, i, Math.min(3, (picked[it.id] || 0) + 1));
-            else setQty(it, b, i, picked[it.id] ? 0 : 1);
+          // a copy of the picture flies from one place to the other
+          function fly(fromEl, toEl, emoji) {
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            var f = fromEl.getBoundingClientRect(), t = toEl.getBoundingClientRect();
+            var x0 = f.left + f.width / 2, y0 = f.top + f.height / 2, x1 = t.left + t.width / 2, y1 = t.top + t.height / 2;
+            var ghost = el('span', { class: 'sl2-fly', 'aria-hidden': 'true', style: { left: x0 + 'px', top: y0 + 'px' } }, emoji);
+            document.body.appendChild(ghost);
+            requestAnimationFrame(function () {
+              requestAnimationFrame(function () {
+                ghost.style.transform = 'translate(-50%,-50%) translate(' + (x1 - x0) + 'px,' + (y1 - y0) + 'px) scale(.6)';
+                ghost.style.opacity = '.3';
+              });
+            });
+            setTimeout(function () { ghost.remove(); }, 600);
           }
 
-          function undo(it, b, i) {
+          function putIn(i) {
             if (!accepting) return;
+            var it = data.shelf[i], c = picked[it.id] || 0;
+            if (c && !withQty) { takeOut(i); return; } // tapping the empty spot brings it back
+            if (c >= 3) { ctx.setStatus('אפשר לקנות עד 3 מכל מוצר'); return; }
             ctx.sound('tap');
-            setQty(it, b, i, withQty ? Math.max(0, (picked[it.id] || 0) - 1) : 0);
+            if (!c) { pickedCount++; bagOrder.push(i); }
+            picked[it.id] = withQty ? c + 1 : true;
+            fly(buttons[i], bag, it.emoji);
+            drawTile(i);
+            drawBag();
+          }
+
+          function takeOut(i) {
+            if (!accepting) return;
+            var it = data.shelf[i], c = picked[it.id] || 0;
+            if (!c) return;
+            ctx.sound('tap');
+            var from = chips[i] || bag;
+            var next = withQty ? c - 1 : 0;
+            if (next) picked[it.id] = next;
+            else { delete picked[it.id]; pickedCount--; bagOrder.splice(bagOrder.indexOf(i), 1); }
+            fly(from, buttons[i], it.emoji);
+            drawTile(i);
+            drawBag();
           }
 
           function check() {
@@ -236,11 +292,11 @@
             accepting = false;
             checkBtn.disabled = true;
             buttons.forEach(function (b) { b.disabled = true; });
-            undos.forEach(function (u) { u.hidden = true; });
+            bagOrder.forEach(function (i) { chips[i].disabled = true; chips[i].classList.add(data.inList[data.shelf[i].id] ? 'is-correct' : 'is-wrong'); });
             var hits = 0, wrong = 0, badQty = 0;
             data.shelf.forEach(function (it, i) {
               var b = buttons[i];
-              b.classList.remove('sl2-picked');
+              b.classList.remove('sl2-picked', 'sl2-inbag');
               if (withQty && picked[it.id] && data.inList[it.id] && picked[it.id] !== data.qty[it.id]) {
                 // right product, wrong amount: show the amount that was on the list
                 b.classList.add('sl2-missed');
