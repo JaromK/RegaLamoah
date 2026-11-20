@@ -68,6 +68,31 @@
         do { at = ctx.shuffle(at); } while (at.every(function (p, i) { return p === i; }));
         ctx.shuffle(at.slice()).slice(0, Math.round(N * sp.turn)).forEach(function (p) { rot[p] = ctx.randInt(1, 3); });
         var sel = -1, done = false, helps = 0;
+        // pieces that look the same (plain sky, plain wall) may swap places: found by comparing small copies
+        var looks = null;
+        (function () {
+          var img = new Image();
+          img.onload = function () {
+            try {
+              var S = 8, cv = document.createElement('canvas');
+              cv.width = cv.height = S * g;
+              var c2 = cv.getContext('2d');
+              c2.drawImage(img, 0, 0, S * g, S * g);
+              looks = [];
+              for (var p = 0; p < N; p++) looks.push(c2.getImageData((p % g) * S, Math.floor(p / g) * S, S, S).data);
+              if (ctx.isActive() && !done) { draw(); check(); }
+            } catch (e) { looks = null; } // a page opened from a file may not read pixels: then only the exact place counts
+          };
+          img.src = photo.src;
+        })();
+        function alike(a, b) {
+          if (a === b) return true;
+          if (!looks) return false;
+          var d = 0, A = looks[a], B = looks[b];
+          for (var i = 0; i < A.length; i += 4) d += Math.abs(A[i] - B[i]) + Math.abs(A[i + 1] - B[i + 1]) + Math.abs(A[i + 2] - B[i + 2]);
+          return d / (A.length / 4 * 3) < 7;
+        }
+        function home(c) { return alike(at[c], c) && !rot[at[c]]; }
         var cells = [];
         var dragged = false; // a drag just ended: ignore the click that follows it
         for (var c = 0; c < N; c++) (function (c) {
@@ -137,7 +162,7 @@
             b.style.backgroundPosition = (g === 1 ? 0 : px * 100 / (g - 1)) + '% ' + (g === 1 ? 0 : py * 100 / (g - 1)) + '%';
             b.style.transform = 'rotate(' + rot[p] * 90 + 'deg)';
             b.classList.toggle('is-sel', c === sel && !done);
-            b.classList.toggle('is-home', sp.mark && p === c && !rot[p]);
+            b.classList.toggle('is-home', sp.mark && home(c));
             b.disabled = done;
           });
           turnBtn.disabled = done || sel < 0;
@@ -157,7 +182,7 @@
           if (done) return;
           helps++;
           // put one piece in its place (and turn it right)
-          for (var c = 0; c < N; c++) if (at[c] !== c || rot[at[c]]) {
+          for (var c = 0; c < N; c++) if (!home(c)) {
             var j = at.indexOf(c);
             at[j] = at[c]; at[c] = c; rot[c] = 0; sel = -1;
             ctx.setStatus('רמז: חלק אחד חזר למקומו');
@@ -172,7 +197,7 @@
           ctx.wait(2500).then(function () { img.remove(); });
         }
         function check() {
-          for (var c = 0; c < N; c++) if (at[c] !== c || rot[c]) return;
+          for (var c = 0; c < N; c++) if (!home(c)) return;
           done = true;
           var ok = helps <= (g >= 5 ? 2 : 1);
           if (ok) good++;
