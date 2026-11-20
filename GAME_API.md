@@ -12,7 +12,7 @@ Each game lives in `js/games/<id>.js`, wraps itself in an IIFE and calls `BrainG
 - Instructions: 2–4 short, concrete steps, plain words, address the player in plural ("לחצו", "זכרו").
 - Large targets (the shared classes already handle this). Max ~6 choices on screen.
 - **One screen, not crowded.** Every phase of a round (memorise, answer, explanation) must fit a
-  360×740 phone screen without scrolling at levels 1–15 (16–20 may scroll a little; 21–30 must not take more room than level 20). Fit by showing fewer, bigger things, never by
+  360×740 phone screen without scrolling at levels 1–15 (16–20 may scroll a little; 21–50 must not take more room than level 20). Fit by showing fewer, bigger things, never by
   shrinking: ≤ 25 tappable items (prefer ≤ 16), tap targets ≥ 56px, text ≥ 1.1rem, 4 choices in a
   2-column grid. When a level table would break this, raise difficulty through similarity or rules
   instead of count. While playing, the app hides the top bar and footer, shrinks oversized `.g-grid`s
@@ -30,7 +30,9 @@ Each game lives in `js/games/<id>.js`, wraps itself in an IIFE and calls `BrainG
     tagline: 'מצאו את הזוגות של הקלפים', // one line for the cards
     benefit: 'זיכרון עבודה חזותי',  // optional, "מה זה מאמן"
     startLevel: 1,                 // optional, level for new players (default 3)
-    maxLevel: 20,                  // optional, the game's top level (default 30, BrainGames.MAX_LEVEL; at most 50)
+    maxLevel: 20,                  // optional, the game's top level (default 50, BrainGames.MAX_LEVEL)
+    isNew: true,                   // optional, listed in the "משחקים חדשים" home section instead of its skill group
+    levelPicker: true,             // optional, the intro screen shows the level path so the player picks a level there
     instructions: ['...', '...', '...'],
     css: '.mp-card{...}',          // optional, injected once; prefix classes with a game-specific prefix
     start: function (root, ctx) {  // root = empty board element
@@ -44,7 +46,7 @@ Each game lives in `js/games/<id>.js`, wraps itself in an IIFE and calls `BrainG
 ## ctx
 | member | purpose |
 |---|---|
-| `ctx.level` | integer 1–30 (or up to the game's `maxLevel`), adaptive (app raises it at ≥85% accuracy, lowers it below 50%). New players start at 3 (or the game's `startLevel`); 1–2 are warm-ups. Stages: 1–5 צעדים ראשונים, 6–10 מתחממים, 11–15 בכושר, 16–20 אלופים, 21–25 מומחים, 26–30 אגדות (games with `maxLevel` 50 go on: 31–35 כוכבים, 36–40 גאונים, 41–45 מאסטרים, 46–50 שיאנים). Scale *size/complexity* with it in small steps per level, never speed; once the screen is full (usually by level 20), levels 21–30 get harder through rules and similarity, not more items. Clamp defensively. |
+| `ctx.level` | integer 1–50 (or up to the game's `maxLevel`), adaptive (app raises it at ≥85% accuracy, lowers it below 50%). New players start at 3 (or the game's `startLevel`); 1–2 are warm-ups. Stages: 1–5 צעדים ראשונים, 6–10 מתחממים, 11–15 בכושר, 16–20 אלופים, 21–25 מומחים, 26–30 אגדות, 31–35 כוכבים, 36–40 גאונים, 41–45 מאסטרים, 46–50 שיאנים. Scale *size/complexity* with it in small steps per level, never speed; once the screen is full (usually by level 20), levels 21–50 get harder through rules and similarity, not more items. Clamp defensively. |
 | `ctx.timed` | true only when the player switched on "שעון" in the settings dialog (off by default). Never add time pressure when false. |
 | `ctx.studyTimer(button, ms)` | for memorise screens: in timer mode shows a countdown bar above the button's row and presses `button` when `ms` runs out; otherwise does nothing. Returns a cancel function. Pair it with a "זכרתי, הלאה" button so pacing stays player-controlled by default. |
 | `ctx.el(tag, attrs, children)` | DOM helper. attrs: `class`, `text`, `html`, `style` (object), `onclick` etc., any other attribute. children: node, string, or array. |
@@ -75,6 +77,6 @@ and skill hues `--memory --attention --logic --language --perception --executive
 The root board is a centred flex column with `gap: 1.25rem`.
 
 ## Trophies
-Winning level 20 (≥85% correct) earns a silver trophy; winning the game's top level earns the gold trophy
-(level 30, or the game's `maxLevel`: 50 for the photo games; for games that stop at 20, level 20 is gold). The home screen lists them under
-"הגביעים שלי". Stored in `BrainGames.state.trophies[id] = { silver: date, gold: date }`.
+Winning (≥85% correct) level 20 earns silver, 30 gold, 40 platinum and 50 diamond (`BrainGames.TROPHIES`); a game that
+stops at level 20 gives gold there. The home screen lists the best trophy of each game under "הגביעים שלי".
+Stored in `BrainGames.state.trophies[id] = { silver: date, gold: date, platinum: date, diamond: date }`.

@@ -216,8 +216,12 @@
     '.fr-bars{display:flex;flex-direction:column;gap:.3rem;width:100%;align-items:center;}',
     '.fr-opts{width:100%;max-width:26rem;}',
     '.fr-opts .g-choice{min-height:5.2rem;font-size:1.8rem;}',
+    /* once answered, the options shrink so the explanation fits under them */
+    '.fr-opts.fr-answered .g-choice{min-height:3.2rem;font-size:1.25rem;padding:.15rem;}',
+    '.fr-answered .fr .t,.fr-answered .fr .b{padding:0 .1em;}',
+    '.fr-hide{display:none !important;}',
     '.fr-steps{width:100%;max-width:28rem;background:var(--sun-soft);border:2px solid var(--sun);border-radius:var(--radius-sm);padding:.5rem .7rem;',
-    'display:flex;flex-direction:column;gap:.4rem;font-size:1.05rem;font-weight:700;}',
+    'display:flex;flex-direction:column;gap:.3rem;font-size:1rem;font-weight:700;line-height:1.3;}',
     '.fr-steps h3{margin:0;font-size:1.1rem;}',
     '.fr-step .m{display:flex;align-items:center;justify-content:center;gap:.35rem;direction:ltr;flex-wrap:wrap;font-size:1.25rem;font-weight:900;margin-top:.15rem;}',
     '.fr-step .m .fr{font-size:1.25rem;}'
@@ -302,6 +306,10 @@
           [].forEach.call(box.children, function (x) { x.disabled = true; if (same(x._val, it.answer)) x.classList.add('is-correct'); });
           if (!ok) b.classList.add('is-wrong');
           actions.innerHTML = '';
+          box.classList.add('fr-answered');
+          // after a wrong answer only the chosen and the right answer stay, to leave room for the explanation
+          if (!ok) [].forEach.call(box.children, function (x) { if (x !== b && !same(x._val, it.answer)) x.classList.add('fr-hide'); });
+          [].forEach.call(root.querySelectorAll('.fr-bars'), function (x) { x.classList.add('fr-hide'); });
           if (!ok) {
             var guideBox = root.querySelector('.fr-steps');
             if (guideBox) guideBox.remove();
