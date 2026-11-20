@@ -166,6 +166,40 @@
     return q;
   }
 
+
+  /* "How to solve" guides: the method for each kind of question, with an example of its own (not the answer). */
+  var GUIDE = {
+    read: [{ t: 'סופרים לכמה חלקים שווים מחולק המלבן. זה המכנה, המספר שלמטה.' },
+      { t: 'סופרים כמה חלקים צבועים. זה המונה, המספר שלמעלה.' },
+      { t: 'דוגמה: 3 חלקים צבועים מתוך 5:', m: [raw(3, 5)] }],
+    same: [{ t: 'כשהמכנים (המספרים שלמטה) שווים, המכנה נשאר כמו שהוא.' },
+      { t: 'מחברים או מחסרים רק את המונים (המספרים שלמעלה).' },
+      { t: 'דוגמה:', m: [raw(1, 7), '+', raw(3, 7), '=', raw(4, 7)] },
+      { t: 'אם אפשר, מצמצמים בסוף: מחלקים מונה ומכנה באותו מספר.' }],
+    simplify: [{ t: 'מחפשים מספר שמחלק גם את המונה וגם את המכנה, ומחלקים את שניהם בו.' },
+      { t: 'ממשיכים עד שאין יותר מספר כזה (חוץ מ-1).' },
+      { t: 'דוגמה: את 6 ואת 8 אפשר לחלק ב-2:', m: [raw(6, 8), '=', raw(3, 4)] }],
+    compare: [{ t: 'מביאים את שני השברים לאותו מכנה, ואז משווים רק את המונים.' },
+      { t: 'דוגמה: 2/3 ו-3/4. מכנה משותף 12:', m: [raw(2, 3), '=', raw(8, 12), ',', raw(3, 4), '=', raw(9, 12)] },
+      { t: '9 גדול מ-8, ולכן 3/4 גדול יותר.' }],
+    easy: [{ t: 'כשהמכנים שונים, קודם מוצאים מכנה משותף: מספר שמתחלק בשני המכנים.' },
+      { t: 'מרחיבים כל שבר: כופלים את המונה ואת המכנה באותו מספר.' },
+      { t: 'דוגמה:', m: [raw(1, 2), '+', raw(1, 6), '=', raw(3, 6), '+', raw(1, 6), '=', raw(4, 6), '=', raw(2, 3)] }],
+    any: [{ t: 'כשהמכנים שונים, קודם מוצאים מכנה משותף: מספר שמתחלק בשני המכנים (אפשר תמיד לכפול אותם זה בזה).' },
+      { t: 'מרחיבים כל שבר למכנה החדש, ואז מחברים או מחסרים את המונים.' },
+      { t: 'דוגמה:', m: [raw(1, 2), '+', raw(1, 3), '=', raw(3, 6), '+', raw(2, 6), '=', raw(5, 6)] }],
+    mixed: [{ t: 'הופכים כל מספר מעורב לשבר: השלם כפול המכנה, ועוד המונה.' },
+      { t: 'דוגמה:', m: [{ w: 1, n: 1, d: 2, raw: true }, '=', raw(3, 2)] },
+      { t: 'אחר כך ממשיכים כמו בחיבור שברים: מכנה משותף, ואז מחברים או מחסרים מונים.' }],
+    mul: [{ t: 'בכפל שברים: מונה כפול מונה, ומכנה כפול מכנה.' },
+      { t: 'דוגמה:', m: [raw(2, 3), '×', raw(3, 4), '=', raw(6, 12), '=', raw(1, 2)] },
+      { t: 'ובסוף מצמצמים.' }],
+    div: [{ t: 'בחילוק שברים: הופכים את השבר השני (המונה והמכנה מתחלפים), ובמקום לחלק כופלים.' },
+      { t: 'דוגמה:', m: [raw(1, 2), '÷', raw(1, 4), '=', raw(1, 2), '×', raw(4, 1), '=', raw(4, 2), '=', 2] }],
+    of: [{ t: 'כדי למצוא חלק ממספר: מחלקים את המספר במכנה, ואז כופלים במונה.' },
+      { t: 'דוגמה: 2/3 מתוך 12. קודם 12 ÷ 3 = 4, ואז 4 × 2 = 8.' }]
+  };
+
   var css = [
     '.fr-q{display:flex;align-items:center;justify-content:center;gap:.6rem;direction:ltr;font-size:1.8rem;font-weight:900;flex-wrap:wrap;}',
     '.fr-q .fr-word{font-size:1.3rem;font-weight:800;direction:rtl;}',
@@ -199,7 +233,7 @@
     instructions: [
       'שבר כמו 3/4 אומר: חילקנו ל-4 חלקים שווים ולקחנו 3. המספר למטה הוא המכנה, והמספר למעלה הוא המונה.',
       'דוגמה: 1/4 + 2/3. מכנה משותף הוא 12. 1/4 = 3/12, ו-2/3 = 8/12. מחברים מונים: 3/12 + 8/12 = 11/12.',
-      'בכל שאלה יש כפתור "איך פותרים?" שמראה את הדרך צעד אחר צעד. אחרי טעות ההסבר מופיע מעצמו.',
+      'בכל שאלה יש כפתור "איך פותרים?" שמסביר את הדרך עם דוגמה אחרת. אחרי טעות מופיע הפתרון המלא של השאלה.',
       'מתחילים בקריאת שבר מציור, וממשיכים לחיבור, חיסור, כפל, חילוק ומספרים מעורבים. אין שעון.'
     ],
     css: css,
@@ -250,11 +284,11 @@
         });
         root.appendChild(box);
         var help = el('button', { class: 'btn btn-secondary', type: 'button', onclick: function () {
-          help.remove(); root.insertBefore(stepsBox(it, 'איך פותרים?'), actions); helped = true;
+          help.remove(); root.insertBefore(stepsBox({ steps: GUIDE[it.kind] }, 'איך פותרים שאלה כזאת?'), actions);
         } }, 'איך פותרים?');
         var actions = el('div', { class: 'g-actions' }, help);
         root.appendChild(actions);
-        var done = false, helped = false;
+        var done = false;
 
         function same(x, y) {
           if (typeof x === 'number' || typeof y === 'number') return x === y;
@@ -268,7 +302,11 @@
           [].forEach.call(box.children, function (x) { x.disabled = true; if (same(x._val, it.answer)) x.classList.add('is-correct'); });
           if (!ok) b.classList.add('is-wrong');
           actions.innerHTML = '';
-          if (!ok && !helped) root.insertBefore(stepsBox(it, 'כך פותרים:'), actions);
+          if (!ok) {
+            var guideBox = root.querySelector('.fr-steps');
+            if (guideBox) guideBox.remove();
+            root.insertBefore(stepsBox(it, 'כך פותרים את השאלה הזאת:'), actions);
+          }
           var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextQ(); } },
             q >= Q ? 'לסיכום' : 'לשאלה הבאה');
           ctx.feedback(ok).then(function () { actions.appendChild(next); if (!ok) next.scrollIntoView({ block: 'nearest' }); });

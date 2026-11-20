@@ -1,74 +1,132 @@
-/* ארץ עיר — the classic: one letter, and for each category (country, city, animal, plant…) find a word that
-   starts with it. Here the player picks it from a few options (language, word retrieval). Untimed. */
+/* ארץ עיר — the classic: one letter, and for each category (country, city, animal, plant, name, profession,
+   vehicle…) type a word that starts with it. The game checks the word against its lists, forgiving small
+   spelling differences; a word it does not know can still be accepted by the player (language). Untimed. */
 (function () {
   'use strict';
 
+  /* Categories in the order they open up with the levels. Words: space-separated, "_" = a space inside a name. */
   var CATS = [
-    { id: 'land', name: 'ארץ', words: 'אנגליה אוסטרליה אוסטריה איטליה אירלנד ארגנטינה אתיופיה ברזיל בלגיה בולגריה גרמניה גאנה דנמרק הולנד הודו הונגריה וייטנאם ונצואלה זמביה חילה טורקיה טנזניה יפן יוון ירדן כוויית לבנון לוב מצרים מקסיקו מרוקו נורבגיה ניגריה נפאל סין ספרד סוריה סקוטלנד עיראק עומאן פולין פורטוגל פרו פינלנד צרפת צ׳כיה קנדה קפריסין קובה קניה רוסיה רומניה שוודיה שווייץ תאילנד תוניסיה' },
-    { id: 'city', name: 'עיר', words: 'אילת אשדוד אשקלון אמסטרדם אתונה באר_שבע בני_ברק בת_ים ברלין בודפשט גבעתיים גדרה דימונה הרצליה הוד_השרון ונציה וינה זכרון_יעקב חיפה חולון חדרה טבריה טוקיו טורונטו ירושלים יבנה כרמיאל כפר_סבא לוד לונדון מדריד מילאנו מודיעין נתניה נהריה ניו_יורק נצרת סידני סטוקהולם עכו עפולה ערד פריז פתח_תקווה פראג צפת ציריך קריית_שמונה קהיר ראשון_לציון רמלה רחובות רומא רעננה שדרות שפרעם תל_אביב' },
-    { id: 'animal', name: 'חי', words: 'אריה ארנב ברווז בואש גמל גורילה דב דג דולפין היפופוטם זברה זאב זבוב חתול חמור חסידה טווס טיגריס ינשוף יען כלב כבש לטאה לוויתן מרגלית נמר נחש נמלה סוס סנאי עכבר עז עורב פיל פרה פרפר פינגווין צב צבי צפרדע קוף קיפוד קנגורו ראם שועל שפן תנין תוכי תרנגול תולעת' },
-    { id: 'plant', name: 'צומח', words: 'אורן אלון אגס ברוש בצל בננה גזר גפן דקל דובדבן הדס ורד זית חמנייה חסה חרצית טופח יסמין כרוב כלנית לימון לבנדר מלפפון מנגו נרקיס נענע סביון סחלב עגבנייה ערבה פטרוזיליה פלפל צבר צנונית קקטוס קישוא רקפת רימון שקד שושן שום תפוח תמר תות תאנה' },
-    { id: 'name', name: 'שם', words: 'אברהם אסתר בתיה ברוך גילה גדעון דוד דבורה הדסה הלל ורדה זהבה זאב חנה חיים טובה טל יוסף יעל כרמלה לאה לאון מרים משה נעמי נחום סיגל סמדר עדינה עמוס פנינה פנחס צביה ציונה קרן קובי רחל רפאל שרה שלמה תמר תומר' },
-    { id: 'job', name: 'מקצוע', words: 'אופה אדריכל בנאי גנן דוור דייג וטרינר זמר חייט חשמלאי טבח טייס ירקן כבאי לבורנט מורה מכונאי נגר נהג ספר סנדלר עורך_דין עיתונאי פסל פקיד צייר צלם קצב קוסם רופא רוקח שוטר שען שחקן תופרת תזונאי' },
-    { id: 'thing', name: 'חפץ', words: 'ארון אגרטל בקבוק ברז גרב גיטרה דלת דלי הגה וילון זכוכית חולצה חבל טלפון טלוויזיה ידית ילקוט כיסא כרית לוח מנורה מפתח מזלג נעל נר סיר סכין עט עיפרון פטיש פח צלחת צעיף קומקום קערה רדיו שולחן שעון תיק תנור' }
-  ].map(function (c) { return { id: c.id, name: c.name, words: c.words.split(' ').map(function (w) { return w.replace(/_/g, ' '); }) }; });
+    { id: 'land', name: 'ארץ', words: 'אנגליה אוסטרליה אוסטריה איטליה אירלנד איסלנד אינדונזיה איראן אוקראינה אוגנדה אלג׳יריה ארגנטינה ארמניה אתיופיה אקוודור ' +
+      'ברזיל בלגיה בולגריה בוליביה בריטניה בלארוס גרמניה גאנה גאורגיה גוואטמלה גרינלנד דנמרק דרום_אפריקה דרום_קוריאה הולנד הודו הונגריה האיטי ' +
+      'וייטנאם ונצואלה ויילס זמביה זימבבואה חילה טורקיה טנזניה טייוואן טוניסיה יפן יוון ירדן ישראל כוויית קטאר לבנון לוב לטביה ליטא לוקסמבורג ' +
+      'מצרים מקסיקו מרוקו מונגוליה מלזיה מלטה מולדובה נורבגיה ניגריה נפאל ניו_זילנד ניקרגואה סין ספרד סוריה סקוטלנד סרביה סלובניה סלובקיה סודן ' +
+      'סינגפור סעודיה עיראק עומאן פולין פורטוגל פרו פינלנד פקיסטן פנמה פיליפינים פרגוואי צרפת צ׳כיה צ׳ילה קנדה קפריסין קובה קניה קולומביה ' +
+      'קמבודיה קרואטיה קזחסטן רוסיה רומניה רואנדה שוודיה שווייץ תאילנד תוניסיה תימן טורקמניסטן' },
+    { id: 'city', name: 'עיר', words: 'אילת אשדוד אשקלון אריאל אום_אל_פחם אופקים אור_יהודה אמסטרדם אתונה אנקרה ' +
+      'באר_שבע בני_ברק בת_ים בית_שמש בית_שאן ברלין בודפשט ברצלונה בוקרשט בריסל בוסטון גבעתיים גדרה גבעת_שמואל ג׳נבה ' +
+      'דימונה דמשק דבלין הרצליה הוד_השרון הוליווד ונציה וינה ורשה וושינגטון זכרון_יעקב חיפה חולון חדרה חברון טבריה טירת_כרמל טוקיו טורונטו טייבה ' +
+      'ירושלים יבנה יקנעם יהוד כרמיאל כפר_סבא כפר_יונה לוד לונדון ליסבון לוס_אנג׳לס לימה מדריד מילאנו מודיעין מעלות מגדל_העמק מוסקבה מינכן מונטריאול ' +
+      'נתניה נהריה נצרת נס_ציונה נתיבות ניו_יורק נאפולי סידני סטוקהולם סכנין סנט_פטרסבורג סן_פרנסיסקו עכו עפולה ערד עראבה עמאן ' +
+      'פריז פתח_תקווה פראג פירנצה פרדס_חנה צפת ציריך צור קריית_שמונה קריית_גת קריית_אתא קיסריה קהיר קייב קרקוב ' +
+      'ראשון_לציון רמלה רחובות רומא רעננה רמת_גן רהט ריו_דה_ז׳נרו שדרות שפרעם שוהם שיקגו שנגחאי תל_אביב תבריז' },
+    { id: 'animal', name: 'חי', words: 'אריה ארנב אייל איילה אווז אנקור אלפקה ברווז בואש בבון ברדלס גמל גורילה גדי דב דג דולפין דבורה דורבן דוכיפת ' +
+      'היפופוטם זברה זאב זבוב זיקית חתול חמור חסידה חילזון חרגול חזיר חגב טווס טיגריס טלה טריטון ינשוף יען יונה יעל יגואר ' +
+      'כלב כבש כריש כלבלב לטאה לוויתן לאמה לוטרה מדוזה נמר נחש נמלה נשר נחליאלי סוס סנאי סרטן סלמנדרה סייח ' +
+      'עכבר עז עורב עקרב עגל עטלף עכביש פיל פרה פרפר פינגווין פנדה פשפש צב צבי צפרדע צרעה ציפור קוף קיפוד קנגורו קרנף קואלה קרפיון ' +
+      'ראם רקון שועל שפן שחף שבלול שממית תנין תוכי תרנגול תולעת תן תיש תנשמת' },
+    { id: 'plant', name: 'צומח', words: 'אורן אלון אגס אשל אקליפטוס אבטיח אפרסק אפרסמון אוכמנית ארז אלה ברוש בצל בננה במבוק ברוקולי ' +
+      'גזר גפן גויאבה גרניום גומי דקל דובדבן דלעת דשא הדס הרדוף ורד ורבנה זית זעתר זעפרן חמנייה חסה חרצית חציל חרוב ' +
+      'טופח טוליפ יסמין יערה כרוב כלנית כרפס כוסברה כרובית לימון לבנדר לוטוס ליצ׳י מלפפון מנגו מנטה מרווה מישמש מלון ' +
+      'נרקיס נענע נורית סביון סחלב סלק סלרי סרפד סיגלית עגבנייה ערבה עירית עדשים פטרוזיליה פלפל פטל פטרייה פרג פומלה ' +
+      'צבר צנונית צבעוני צפצפה קקטוס קישוא קלמנטינה קינמון קוקוס רקפת רימון ריחן רוזמרין שקד שושן שום שעורה שיטה שיפון שזיף ' +
+      'תפוח תמר תות תאנה תירס תפוז תלתן' },
+    { id: 'name', name: 'שם', words: 'אברהם אסתר אורי אילנה אליהו אהרון אביבה בתיה ברוך בני בלהה בועז גילה גדעון גאולה גבי דוד דבורה דנה דניאל ' +
+      'הדסה הלל הילה ויקי ורדה זהבה זאב זיוה זלמן חנה חיים חוה חגית טובה טל טליה יוסף יעל יצחק יהודית ירון יעקב יפה ' +
+      'כרמלה כרמית לאה לאון ליאור לבנה מרים משה מיכל מאיר מלכה נעמי נחום נורית ניסים סיגל סמדר סבינה סשה ' +
+      'עדינה עמוס עליזה עוזי פנינה פנחס פזית פרץ צביה ציונה צבי צילה קרן קובי קלרה רחל רפאל רבקה רונית רות ' +
+      'שרה שלמה שמעון שושנה שמואל שולמית תמר תומר תקווה תהילה' },
+    { id: 'job', name: 'מקצוע', words: 'אופה אדריכל אחות איכר אסטרונאוט ביולוג בנאי בלש ברמן גנן גזבר דוור דייג דיילת הנדסאי ' +
+      'וטרינר זמר זגג חייט חשמלאי חקלאי חזן חייל טבח טייס טכנאי ירקן כבאי כתב לבורנט לוחם מורה מכונאי מלצר מתכנת מהנדס מנהל ' +
+      'נגר נהג נגן ספר סנדלר ספרן סוכן סופר עורך_דין עיתונאי פסל פקיד פסיכולוג פרמדיק צייר צלם צורף קצב קוסם קופאי ' +
+      'רופא רוקח רואה_חשבון רב שוטר שען שחקן שרברב שף שדרן תופרת תזונאי תקליטן תסריטאי' },
+    { id: 'vehicle', name: 'כלי תחבורה', words: 'אוטובוס אופנוע אופניים אונייה אמבולנס אווירון אוטו בלון_פורח גלגיליות גרר דוגית דחפור הליקופטר ' +
+      'זחל חללית טרקטור טנק טרקטורון טיסן יאכטה כרכרה כדור_פורח לימוזינה מכונית משאית מטוס מסוק מונית מעבורת מזחלת מנוף ' +
+      'סירה ספינה סקוטר סוס סירת_מפרש עגלה פרד צוללת קורקינט קרון קטנוע קאנו קרוואן קלנועית ' +
+      'רכבת רכב רכבל רפסודה רכבת_תחתית תלת_אופן' },
+    { id: 'food', name: 'מאכל', words: 'אורז אטריות אפונה בורקס במבה ביצה בייגלה ביסלי גלידה גבינה גפילטע דבש דג דייסה ' +
+      'המבורגר חומוס חלה חביתה חמין חריימה טחינה טוסט טבולה יוגורט כנאפה כופתאות כבד לחם לביבה לחמנייה ' +
+      'מרק מלוואח מקלובה מאפה מוסקה מטבוחה נקניק נקניקייה סלט סופגנייה סביח סושי סטייק עוגה עוף עוגייה עראיס ' +
+      'פיצה פלאפל פסטה פשטידה פתיתים פיתה צ׳יפס צלי ציר קציצה קוסקוס קובה קרואסון קבב רוגלך ריבה ' +
+      'שקשוקה שניצל שוקולד שווארמה שעועית תפוצ׳יפס תבשיל' },
+    { id: 'thing', name: 'חפץ', words: 'ארון אגרטל אהיל בקבוק ברז בובה גרב גיטרה גפרור דלת דלי דף הגה וילון זכוכית זר חבל טלפון טלוויזיה ' +
+      'ידית ילקוט יהלום כיסא כרית כוס כפית כדור לוח לבנה מנורה מפתח מזלג מגבת מחשב מספריים מראה נעל נר ספל ספר סיר סכין סל ' +
+      'עט עיפרון עציץ פטיש פח פנס צלחת ציור קומקום קערה קופסה רדיו רהיט שולחן שעון שטיח שמיכה תיק תנור תמונה' },
+    { id: 'clothes', name: 'בגד', words: 'אפודה אוברול ברדס בגד_ים בגד_גוף גרב גופייה גלימה גרביונים ז׳קט חולצה חליפה חצאית חגורה חזייה ' +
+      'טוניקה טלית טייץ טוקסידו כובע כפפות כותונת כפכפים מעיל מכנסיים מגפיים מקטורן מטפחת נעל נעלי_בית סוודר סנדל סינר ' +
+      'עניבה פיג׳מה פרווה צעיף קפוצ׳ון קימונו קסדה רדיד שמלה שכמייה תחתונים תרבוש' },
+    { id: 'music', name: 'כלי נגינה', words: 'אקורדיון אורגן בנג׳ו בס גיטרה גונג דרבוקה הרמוניקה ויולה ויולונצ׳לו חליל חצוצרה טמבורין טרומבון טובה ' +
+      'כינור כנור מנדולינה מפוחית משולש נבל סקסופון עוגב עוד פסנתר פעמון פיקולו צ׳לו צימבל קסילופון קלרינט קונטרבס קחון שופר תוף תופים' },
+    { id: 'body', name: 'חלק בגוף', words: 'אף אוזן אצבע אגודל בטן ברך בוהן גב גרון גבה דם זרוע זקן חזה חך טחול ' +
+      'יד ירך כתף כף_יד כף_רגל כבד כליה לב לחי לשון לסת מצח מרפק מוח מותן נחיר סנטר עין עפעף עקב עור עצם ' +
+      'פה פנים ציפורן צוואר צלע קרסול קרקפת ראש רגל ריאה ריס שן שיער שפה שריר שוק תוספתן' },
+    { id: 'sport', name: 'ספורט', words: 'אגרוף אתלטיקה איגרוף אופניים בייסבול באולינג בדמינטון גולף גלישה ג׳ודו התעמלות הוקי הליכה ' +
+      'החלקה_על_קרח חתירה טניס טניס_שולחן טאקוונדו יוגה ירי_בקשת כדורגל כדורסל כדורעף כדוריד כדורמים ' +
+      'מרוץ מרתון ניווט סקי סיף סנוקר סקווש פינג_פונג פוטבול פילאטיס צלילה קרטה קריקט קפיצה_לגובה קפיצה_לרוחק ' +
+      'ריצה ריקוד רכיבה שחייה שחמט שייט' }
+  ].map(function (c) { return { id: c.id, name: c.name, words: c.words.split(' ').filter(Boolean).map(function (w) { return w.replace(/_/g, ' '); }) }; });
 
-  // letters that sound alike: the hard levels use them for the wrong options
-  var ALIKE = { 'א': 'ע', 'ע': 'א', 'כ': 'ק', 'ק': 'כ', 'ח': 'כ', 'ת': 'ט', 'ט': 'ת', 'ס': 'ש', 'ש': 'ס', 'ב': 'ו', 'ו': 'ב', 'צ': 'ס', 'ג': 'ק', 'פ': 'ב', 'ד': 'ת', 'ה': 'א', 'ל': 'ר', 'ר': 'ל', 'מ': 'נ', 'נ': 'מ', 'י': 'א', 'ז': 'צ' };
+  var FIN = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };
+  // the same word written a little differently: no spaces or marks, no final letters
+  function norm(w) {
+    return String(w || '').trim().replace(/[\s'"׳״\-־.]/g, '').split('').map(function (c) { return FIN[c] || c; }).join('');
+  }
+  // full and short spelling (כתיב מלא / חסר) look alike: drop ו and י after the first letter
+  function loose(w) { var n = norm(w); return n.charAt(0) + n.slice(1).replace(/[וי]/g, ''); }
 
-  function first(w) { return w.charAt(0); }
-  function of(cat, letter) { return cat.words.filter(function (w) { return first(w) === letter; }); }
-
-  /* Level 1–50: cats = categories per letter, opts = options per question,
-     alike = share of wrong options that start with a sound-alike letter,
-     cross = share of wrong options with the right letter but from another category. */
-  function spec(level) {
-    var L = level;
-    return {
-      cats: L <= 5 ? 4 : L <= 15 ? 5 : L <= 30 ? 6 : 7,
-      opts: L <= 6 ? 3 : 4,
-      alike: L <= 15 ? 0 : Math.min(1, (L - 15) * 0.04),
-      cross: L <= 8 ? 0 : Math.min(0.6, (L - 8) * 0.03),
-      letters: 2
-    };
+  function dist(a, b) {
+    var m = a.length, n = b.length, d = [];
+    for (var i = 0; i <= m; i++) { d.push([i]); for (var j = 1; j <= n; j++) d[i].push(i ? 0 : j); }
+    for (i = 1; i <= m; i++) for (j = 1; j <= n; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    return d[m][n];
   }
 
-  function makeQuestion(cat, letter, sp, rnd) {
-    var right = rnd.pick(of(cat, letter));
-    var wrong = [];
-    var guard = 0;
-    function fits(w) { return w && w !== right && wrong.indexOf(w) === -1 && !(first(w) === letter && cat.words.indexOf(w) !== -1); }
-    function alike() { return ALIKE[letter] ? rnd.pick(of(cat, ALIKE[letter]).filter(fits).concat([null])) : null; }
-    function cross() {
-      var pool = [];
-      CATS.forEach(function (c) { if (c !== cat) pool = pool.concat(of(c, letter)); });
-      return rnd.pick(pool.filter(fits).concat([null]));
-    }
-    function plain() { return rnd.pick(cat.words.filter(function (x) { return first(x) !== letter && fits(x); })); }
-    while (wrong.length < sp.opts - 1 && guard++ < 60) {
-      var r = rnd.randInt(1, 100) / 100;
-      // the wanted kind of trap, or the next kind when it has run out of words
-      var w = r <= sp.alike ? (alike() || cross() || plain()) : r <= sp.alike + sp.cross ? (cross() || plain()) : plain();
-      // a wrong option must really be wrong: not a word of this category that starts with the letter
-      if (fits(w)) wrong.push(w);
-    }
-    return { cat: cat, letter: letter, right: right, options: rnd.shuffle([right].concat(wrong)) };
+  // the word in the category list that the typed word matches, or null
+  function match(cat, typed) {
+    var n = norm(typed), l = loose(typed);
+    if (!n) return null;
+    var best = null;
+    cat.words.forEach(function (w) {
+      if (!best && (norm(w) === n || loose(w) === l)) best = w;
+    });
+    if (best) return best;
+    // one letter off, for longer words (a typo)
+    if (n.length >= 5) cat.words.forEach(function (w) { if (!best && norm(w).charAt(0) === n.charAt(0) && dist(norm(w), n) <= 1) best = w; });
+    return best;
+  }
+
+  function startsWith(cat, letter) {
+    return cat.words.filter(function (w) { return norm(w).charAt(0) === letter; });
+  }
+
+  /* Level 1–50: open = how many categories exist at this level (new ones join as levels go up),
+     per = categories asked for each letter, letters = letters per session. */
+  function spec(level) {
+    var L = level;
+    var open = L <= 5 ? 4 : L <= 10 ? 5 : L <= 15 ? 6 : L <= 20 ? 7 : L <= 25 ? 8 : L <= 30 ? 9 : L <= 35 ? 10 : L <= 40 ? 12 : 13;
+    var per = L <= 5 ? 3 : L <= 15 ? 4 : L <= 30 ? 5 : 6;
+    return { open: open, per: per, letters: 2, newest: L > 5 };
   }
 
   var css = [
-    '.ei-top{display:flex;align-items:center;gap:.8rem;}',
-    '.ei-letter{width:4rem;height:4rem;border-radius:50%;display:grid;place-items:center;background:var(--c-blue);color:#fff;',
-    'font-family:var(--font-display);font-size:2.6rem;font-weight:900;line-height:1;}',
+    '.ei-top{display:flex;align-items:center;gap:.7rem;}',
+    '.ei-letter{width:3.6rem;height:3.6rem;border-radius:50%;display:grid;place-items:center;background:var(--c-blue);color:#fff;',
+    'font-family:var(--font-display);font-size:2.3rem;font-weight:900;line-height:1;flex:none;}',
+    '.ei-top p{margin:0;font-weight:800;font-size:1.1rem;}',
     '.ei-sheet{width:100%;max-width:26rem;border:2px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface);}',
-    '.ei-row{display:grid;grid-template-columns:5rem 1fr;min-height:2.3rem;border-top:1px solid var(--line);align-items:center;}',
+    '.ei-row{display:grid;grid-template-columns:6.4rem 1fr;min-height:2.4rem;border-top:1px solid var(--line);align-items:center;}',
     '.ei-row:first-child{border-top:0;}',
-    '.ei-cat{font-weight:800;padding:0 .6rem;background:var(--surface-2);height:100%;display:flex;align-items:center;}',
-    '.ei-ans{padding:0 .6rem;font-weight:800;font-size:1.15rem;}',
+    '.ei-cat{font-weight:800;padding:0 .5rem;background:var(--surface-2);height:100%;display:flex;align-items:center;line-height:1.15;}',
+    '.ei-ans{padding:.2rem .5rem;font-weight:800;font-size:1.15rem;min-width:0;}',
     '.ei-row.is-now{box-shadow:inset 0 0 0 3px var(--sun);}',
     '.ei-row.is-ok .ei-ans{color:var(--good);}',
-    '.ei-row.is-bad .ei-ans{color:var(--bad);}',
-    '.ei-opts{width:100%;max-width:26rem;}',
-    '.ei-opts .g-choice{min-height:3.6rem;font-size:1.35rem;}'
+    '.ei-row.is-skip .ei-ans{color:var(--ink-soft);}',
+    '.ei-input{width:100%;min-width:0;font:inherit;font-size:1.3rem;font-weight:800;padding:.35rem .5rem;border:2px solid var(--line);border-radius:8px;',
+    'background:var(--surface);color:var(--ink);}',
+    '.ei-input:focus{outline:3px solid var(--sun);border-color:var(--sun);}',
+    '.ei-msg{margin:0;min-height:1.4rem;text-align:center;font-weight:700;max-width:26rem;}',
+    '.ei-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;}'
   ].join('');
 
   BrainGames.register({
@@ -76,31 +134,32 @@
     name: 'ארץ עיר',
     skill: 'language',
     isNew: true,
-    tagline: 'אות אחת, והרבה קטגוריות: ארץ, עיר, חי, צומח…',
+    tagline: 'אות אחת: כתבו ארץ, עיר, חי, צומח…',
     benefit: 'שליפת מילים, ידע כללי וגמישות',
     instructions: [
-      'למעלה מופיעה אות. בכל שורה יש קטגוריה: ארץ, עיר, חי, צומח, שם, מקצוע, חפץ.',
-      'לכל קטגוריה בחרו את המילה שמתחילה באות ושייכת לקטגוריה.',
-      'שימו לב: חלק מהתשובות מתחילות באות שנשמעת דומה (ט ו-ת, כ ו-ק, ס ו-ש), או שהן מקטגוריה אחרת.',
-      'הדף מתמלא בתשובות שלכם. אין שעון.'
+      'למעלה מופיעה אות. בכל שורה יש קטגוריה: ארץ, עיר, חי, צומח, ובהמשך גם שם, מקצוע, כלי תחבורה, מאכל ועוד.',
+      'הקלידו מילה שמתחילה באות ושייכת לקטגוריה, ולחצו "בדיקה". טעות כתיב קטנה לא נחשבת טעות.',
+      'אם המשחק לא מכיר מילה נכונה, לחצו "התשובה שלי נכונה". לא מצליחים? "דלגו" ונראה לכם דוגמה.',
+      'אין שעון. חשבו בנחת.'
     ],
     css: css,
-    _model: { CATS: CATS, spec: spec, makeQuestion: makeQuestion },
+    _model: { CATS: CATS, spec: spec, match: match, norm: norm },
     start: function (root, ctx) {
       var el = ctx.el;
       var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level)) || 1));
       var sp = spec(level);
-      // letters that have words in enough categories
+      var open = CATS.slice(0, sp.open);
+      // letters with an answer in enough of the open categories
       var letters = ctx.shuffle('אבגדהזחטיכלמנסעפצקרשת'.split('').filter(function (l) {
-        return CATS.filter(function (c) { return of(c, l).length; }).length >= sp.cats;
+        return open.filter(function (c) { return startsWith(c, l).length; }).length >= sp.per;
       })).slice(0, sp.letters);
-      var plan = [];
-      letters.forEach(function (l) {
-        var cats = CATS.filter(function (c) { return of(c, l).length; });
-        // keep the classic order (ארץ, עיר, חי…) for the chosen categories
-        var chosen = ctx.shuffle(cats).slice(0, sp.cats);
-        chosen = cats.filter(function (c) { return chosen.indexOf(c) !== -1; });
-        plan.push({ letter: l, cats: chosen });
+      var plan = letters.map(function (l) {
+        var cats = open.filter(function (c) { return startsWith(c, l).length; });
+        // always include the newest category that fits, so a new level shows something new
+        var newest = sp.newest ? cats[cats.length - 1] : null;
+        var pick = ctx.shuffle(cats.filter(function (c) { return c !== newest; })).slice(0, sp.per - (newest ? 1 : 0));
+        if (newest) pick.push(newest);
+        return { letter: l, cats: cats.filter(function (c) { return pick.indexOf(c) !== -1; }) };
       });
       var total = plan.reduce(function (s, p) { return s + p.cats.length; }, 0);
       var asked = 0, good = 0;
@@ -113,35 +172,80 @@
           var ans = el('span', { class: 'ei-ans' });
           return { row: el('div', { class: 'ei-row' }, [el('span', { class: 'ei-cat' }, c.name), ans]), ans: ans };
         });
-        root.appendChild(el('div', { class: 'ei-top' }, [el('span', { class: 'ei-letter', 'aria-label': 'האות ' + P.letter }, P.letter)]));
+        var input = el('input', { class: 'ei-input', type: 'text', autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'done', lang: 'he', dir: 'rtl' });
+        var msg = el('p', { class: 'ei-msg', 'aria-live': 'polite' });
+        var actions = el('div', { class: 'ei-actions' });
+        root.appendChild(el('div', { class: 'ei-top' }, [el('span', { class: 'ei-letter', 'aria-hidden': 'true' }, P.letter),
+          el('p', null, 'כל המילים מתחילות באות ' + P.letter)]));
         root.appendChild(el('div', { class: 'ei-sheet' }, rows.map(function (r) { return r.row; })));
-        var box = el('div', { class: 'g-choices ei-opts' });
-        root.appendChild(box);
+        root.appendChild(msg);
+        root.appendChild(actions);
 
         function ask(ci) {
-          if (ci >= P.cats.length) { ctx.wait(900).then(function () { playLetter(pi + 1); }); return; }
+          if (ci >= P.cats.length) {
+            actions.innerHTML = '';
+            msg.textContent = 'סיימתם את האות ' + P.letter + '!';
+            var nx = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { nx.disabled = true; playLetter(pi + 1); } },
+              pi + 1 >= plan.length ? 'לסיכום' : 'לאות הבאה');
+            actions.appendChild(nx);
+            return;
+          }
           asked++;
           ctx.setProgress(asked, total);
+          var cat = P.cats[ci];
           rows.forEach(function (r, i) { r.row.classList.toggle('is-now', i === ci); });
-          var q = makeQuestion(P.cats[ci], P.letter, sp, ctx);
-          ctx.setStatus(P.cats[ci].name + ' שמתחיל/ה ב-' + P.letter);
-          box.innerHTML = '';
-          var done = false;
-          q.options.forEach(function (o) {
-            var b = el('button', { class: 'g-choice', type: 'button', onclick: function () {
-              if (done) return;
-              done = true;
-              var ok = o === q.right;
-              if (ok) good++;
-              [].forEach.call(box.children, function (x) { x.disabled = true; if (x.textContent === q.right) x.classList.add('is-correct'); });
-              if (!ok) b.classList.add('is-wrong');
-              rows[ci].ans.textContent = q.right;
-              rows[ci].row.classList.add(ok ? 'is-ok' : 'is-bad');
-              var why = ok ? undefined : first(o) !== P.letter ? '"' + o + '" מתחיל ב-' + first(o) + ', לא ב-' + P.letter : '"' + o + '" הוא לא ' + P.cats[ci].name;
-              ctx.feedback(ok, why).then(function () { ask(ci + 1); });
-            } }, o);
-            box.appendChild(b);
-          });
+          rows[ci].ans.innerHTML = '';
+          input.value = '';
+          input.setAttribute('aria-label', cat.name + ' שמתחיל באות ' + P.letter);
+          input.placeholder = P.letter + '…';
+          rows[ci].ans.appendChild(input);
+          ctx.setStatus(cat.name + ' באות ' + P.letter);
+          msg.textContent = '';
+          var tries = 0, settled = false;
+          var checkBtn = el('button', { class: 'btn btn-primary', type: 'button', onclick: check }, 'בדיקה');
+          var skipBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: skip }, 'דלגו');
+          var mineBtn = el('button', { class: 'btn btn-secondary', type: 'button', hidden: true, onclick: mine }, 'התשובה שלי נכונה');
+          actions.innerHTML = '';
+          [checkBtn, mineBtn, skipBtn].forEach(function (b) { actions.appendChild(b); });
+          input.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); check(); } };
+          try { input.focus({ preventScroll: true }); } catch (e) { /* old browsers */ }
+
+          function settle(text, cls, ok, note) {
+            if (settled) return;
+            settled = true;
+            if (ok) good++;
+            rows[ci].ans.innerHTML = '';
+            rows[ci].ans.textContent = text;
+            rows[ci].row.classList.remove('is-now');
+            rows[ci].row.classList.add(cls);
+            msg.textContent = note || '';
+            actions.innerHTML = '';
+            (ok ? ctx.feedback(true) : ctx.wait(note ? 1800 : 300)).then(function () { ask(ci + 1); });
+          }
+          function check() {
+            if (settled) return;
+            var typed = input.value.trim();
+            if (!typed) { msg.textContent = 'הקלידו מילה, או לחצו "דלגו"'; return; }
+            if (norm(typed).charAt(0) !== P.letter) {
+              ctx.sound('bad');
+              msg.textContent = '"' + typed + '" לא מתחיל באות ' + P.letter + '. נסו שוב';
+              return;
+            }
+            var hit = match(cat, typed);
+            if (hit) { settle(hit, 'is-ok', tries === 0, hit !== typed ? 'נכון! (' + hit + ')' : ''); return; }
+            tries++;
+            ctx.sound('bad');
+            // maybe it is a real answer we do not know: let the player decide
+            var other = CATS.filter(function (c) { return c !== cat && match(c, typed); })[0];
+            msg.textContent = other ? '"' + typed + '" מוכר לנו בתור ' + other.name + ', לא ' + cat.name + '. נסו מילה אחרת'
+              : 'לא מצאנו את "' + typed + '" ברשימה שלנו. בדקו את הכתיב, או לחצו "התשובה שלי נכונה"';
+            mineBtn.hidden = !!other;
+          }
+          function mine() { if (!settled) settle(input.value.trim(), 'is-ok', true, 'קיבלנו את התשובה שלכם'); }
+          function skip() {
+            var ex = ctx.shuffle(startsWith(cat, P.letter)).slice(0, 2);
+            settle(ex[0], 'is-skip', false, 'דוגמאות: ' + ex.join(', '));
+          }
         }
         ask(0);
       }
