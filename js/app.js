@@ -537,7 +537,7 @@
     if (fresh.length) {
       app.appendChild(el('section', { class: 'section section-new' }, [
         el('h2', { class: 'section-title' }, ['משחקים חדשים', el('span', { class: 'new-badge' }, fresh.length + ' משחקים')]),
-        el('p', { class: 'section-lead' }, 'תפזורת, סודוקו, קאקורו, תשבץ, פאזל ועוד. נסו אותם!'),
+        el('p', { class: 'section-lead' }, 'תפזורת, קאקורו, תשבץ, פאזל ועוד. נסו אותם!'),
         el('div', { class: 'skill-groups' }, Object.keys(BG.SKILLS).map(function (skill) {
           var games = fresh.filter(function (g) { return g.skill === skill; });
           if (!games.length) return null;

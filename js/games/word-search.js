@@ -43,12 +43,10 @@
   function spec(level) {
     var n = Math.min(10, 5 + Math.floor((level - 1) / 6));
     var words = Math.min(11, 3 + Math.floor(level / 4));
-    var dirs = ['rtl'];
-    if (level >= 6) dirs.push('down');
-    if (level >= 14) dirs.push('diag', 'diag2');
-    if (level >= 24) dirs.push('ltr');
-    if (level >= 32) dirs.push('up');
-    if (level >= 40) dirs.push('diagUp', 'diagUp2');
+    // every direction from the start; the easy levels just lean towards right-to-left and top-down
+    var dirs = ['rtl', 'down', 'diag', 'diag2', 'ltr', 'up', 'diagUp', 'diagUp2'];
+    if (level <= 10) dirs = dirs.concat(['rtl', 'rtl', 'rtl', 'down', 'down']);
+    else if (level <= 25) dirs = dirs.concat(['rtl', 'down']);
     return { n: n, words: words, dirs: dirs, decoys: level >= 36 ? Math.min(4, Math.floor((level - 32) / 4)) : 0,
       // long words first make the higher boards denser
       longFirst: level >= 20 };
@@ -113,19 +111,23 @@
     return null;
   }
 
-  var HUES = ['--c-blue', '--c-red', '--c-green', '--c-purple', '--c-yellow'];
+  var HUES = ['--c-blue', '--c-red', '--c-green', '--c-purple', '--c-black'];
 
   var css = [
-    '.wsr-grid{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:2px;width:min(100%,calc(100svh - 19rem),30rem);',
+    '.wsr-grid{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:2px;width:min(100%,calc(100svh - 20rem),30rem);',
     'aspect-ratio:1;direction:rtl;background:var(--line);border:3px solid var(--ink);border-radius:var(--radius-sm);overflow:hidden;touch-action:manipulation;}',
     '.wsr-cell{min-width:0;min-height:0;padding:0;border:0;background:var(--surface);color:var(--ink);font-family:var(--font-display);',
     'font-weight:900;font-size:calc(min(100vw - 2.5rem,30rem) / var(--n) * .6);line-height:1;cursor:pointer;display:grid;place-items:center;}',
     '.wsr-cell.is-start{background:var(--sun);color:var(--c-on-yellow);}',
-    '.wsr-cell.is-found{color:#fff;}',
+    '.wsr-wrap{position:relative;width:min(100%,calc(100svh - 20rem),30rem);}',
+    '.wsr-wrap .wsr-grid{width:100%;}',
+    '.wsr-rings{position:absolute;inset:3px;width:calc(100% - 6px);height:calc(100% - 6px);pointer-events:none;overflow:visible;}',
+    '.wsr-rings rect{fill:none;stroke-width:1.1;}',
+    '.wsr-rings rect.is-shown{stroke:var(--ink-soft);stroke-dasharray:2 1.4;}',
     '.wsr-cell.is-hint{box-shadow:inset 0 0 0 4px var(--sun);}',
     '.wsr-words{display:flex;flex-wrap:wrap;gap:.4rem .5rem;justify-content:center;max-width:30rem;margin:0;padding:0;list-style:none;}',
-    '.wsr-words li{font-size:1.2rem;font-weight:800;padding:.15rem .7rem;border-radius:999px;background:var(--surface-2);border:2px solid var(--line);}',
-    '.wsr-words li.is-found{text-decoration:line-through;color:#fff;border-color:transparent;}',
+    '.wsr-words li{font-size:1.1rem;font-weight:800;padding:.05rem .6rem;border-radius:999px;background:var(--surface-2);border:2px solid var(--line);}',
+    '.wsr-words li.is-found{text-decoration:line-through;color:var(--ink);}',
     '.wsr-theme{margin:0;font-size:1.2rem;font-weight:800;color:var(--language);}'
   ].join('');
 
@@ -139,7 +141,7 @@
     instructions: [
       'בלוח האותיות מסתתרות המילים שברשימה שמתחת ללוח.',
       'לחצו על האות הראשונה של מילה, ואז על האות האחרונה שלה. מילה שנמצאה נצבעת.',
-      'בהתחלה המילים כתובות רק מימין לשמאל. בהמשך גם מלמעלה למטה, באלכסון ואפילו הפוך.',
+      'המילים כתובות לכל הכיוונים: מימין לשמאל, משמאל לימין, מלמעלה למטה, מלמטה למעלה ובאלכסון.',
       'אין שעון. תקועים? לחצו "רמז" ונסמן לכם אות ראשונה.'
     ],
     css: css,
@@ -166,7 +168,6 @@
       function play(B) {
         root.innerHTML = '';
         var n = B.n, start = -1, found = 0, hints = 0, done = false;
-        var colorOf = {}; // cell → css var of the first word found through it
         var cells = [];
         for (var k = 0; k < n * n; k++) {
           (function (k) {
@@ -175,16 +176,40 @@
           })(k);
         }
         var grid = el('div', { class: 'wsr-grid', style: { '--n': n } }, cells);
+        // found words are circled: one rounded ring per word, drawn over the letters
+        var SVGNS = 'http://www.w3.org/2000/svg';
+        var rings = document.createElementNS(SVGNS, 'svg');
+        rings.setAttribute('class', 'wsr-rings');
+        rings.setAttribute('viewBox', '0 0 100 100');
+        rings.setAttribute('aria-hidden', 'true');
+        var wrap = el('div', { class: 'wsr-wrap' }, [grid, rings]);
+        function ring(path, color, shown) {
+          var cs = 100 / n;
+          // column 0 is on the right (the grid is right-to-left)
+          function cx(k) { return (n - (k % n) - 0.5) * cs; }
+          function cy(k) { return (Math.floor(k / n) + 0.5) * cs; }
+          var a = path[0], b = path[path.length - 1];
+          var x1 = cx(a), y1 = cy(a), x2 = cx(b), y2 = cy(b);
+          var len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+          var h = cs * 0.82, w = len + h;
+          var ang = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+          var rc = document.createElementNS(SVGNS, 'rect');
+          rc.setAttribute('x', (x1 + x2) / 2 - w / 2); rc.setAttribute('y', (y1 + y2) / 2 - h / 2);
+          rc.setAttribute('width', w); rc.setAttribute('height', h); rc.setAttribute('rx', h / 2);
+          rc.setAttribute('transform', 'rotate(' + ang + ' ' + (x1 + x2) / 2 + ' ' + (y1 + y2) / 2 + ')');
+          if (shown) rc.setAttribute('class', 'is-shown'); else rc.style.stroke = 'var(' + color + ')';
+          rings.appendChild(rc);
+        }
         var chips = B.words.map(function (w) { return el('li', null, w.w); });
         var list = el('ul', { class: 'wsr-words' }, chips);
         var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
         var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'הראו את המילים');
         var actions = el('div', { class: 'g-actions' }, [hintBtn, showBtn]);
-        root.appendChild(el('p', { class: 'wsr-theme' }, 'הנושא: ' + B.theme));
-        root.appendChild(grid);
+        root.appendChild(wrap);
         root.appendChild(list);
         root.appendChild(actions);
-        ctx.setStatus('לחצו על האות הראשונה של מילה, ואז על האחרונה');
+        var INTRO = 'נושא: ' + B.theme + '. לחצו על האות הראשונה של מילה ואז על האחרונה';
+        ctx.setStatus(INTRO);
 
         function line(a, b) {
           var r1 = Math.floor(a / n), c1 = a % n, r2 = Math.floor(b / n), c2 = b % n;
@@ -200,7 +225,7 @@
           if (done) return;
           if (start < 0) { start = k; cells[k].classList.add('is-start'); ctx.sound('tap'); ctx.setStatus('עכשיו לחצו על האות האחרונה של המילה'); return; }
           cells[start].classList.remove('is-start');
-          if (k === start) { start = -1; ctx.setStatus('לחצו על האות הראשונה של מילה, ואז על האחרונה'); return; }
+          if (k === start) { start = -1; ctx.setStatus(INTRO); return; }
           var path = line(start, k);
           start = -1;
           var hit = null;
@@ -218,17 +243,12 @@
           hit.found = true;
           found++;
           var hue = HUES[(found - 1) % HUES.length];
-          hit.cells.forEach(function (c) {
-            if (!colorOf[c]) colorOf[c] = hue;
-            cells[c].classList.add('is-found');
-            cells[c].classList.remove('is-hint');
-            cells[c].style.background = 'var(' + colorOf[c] + ')';
-            if (colorOf[c] === '--c-yellow') cells[c].style.color = 'var(--c-on-yellow)';
-          });
+          hit.cells.forEach(function (c) { cells[c].classList.remove('is-hint'); });
+          ring(hit.cells, hue);
           var chip = chips[B.words.indexOf(hit)];
           chip.classList.add('is-found');
-          chip.style.background = 'var(' + hue + ')';
-          if (hue === '--c-yellow') chip.style.color = 'var(--c-on-yellow)';
+          chip.style.background = 'var(' + hue + '-soft)';
+          chip.style.borderColor = 'var(' + hue + ')';
           ctx.sound('good');
           if (found === B.words.length) finishBoard();
           else ctx.setStatus('מצאתם: ' + hit.w + '. נשארו ' + (B.words.length - found));
@@ -248,7 +268,7 @@
           hints = 99;
           B.words.forEach(function (w) {
             if (w.found) return;
-            w.cells.forEach(function (c) { cells[c].classList.add('is-hint'); });
+            ring(w.cells, null, true);
           });
           finishBoard();
         }
