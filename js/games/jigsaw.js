@@ -17,6 +17,9 @@
     'background:var(--ink);border:3px solid var(--ink);border-radius:var(--radius-sm);overflow:hidden;direction:ltr;}',
     '.jg-p{aspect-ratio:1;min-width:0;padding:0;border:0;cursor:pointer;background-repeat:no-repeat;background-size:calc(var(--g) * 100%) calc(var(--g) * 100%);',
     'transition:transform .2s;position:relative;}',
+    '.jg-board{touch-action:none;}',
+    '.jg-ghost{position:fixed;z-index:60;pointer-events:none;opacity:.92;box-shadow:0 8px 24px rgba(0,0,0,.35);border-radius:6px;}',
+    '.jg-p.jg-lifted{opacity:.3;}',
     '.jg-p.is-sel{outline:5px solid var(--sun);outline-offset:-5px;z-index:1;}',
     '.jg-p.is-home::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 3px var(--c-green);pointer-events:none;}',
     '.jg-done .jg-board{gap:0;}',
@@ -35,7 +38,7 @@
     benefit: 'תפיסה חזותית ותכנון',
     instructions: [
       'תמונה אמיתית נחתכה לריבועים וכל החלקים התערבבו.',
-      'לחצו על חלק אחד ואז על חלק אחר, והם יתחלפו במקום. כך מסדרים את התמונה מחדש.',
+      'גררו חלק אל המקום שלו, או לחצו על חלק אחד ואז על חלק אחר. שני החלקים יתחלפו במקום.',
       'בהמשך יש חלקים הפוכים: לחצו על חלק ואז על "סיבוב" כדי לסובב אותו.',
       'התמונה הקטנה למעלה מראה איך זה צריך להיראות. אין שעון.'
     ],
@@ -66,9 +69,53 @@
         ctx.shuffle(at.slice()).slice(0, Math.round(N * sp.turn)).forEach(function (p) { rot[p] = ctx.randInt(1, 3); });
         var sel = -1, done = false, helps = 0;
         var cells = [];
+        var dragged = false; // a drag just ended: ignore the click that follows it
         for (var c = 0; c < N; c++) (function (c) {
-          cells.push(el('button', { class: 'jg-p', type: 'button', 'aria-label': 'חלק ' + (c + 1), onclick: function () { tap(c); } }));
+          var b = el('button', { class: 'jg-p', type: 'button', 'aria-label': 'חלק ' + (c + 1),
+            onclick: function () { if (dragged) { dragged = false; return; } tap(c); } });
+          b.addEventListener('pointerdown', function (e) { startDrag(e, c); });
+          cells.push(b);
         })(c);
+
+        /* Drag a piece onto another one to swap them (tapping two pieces still works too). */
+        function startDrag(e, from) {
+          if (done || e.button > 0) return;
+          var x0 = e.clientX, y0 = e.clientY, ghost = null, src = cells[from];
+          var r = src.getBoundingClientRect();
+          function move(ev) {
+            if (!ghost) {
+              if (Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) < 10) return;
+              ghost = src.cloneNode(false);
+              ghost.className = 'jg-p jg-ghost';
+              ghost.style.width = r.width + 'px'; ghost.style.height = r.height + 'px';
+              document.body.appendChild(ghost);
+              src.classList.add('jg-lifted');
+            }
+            ev.preventDefault();
+            ghost.style.left = (ev.clientX - r.width / 2) + 'px';
+            ghost.style.top = (ev.clientY - r.height / 2) + 'px';
+          }
+          function up(ev) {
+            document.removeEventListener('pointermove', move);
+            document.removeEventListener('pointerup', up);
+            document.removeEventListener('pointercancel', up);
+            if (!ghost) return; // it was a tap: the click handler takes it
+            ghost.remove();
+            src.classList.remove('jg-lifted');
+            dragged = true;
+            setTimeout(function () { dragged = false; }, 400);
+            var under = document.elementFromPoint(ev.clientX, ev.clientY);
+            var to = cells.indexOf(under);
+            if (to < 0 || to === from || done) return;
+            ctx.sound('tap');
+            var t = at[from]; at[from] = at[to]; at[to] = t;
+            sel = -1;
+            draw(); check();
+          }
+          document.addEventListener('pointermove', move, { passive: false });
+          document.addEventListener('pointerup', up);
+          document.addEventListener('pointercancel', up);
+        }
         var board = el('div', { class: 'jg-board', style: { '--g': g } }, cells);
         var turnBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: turn, hidden: !sp.turn }, 'סיבוב ↻');
         var peekBtn = el('button', { class: 'btn btn-quiet', type: 'button', hidden: sp.preview, onclick: peek }, 'הצצה בתמונה');
@@ -80,7 +127,7 @@
           board, actions
         ]);
         root.appendChild(wrap);
-        ctx.setStatus('לחצו על שני חלקים כדי להחליף ביניהם');
+        ctx.setStatus('גררו חלק למקומו, או לחצו על שני חלקים כדי להחליף');
         draw();
 
         function draw() {
