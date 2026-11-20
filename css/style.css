@@ -23,6 +23,10 @@
   --focus: #f2b33d;
   --silver: #8d9aa3;
   --silver-soft: #e9eef1;
+  --platinum: #5e7f9e;
+  --platinum-soft: #e1ebf4;
+  --diamond: #12a6c8;
+  --diamond-soft: #d7f3fa;
 
   --memory: #6550c9;    --memory-soft: #e7e3f8;
   --attention: #c2502f; --attention-soft: #f8e3dc;
@@ -56,6 +60,7 @@
     --line: #34484c; --accent: #4fc0b6; --accent-hover: #6fd2c9; --accent-ink: #0b1a1b; --accent-soft: #173d3b;
     --sun: #f2be5c; --sun-soft: #3d3220; --good: #6fd08a; --good-soft: #193a24; --bad: #f08a72; --bad-soft: #43231c;
     --focus: #f2be5c; --silver: #c4cfd6; --silver-soft: #2a3438;
+    --platinum: #a9c6e2; --platinum-soft: #22303d; --diamond: #5fd8f2; --diamond-soft: #133740;
     --memory: #a998f2; --memory-soft: #2a2550; --attention: #f0987b; --attention-soft: #44261d;
     --logic: #7cbbe8; --logic-soft: #1a3247; --language: #84cf92; --language-soft: #1c3a22;
     --perception: #ec8fbf; --perception-soft: #45213a; --executive: #e3ac68; --executive-soft: #3f2e19;
@@ -70,6 +75,7 @@
   --line: #34484c; --accent: #4fc0b6; --accent-hover: #6fd2c9; --accent-ink: #0b1a1b; --accent-soft: #173d3b;
   --sun: #f2be5c; --sun-soft: #3d3220; --good: #6fd08a; --good-soft: #193a24; --bad: #f08a72; --bad-soft: #43231c;
   --focus: #f2be5c; --silver: #c4cfd6; --silver-soft: #2a3438;
+  --platinum: #a9c6e2; --platinum-soft: #22303d; --diamond: #5fd8f2; --diamond-soft: #133740;
   --memory: #a998f2; --memory-soft: #2a2550; --attention: #f0987b; --attention-soft: #44261d;
   --logic: #7cbbe8; --logic-soft: #1a3247; --language: #84cf92; --language-soft: #1c3a22;
   --perception: #ec8fbf; --perception-soft: #45213a; --executive: #e3ac68; --executive-soft: #3f2e19;
@@ -216,6 +222,10 @@ p { margin: 0; }
 .skill-group-title { display: flex; align-items: center; gap: .6rem; font-size: 1.25rem; font-family: var(--font-body); font-weight: 800; }
 .skill-group-title .skill-icon { width: 2.2rem; height: 2.2rem; }
 .skill-group-title .skill-icon svg { width: 1.3rem; height: 1.3rem; }
+.section-new { border: 3px solid var(--sun); }
+.new-badge { display: inline-block; margin-inline-start: .5rem; padding: .05rem .6rem; border-radius: 999px; background: var(--sun); color: var(--c-on-yellow); font-size: .9rem; font-weight: 800; vertical-align: .15rem; }
+.intro-levels { width: 100%; display: flex; flex-direction: column; gap: .6rem; }
+.intro-levels-title { font-size: 1.15rem; font-weight: 800; }
 .game-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: .7rem; }
 .game-card {
   width: 100%; height: 100%; text-align: start; display: flex; flex-direction: column; align-items: flex-start; gap: .3rem;
@@ -487,6 +497,10 @@ button.path-dot:hover { background: var(--accent-soft); }
 .trophy-icon .tr-handle, .card-trophy .tr-handle { stroke: var(--sun); }
 .is-silver .tr-cup { fill: var(--silver); }
 .is-silver .tr-handle { stroke: var(--silver); }
+.is-platinum .tr-cup { fill: var(--platinum); }
+.is-platinum .tr-handle { stroke: var(--platinum); }
+.is-diamond .tr-cup { fill: var(--diamond); }
+.is-diamond .tr-handle { stroke: var(--diamond); }
 .trophy-icon .tr-base, .card-trophy .tr-base { fill: var(--ink-soft); }
 .trophy-icon .tr-star, .card-trophy .tr-star { fill: var(--surface); }
 .trophy-card {
@@ -494,6 +508,8 @@ button.path-dot:hover { background: var(--accent-soft); }
   background: var(--sun-soft); border: 2px solid var(--sun); border-radius: var(--radius); padding: 1rem 1.2rem;
 }
 .trophy-card.is-silver { background: var(--silver-soft); border-color: var(--silver); }
+.trophy-card.is-platinum { background: var(--platinum-soft); border-color: var(--platinum); }
+.trophy-card.is-diamond { background: var(--diamond-soft); border-color: var(--diamond); }
 .trophy-card .trophy-icon { width: 5.5rem; height: 5.5rem; animation: trophy-pop .6s ease-out; }
 .trophy-text { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
 .trophy-title { font-size: 1.7rem; font-weight: 900; }
@@ -504,6 +520,8 @@ button.path-dot:hover { background: var(--accent-soft); }
   background: var(--sun-soft); font-weight: 700;
 }
 .trophy-item.is-silver { background: var(--silver-soft); }
+.trophy-item.is-platinum { background: var(--platinum-soft); }
+.trophy-item.is-diamond { background: var(--diamond-soft); }
 .trophy-item .trophy-icon { width: 2rem; height: 2rem; }
 .trophy-kind { font-weight: 600; color: var(--ink-soft); font-size: .95rem; }
 .trophy-counts { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin: 0 0 .7rem; font-weight: 700; }

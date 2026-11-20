@@ -19,10 +19,17 @@
   };
 
   var MIN_LEVEL = 1;
-  var MAX_LEVEL = 30;      // the usual top level
-  var MAX_GAME_LEVEL = 50; // a game may set maxLevel up to this (the photo games have 50)
+  var MAX_LEVEL = 50;      // the usual top level
+  var MAX_GAME_LEVEL = 50; // a game may set maxLevel up to this
   var START_LEVEL = 3; // level 1–2 stay available as warm-ups
-  var SILVER_LEVEL = 20; // winning this level earns the silver trophy; MAX_LEVEL earns the gold one
+  var SILVER_LEVEL = 20; // winning this level earns the silver trophy
+  /* Trophies, lowest first: winning the level earns it. A game that stops at level 20 gives gold there. */
+  var TROPHIES = [
+    { kind: 'silver',   level: 20, label: 'כסף' },
+    { kind: 'gold',     level: 30, label: 'זהב' },
+    { kind: 'platinum', level: 40, label: 'פלטינה' },
+    { kind: 'diamond',  level: 50, label: 'יהלום' }
+  ];
 
   /* Levels are grouped into named stages shown on the level path. */
   var STAGES = [
@@ -46,7 +53,7 @@
 
   /* ---------- storage (always fail-safe) ---------- */
   var STORE_KEY = 'rega-lamoach-v1';
-  var STATE_VERSION = 2;
+  var STATE_VERSION = 3;
   var memoryFallback = null;
 
   function loadState() {
@@ -82,6 +89,13 @@
           if (typeof t === 'string') base.trophies[id] = { silver: t };
           else if (!t || typeof t !== 'object') delete base.trophies[id];
         });
+        if ((parsed.version || 1) < 3) {
+          // the photo games gave gold at level 50, which is now the diamond trophy
+          ['photo-name', 'photo-pick'].forEach(function (id) {
+            var t = base.trophies[id];
+            if (t && t.gold && !t.diamond) t.diamond = t.gold;
+          });
+        }
       }
     } catch (e) {
       if (memoryFallback) return memoryFallback;
@@ -275,6 +289,7 @@
     MAX_LEVEL: MAX_LEVEL,
     START_LEVEL: START_LEVEL,
     SILVER_LEVEL: SILVER_LEVEL,
+    TROPHIES: TROPHIES,
     STAGES: STAGES,
     stageOf: stageOf,
     register: register,

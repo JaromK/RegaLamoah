@@ -348,8 +348,8 @@
       el('span', { class: 'game-card-name' }, [
         g.name,
         trophyKind(g.id) ? el('span', {
-          class: 'card-trophy' + (trophyKind(g.id) === 'silver' ? ' is-silver' : ''),
-          title: trophyKind(g.id) === 'gold' ? 'זכיתם בגביע הזהב' : 'זכיתם בגביע הכסף', html: TROPHY_SVG
+          class: 'card-trophy' + trophyClass(trophyKind(g.id)),
+          title: 'זכיתם בגביע ה' + trophyInfo(trophyKind(g.id)).label, html: TROPHY_SVG
         }) : null
       ]),
       el('span', { class: 'game-card-tag' }, g.tagline),
@@ -482,7 +482,7 @@
       el('h2', { class: 'section-title' }, 'כל המשחקים'),
       el('p', { class: 'section-lead' }, 'רוצים לשחק עוד? בחרו כל משחק שתרצו. בכל משחק יש ' + BG.MAX_LEVEL + ' רמות או יותר.'),
       el('div', { class: 'skill-groups' }, Object.keys(BG.SKILLS).map(function (skill) {
-        var games = BG.all().filter(function (g) { return g.skill === skill; });
+        var games = BG.all().filter(function (g) { return g.skill === skill && !g.isNew; });
         if (!games.length) return null;
         return el('div', { class: 'skill-group' }, [
           el('h3', { class: 'skill-group-title' }, [skillIcon(skill), BG.SKILLS[skill].label]),
@@ -504,31 +504,48 @@
         el('p', { class: 'thought-text' }, U.pick(DAILY_THOUGHTS, thoughtRng))
       ])
     ]));
-    // Gold first, then silver; each game shows its best trophy once.
+    // Best trophies first; each game shows its best trophy once.
     var won = BG.all().filter(function (g) { return trophyKind(g.id); }).sort(function (a, b) {
-      return (trophyKind(a.id) === 'gold' ? 0 : 1) - (trophyKind(b.id) === 'gold' ? 0 : 1);
+      return TROPHY_RANK[trophyKind(b.id)] - TROPHY_RANK[trophyKind(a.id)];
     });
     if (won.length) {
-      var golds = won.filter(function (g) { return trophyKind(g.id) === 'gold'; }).length;
-      var silvers = BG.all().filter(function (g) {
-        var t = BG.state.trophies[g.id];
-        return t && t.silver && BG.maxLevelOf(g.id) > BG.SILVER_LEVEL;
-      }).length;
+      // how many games reached each trophy (a game with diamond also counts for the trophies below it)
+      var counts = BG.TROPHIES.slice().reverse().map(function (tr) {
+        var n = BG.all().filter(function (g) {
+          var k = trophyKind(g.id);
+          return k && TROPHY_RANK[k] >= TROPHY_RANK[tr.kind] && (tr.kind === 'gold' || BG.maxLevelOf(g.id) >= tr.level);
+        }).length;
+        return el('span', null, [el('span', { class: 'trophy-icon' + trophyClass(tr.kind), html: TROPHY_SVG }), tr.label + ': ' + n]);
+      });
+      var atTop = won.some(function (g) { return trophyKind(g.id) === trophyForLevel(g.id, BG.maxLevelOf(g.id)); });
       app.appendChild(el('section', { class: 'section trophies' }, [
         el('h2', { class: 'section-title' }, 'הגביעים שלי'),
-        el('p', { class: 'trophy-counts' }, [
-          el('span', null, [el('span', { class: 'trophy-icon', html: TROPHY_SVG }), 'זהב: ' + golds + ' מתוך ' + BG.all().length]),
-          el('span', null, [el('span', { class: 'trophy-icon is-silver', html: TROPHY_SVG }), 'כסף: ' + silvers + ' מתוך ' + BG.all().length])
-        ]),
+        el('p', { class: 'trophy-counts' }, counts),
         el('ul', { class: 'trophy-list' }, won.map(function (g) {
-          var gold = trophyKind(g.id) === 'gold';
-          return el('li', { class: 'trophy-item' + (gold ? '' : ' is-silver') }, [
-            el('span', { class: 'trophy-icon' + (gold ? '' : ' is-silver'), html: TROPHY_SVG }),
+          var k = trophyKind(g.id);
+          return el('li', { class: 'trophy-item' + trophyClass(k) }, [
+            el('span', { class: 'trophy-icon' + trophyClass(k), html: TROPHY_SVG }),
             el('span', null, g.name),
-            el('span', { class: 'trophy-kind' }, gold ? 'זהב' : 'כסף')
+            el('span', { class: 'trophy-kind' }, trophyInfo(k).label)
           ]);
         })),
-        golds ? el('p', { class: 'trophy-call' }, 'רוצים עוד רמות? התקשרו לירון.') : null
+        atTop ? el('p', { class: 'trophy-call' }, 'רוצים עוד רמות? התקשרו לירון.') : null
+      ]));
+    }
+    // games marked isNew get their own section above the others
+    var fresh = BG.all().filter(function (g) { return g.isNew; });
+    if (fresh.length) {
+      app.appendChild(el('section', { class: 'section section-new' }, [
+        el('h2', { class: 'section-title' }, ['משחקים חדשים', el('span', { class: 'new-badge' }, fresh.length + ' משחקים')]),
+        el('p', { class: 'section-lead' }, 'תפזורת, סודוקו, קאקורו, תשבץ, פאזל ועוד. נסו אותם!'),
+        el('div', { class: 'skill-groups' }, Object.keys(BG.SKILLS).map(function (skill) {
+          var games = fresh.filter(function (g) { return g.skill === skill; });
+          if (!games.length) return null;
+          return el('div', { class: 'skill-group' }, [
+            el('h3', { class: 'skill-group-title' }, [skillIcon(skill), BG.SKILLS[skill].label]),
+            el('ul', { class: 'game-grid' }, games.map(gameCard))
+          ]);
+        }))
       ]));
     }
     app.appendChild(allSection);
@@ -536,7 +553,7 @@
       el('h2', { class: 'section-title' }, 'איך זה עובד'),
       el('ul', { class: 'tips-list' }, [
         el('li', null, [el('strong', null, 'אין שעון. '), 'קחו את הזמן לחשוב. הדיוק חשוב יותר מהמהירות. מי שרוצה אתגר יכול להפעיל את השעון ב"הגדרות" למעלה.']),
-        el('li', null, [el('strong', null, 'גביעים לאלופים. '), 'מי שמנצח ברמה ' + BG.SILVER_LEVEL + ' במשחק מקבל גביע כסף, וברמה האחרונה של המשחק גביע זהב.']),
+        el('li', null, [el('strong', null, 'גביעים לאלופים. '), 'מי שמנצח במשחק ברמה 20 מקבל גביע כסף, ברמה 30 גביע זהב, ברמה 40 גביע פלטינה וברמה 50 גביע יהלום.']),
         el('li', null, [el('strong', null, BG.MAX_LEVEL + ' רמות בכל משחק, ובחלק מהמשחקים יותר. '), 'כשמצליחים עולים רמה, וכשקשה יורדים רמה. אפשר גם לבחור רמה בעצמכם ב"הגדרות".']),
         el('li', null, [el('strong', null, 'קצת בכל יום. '), 'עשר דקות ביום עדיפות על שעה פעם בשבוע.'])
       ]),
@@ -606,7 +623,15 @@
       el('h2', { class: 'intro-sub' }, 'איך משחקים'),
       el('ol', { class: 'steps' }, game.instructions.map(function (s) { return el('li', null, s); })),
       game.benefit ? el('p', { class: 'benefit' }, [el('strong', null, 'מה זה מאמן: '), game.benefit]) : null,
-      el('div', { class: 'level-box level-box-compact' }, [
+      // games with levelPicker show the levels right here: tap one to play it
+      game.levelPicker ? el('div', { class: 'intro-levels' }, [
+        el('h2', { class: 'intro-levels-title' }, 'בחרו רמה'),
+        levelPath({
+          level: level, best: getBest(game.id), max: BG.maxLevelOf(game.id),
+          onPick: function (picked) { BG.state.levels[game.id] = picked; BG.save(); renderIntro(game, daily); }
+        })
+      ]) : null,
+      game.levelPicker ? null : el('div', { class: 'level-box level-box-compact' }, [
         el('p', { class: 'level-now' }, [
           el('strong', null, 'הרמה שלכם:'),
           el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.maxLevelOf(game.id)),
@@ -879,27 +904,50 @@
     '<path class="tr-star" d="M32 14l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z"/>' +
     '</svg>';
 
-  // 'gold', 'silver' or null: the best trophy won in a game
+  var TROPHY_RANK = { silver: 1, gold: 2, platinum: 3, diamond: 4 };
+  function trophyInfo(kind) {
+    for (var i = 0; i < BG.TROPHIES.length; i++) if (BG.TROPHIES[i].kind === kind) return BG.TROPHIES[i];
+    return BG.TROPHIES[0];
+  }
+  function trophyClass(kind) { return kind === 'gold' ? '' : ' is-' + kind; }
+
+  // the trophy won by winning `level` in a game, or null
+  function trophyForLevel(id, level) {
+    var top = BG.maxLevelOf(id);
+    // a game that stops at level 20 gives its gold trophy there (no silver step)
+    if (level === top && top <= BG.SILVER_LEVEL) return 'gold';
+    for (var i = 0; i < BG.TROPHIES.length; i++) if (BG.TROPHIES[i].level === level && level <= top) return BG.TROPHIES[i].kind;
+    return null;
+  }
+
+  // 'diamond', 'platinum', 'gold', 'silver' or null: the best trophy won in a game
   function trophyKind(id) {
     var t = BG.state.trophies[id];
     if (!t) return null;
-    // in a game that stops at level 20, winning 20 is its top: that counts as gold
-    if (t.gold || (t.silver && BG.maxLevelOf(id) <= BG.SILVER_LEVEL)) return 'gold';
-    return t.silver ? 'silver' : null;
+    var best = null;
+    Object.keys(TROPHY_RANK).forEach(function (k) {
+      if (!t[k]) return;
+      // in a game that stops at level 20, winning 20 is its top: that counts as gold
+      var kk = k === 'silver' && BG.maxLevelOf(id) <= BG.SILVER_LEVEL ? 'gold' : k;
+      if (!best || TROPHY_RANK[kk] > TROPHY_RANK[best]) best = kk;
+    });
+    return best;
   }
 
-  function trophyCard(game, kind) {
-    var gold = kind === 'gold';
-    return el('div', { class: 'trophy-card' + (gold ? '' : ' is-silver') }, [
-      el('span', { class: 'trophy-icon' + (gold ? '' : ' is-silver'), html: TROPHY_SVG }),
-      el('div', { class: 'trophy-text' }, gold ? [
-        el('h2', { class: 'trophy-title' }, 'זכיתם בגביע הזהב!'),
-        el('p', null, 'ניצחתם ברמה ' + BG.maxLevelOf(game.id) + ', הרמה הגבוהה ביותר ב"' + game.name + '". הישג מרשים במיוחד.'),
+  function trophyCard(game, kind, level) {
+    var info = trophyInfo(kind);
+    var top = BG.maxLevelOf(game.id);
+    var next = BG.TROPHIES.filter(function (t) { return t.level > level && t.level <= top; })[0];
+    return el('div', { class: 'trophy-card' + trophyClass(kind) }, [
+      el('span', { class: 'trophy-icon' + trophyClass(kind), html: TROPHY_SVG }),
+      el('div', { class: 'trophy-text' }, level >= top ? [
+        el('h2', { class: 'trophy-title' }, 'זכיתם בגביע ה' + info.label + '!'),
+        el('p', null, 'ניצחתם ברמה ' + top + ', הרמה הגבוהה ביותר ב"' + game.name + '". הישג מרשים במיוחד.'),
         el('p', { class: 'trophy-call' }, 'רוצים עוד רמות? התקשרו לירון.')
       ] : [
-        el('h2', { class: 'trophy-title' }, 'זכיתם בגביע הכסף!'),
-        el('p', null, 'ניצחתם ברמה ' + BG.SILVER_LEVEL + ' ב"' + game.name + '". הישג מרשים!'),
-        el('p', null, 'מחכות לכם עוד ' + (BG.maxLevelOf(game.id) - BG.SILVER_LEVEL) + ' רמות בדרך לגביע הזהב.')
+        el('h2', { class: 'trophy-title' }, 'זכיתם בגביע ה' + info.label + '!'),
+        el('p', null, 'ניצחתם ברמה ' + level + ' ב"' + game.name + '". הישג מרשים!'),
+        next ? el('p', null, 'הגביע הבא: ' + next.label + ', ברמה ' + next.level + '.') : null
       ])
     ]);
   }
@@ -920,12 +968,11 @@
     var oldBest = getBest(game.id);
     var oldStage = BG.stageOf(playedLevel);
     var newStage = BG.stageOf(newLevel);
-    // Winning level 20 earns the silver trophy, the top level the gold one
+    // Winning level 20, 30, 40 or 50 earns silver, gold, platinum or diamond
     // (each once per game; replays still show the card)
     var won = acc >= 0.85;
     var wonTop = playedLevel === top && won;
-    // a game that stops at level 20 gives its gold trophy there (no silver step)
-    var trophyWon = wonTop ? 'gold' : (playedLevel === BG.SILVER_LEVEL && won ? 'silver' : null);
+    var trophyWon = won ? trophyForLevel(game.id, playedLevel) : null;
     if (trophyWon) {
       var tr = BG.state.trophies[game.id] || {};
       if (!tr[trophyWon]) tr[trophyWon] = U.dateKey();
@@ -980,7 +1027,7 @@
         el('span', { class: 'meter-fill', style: { width: Math.round(acc * 100) + '%' } })),
       result.note ? el('p', { class: 'result-note' }, result.note) : null,
       elapsedMs !== null && elapsedMs !== undefined ? el('p', { class: 'result-time' }, 'זמן המשחק: ' + formatTime(elapsedMs)) : null,
-      trophyWon ? trophyCard(game, trophyWon) : null,
+      trophyWon ? trophyCard(game, trophyWon, playedLevel) : null,
       el('p', { class: 'result-level' + (leveledUp || wonTop ? ' is-up' : '') }, levelMsg),
       el('div', { class: 'result-actions' }, actions)
     ]));

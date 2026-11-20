@@ -46,6 +46,13 @@
     '.sl2-item.is-wrong{background:var(--bad-soft);border-color:var(--bad);border-width:3px;color:var(--bad);}',
     '.sl2-item.sl2-missed{background:var(--surface);border:3px dashed var(--sun);}',
     '.sl2-item.sl2-dim{opacity:.45;}',
+    /* a picked item gets a big "remove" badge, so a wrong tap is easy to take back */
+    '.sl2-cell{position:relative;display:flex;min-width:0;}',
+    '.sl2-cell>.sl2-item{flex:1;}',
+    '.sl2-undo{position:absolute;top:-.55rem;inset-inline-start:-.45rem;width:2.4rem;height:2.4rem;border-radius:999px;',
+    'border:3px solid var(--surface);background:var(--c-red);color:#fff;font-size:1.35rem;font-weight:900;line-height:1;',
+    'display:grid;place-items:center;cursor:pointer;padding:0;box-shadow:var(--shadow);}',
+    '.sl2-undo[hidden]{display:none;}',
     '.sl2-qty{font-weight:900;color:var(--memory);margin-inline-start:auto;font-variant-numeric:tabular-nums;}',
     '.sl2-count{font-size:1rem;font-weight:900;color:var(--memory);min-height:1.1rem;line-height:1.1;}',
     '.sl2-item.is-correct .sl2-count{color:var(--good);}',
@@ -71,8 +78,8 @@
     instructions: [
       'תופיע רשימת קניות. קראו וזכרו את כל הפריטים.',
       'כשתהיו מוכנים לחצו "זכרתי, הלאה".',
-      'על המדף יופיעו מוצרים רבים. לחצו על כל מה שהיה ברשימה.',
-      'לחצו "בדיקה" כדי לראות מה זכרתם. ברמות הגבוהות זכרו גם כמה: כל לחיצה מוסיפה עוד אחד.'
+      'על המדף יופיעו מוצרים רבים. לחצו על כל מה שהיה ברשימה. טעיתם? לחצו על ✕ האדום כדי לבטל.',
+      'לחצו "בדיקה" כדי לראות מה זכרתם. ברמות הגבוהות זכרו גם כמה: כל לחיצה מוסיפה עוד אחד, ו־"−" האדום מוריד אחד.'
     ],
     css: css,
     start: function (root, ctx) {
@@ -163,21 +170,28 @@
         }
 
         function showShelf() {
-          ctx.setStatus(withQty ? 'לחצו על המוצרים שברשימה. לחיצה נוספת מוסיפה עוד אחד'
-            : 'לחצו על ' + listLen + ' המוצרים שהיו ברשימה');
+          ctx.setStatus(withQty ? 'כל לחיצה מוסיפה אחד, ו־"−" מוריד אחד'
+            : 'לחצו על ' + listLen + ' המוצרים שהיו ברשימה. טעיתם? לחצו שוב או על ✕');
           var picked = {};
           var pickedCount = 0;
           var accepting = true;
 
-          var buttons = data.shelf.map(function (it) {
+          var undos = [];
+          var buttons = data.shelf.map(function (it, i) {
             var b = el('button', {
               class: 'sl2-item', type: 'button', 'aria-pressed': 'false',
-              onclick: function () { toggle(it, b); }
+              onclick: function () { toggle(it, b, i); }
             }, [el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji), el('span', { class: 'sl2-word' }, it.word),
               withQty ? el('span', { class: 'sl2-count', 'aria-hidden': 'true' }) : null]);
+            undos[i] = el('button', {
+              class: 'sl2-undo', type: 'button', hidden: true, 'aria-label': (withQty ? 'להוריד אחד: ' : 'לבטל: ') + it.word,
+              onclick: function () { undo(it, b, i); }
+            }, withQty ? '−' : '✕');
             return b;
           });
-          var shelf = el('div', { class: 'sl2-shelf' }, buttons);
+          var shelf = el('div', { class: 'sl2-shelf' }, buttons.map(function (b, i) {
+            return el('div', { class: 'sl2-cell' }, [b, undos[i]]);
+          }));
           var checkBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', disabled: true, onclick: check, 'aria-live': 'polite' }, 'בדיקה');
           var actions = el('div', { class: 'g-actions' }, checkBtn);
           root.appendChild(shelf);
@@ -189,24 +203,32 @@
             checkBtn.disabled = pickedCount === 0;
           }
 
-          function toggle(it, b) {
-            if (!accepting) return;
-            ctx.sound('tap');
+          // with amounts: a tap adds one (up to 3) and "−" takes one away; without: a tap picks or un-picks, ✕ un-picks
+          function setQty(it, b, i, c) {
+            if (!picked[it.id] && c) pickedCount++;
+            if (picked[it.id] && !c) pickedCount--;
+            if (c) picked[it.id] = withQty ? c : true; else delete picked[it.id];
+            b.classList.toggle('sl2-picked', !!c);
+            b.setAttribute('aria-pressed', c ? 'true' : 'false');
             if (withQty) {
-              // 1 → 2 → 3 → none
-              var c = ((picked[it.id] || 0) + 1) % 4;
-              if (!picked[it.id]) pickedCount++;
-              if (c) picked[it.id] = c; else { delete picked[it.id]; pickedCount--; }
-              b.classList.toggle('sl2-picked', !!c);
-              b.setAttribute('aria-pressed', c ? 'true' : 'false');
               b.setAttribute('aria-label', it.word + (c ? ', כמות ' + c : ''));
               b.querySelector('.sl2-count').textContent = c ? '×' + c : '';
-              updateCount();
-              return;
             }
-            if (picked[it.id]) { delete picked[it.id]; pickedCount--; b.classList.remove('sl2-picked'); b.setAttribute('aria-pressed', 'false'); }
-            else { picked[it.id] = true; pickedCount++; b.classList.add('sl2-picked'); b.setAttribute('aria-pressed', 'true'); }
+            undos[i].hidden = !c;
             updateCount();
+          }
+
+          function toggle(it, b, i) {
+            if (!accepting) return;
+            ctx.sound('tap');
+            if (withQty) setQty(it, b, i, Math.min(3, (picked[it.id] || 0) + 1));
+            else setQty(it, b, i, picked[it.id] ? 0 : 1);
+          }
+
+          function undo(it, b, i) {
+            if (!accepting) return;
+            ctx.sound('tap');
+            setQty(it, b, i, withQty ? Math.max(0, (picked[it.id] || 0) - 1) : 0);
           }
 
           function check() {
@@ -214,6 +236,7 @@
             accepting = false;
             checkBtn.disabled = true;
             buttons.forEach(function (b) { b.disabled = true; });
+            undos.forEach(function (u) { u.hidden = true; });
             var hits = 0, wrong = 0, badQty = 0;
             data.shelf.forEach(function (it, i) {
               var b = buttons[i];
