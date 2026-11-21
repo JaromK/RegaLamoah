@@ -51,7 +51,29 @@
     { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.85, ring: false, shift: true, outer: 0.35 }, // 27
     { forms: ['diamond13', 'x9'], dirs: 4, inc: 1, mixed: 0.9, ring: false, shift: true, outer: 0.35 }, // 28
     { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.9, ring: false, shift: true, outer: 0.4 }, // 29
-    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.9, ring: false, shift: true, outer: 0.45 }  // 30
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.9, ring: false, shift: true, outer: 0.45 }, // 30
+    // 31–50: a third rule (anti, 33+): press the OPPOSITE way to the middle arrow; from 41 a fourth
+    // (antiOuter): the opposite way to the arrows around it. Rules change more and more often.
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.9, ring: false, shift: true, outer: 0.5 }, // 31
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.95, ring: false, shift: true, outer: 0.5 }, // 32
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.95, ring: false, shift: true, outer: 0.35, anti: 0.15 }, // 33
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.95, ring: false, shift: true, outer: 0.35, anti: 0.2 }, // 34
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.95, ring: false, shift: true, outer: 0.3, anti: 0.25 }, // 35
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.95, ring: false, shift: true, outer: 0.3, anti: 0.3 }, // 36
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.95, ring: false, shift: true, outer: 0.3, anti: 0.3 }, // 37
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.95, ring: false, shift: true, outer: 0.3, anti: 0.35 }, // 38
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 0.95, ring: false, shift: true, outer: 0.35, anti: 0.35 }, // 39
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.35, anti: 0.35 }, // 40
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.3, anti: 0.3, antiOuter: 0.1 }, // 41
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.3, anti: 0.3, antiOuter: 0.15 }, // 42
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.25, anti: 0.3, antiOuter: 0.2 }, // 43
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.25, anti: 0.3, antiOuter: 0.25 }, // 44
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.25, anti: 0.3, antiOuter: 0.25 }, // 45
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.25, anti: 0.3, antiOuter: 0.3 }, // 46
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.25, anti: 0.3, antiOuter: 0.3 }, // 47
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.2, anti: 0.35, antiOuter: 0.3 }, // 48
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.25, anti: 0.3, antiOuter: 0.35 }, // 49
+    { forms: ['diamond13'], dirs: 4, inc: 1, mixed: 1, ring: false, shift: true, outer: 0.25, anti: 0.3, antiOuter: 0.4 } // 50
   ];
 
   var FIELD = 7;   // largest field side when the formation is shifted off-centre
@@ -59,6 +81,14 @@
   var PAD_ORDER = ['left', 'up', 'down', 'right']; // one row of buttons, left to right
   var ANGLE = { right: 0, down: 90, left: 180, up: 270 };
   var WORD = { left: 'שמאלה', right: 'ימינה', up: 'למעלה', down: 'למטה' };
+  var OPP = { left: 'right', right: 'left', up: 'down', down: 'up' };
+  // the rule of each card: label, status line, and what a wrong answer is told
+  var RULES = {
+    mid: { label: 'הכלל: החץ שבאמצע', status: 'לאן מצביע החץ שבאמצע?', cls: '' },
+    outer: { label: 'הכלל: החיצים שמסביב', status: 'שימו לב: לאן מצביעים החיצים שמסביב?', cls: ' is-outer' },
+    anti: { label: 'הכלל: הפוך מהחץ שבאמצע', status: 'שימו לב: לחצו לכיוון ההפוך מהחץ שבאמצע', cls: ' is-anti' },
+    antiOuter: { label: 'הכלל: הפוך מהחיצים שמסביב', status: 'שימו לב: לחצו לכיוון ההפוך מהחיצים שמסביב', cls: ' is-anti-outer' }
+  };
   var ARROW = '<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">' +
     '<path d="M10 40h46V18l36 32-36 32V60H10z" fill="currentColor"/></svg>';
 
@@ -118,17 +148,26 @@
       var j = Math.floor(rand() * (k + 1)); var t = kinds[k]; kinds[k] = kinds[j]; kinds[j] = t;
     }
     // "Outer" cards (levels 21+): the surrounding arrows all share one direction, never the middle's.
+    // Levels 31+ add "anti" cards (press the opposite of the middle) and, from 41, "antiOuter" cards
+    // (the opposite of the surrounding arrows, which then all share one direction too).
     var nOuter = Math.round((spec.outer || 0) * TRIALS);
+    var nAnti = Math.round((spec.anti || 0) * TRIALS);
+    var nAntiOuter = Math.round((spec.antiOuter || 0) * TRIALS);
     var slots = [];
     for (var s = 1; s < TRIALS; s++) slots.push(s); // never the first card
     for (var m = slots.length - 1; m > 0; m--) {
       var q = Math.floor(rand() * (m + 1)); var u = slots[m]; slots[m] = slots[q]; slots[q] = u;
     }
-    var outer = {};
-    slots.slice(0, nOuter).forEach(function (p) { outer[p] = true; kinds[p] = 'opp'; });
+    var rule = {};
+    slots.slice(0, nOuter).forEach(function (p) { rule[p] = 'outer'; kinds[p] = 'opp'; });
+    slots.slice(nOuter, nOuter + nAnti).forEach(function (p) { rule[p] = 'anti'; });
+    slots.slice(nOuter + nAnti, nOuter + nAnti + nAntiOuter).forEach(function (p) { rule[p] = 'antiOuter'; kinds[p] = 'opp'; });
     return kinds.map(function (kind, p) {
       var tr = makeTrial(spec, kind, rand);
-      if (outer[p]) { tr.outer = true; tr.answer = tr.items[1].dir; } else tr.answer = tr.mid;
+      tr.rule = rule[p] || 'mid';
+      if (tr.rule === 'outer') tr.outer = true;
+      tr.answer = tr.rule === 'outer' ? tr.items[1].dir : tr.rule === 'anti' ? OPP[tr.mid]
+        : tr.rule === 'antiOuter' ? OPP[tr.items[1].dir] : tr.mid;
       return tr;
     });
   }
@@ -144,6 +183,8 @@
     '.ma-rule{display:inline-block;padding:.3rem 1rem;border-radius:999px;font-weight:800;font-size:1.1rem;',
     'background:var(--attention-soft);color:var(--attention);border:2px solid var(--attention);}',
     '.ma-rule.is-outer{background:var(--logic-soft);color:var(--logic);border-color:var(--logic);}',
+    '.ma-rule.is-anti{background:var(--c-purple-soft);color:var(--ink);border-color:var(--c-purple);}',
+    '.ma-rule.is-anti-outer{background:var(--c-red-soft);color:var(--ink);border-color:var(--c-red);}',
     '.ma-rule.is-changed{box-shadow:0 0 0 4px var(--sun);}',
     '.ma-rule + .ma-field{width:min(100%,calc(var(--cols) * 4.2rem),calc((100svh - 21.5rem) * var(--cols) / var(--rows)));}',
     '.ma-pad{display:grid;gap:.6rem;direction:ltr;width:100%;max-width:20rem;}',
@@ -165,14 +206,15 @@
       'יופיעו כמה חיצים יחד. הסתכלו רק על החץ שבאמצע.',
       'החיצים מסביב באים להטעות: לפעמים הם מצביעים לכיוון אחר, ולפעמים לכל הכיוונים.',
       'לחצו על הכפתור עם הכיוון של החץ האמצעי. אין שעון, קחו את הזמן.',
-      'ברמות הגבוהות לפעמים שואלים דווקא על החיצים שמסביב. קראו את הכלל בכל כרטיס.'
+      'ברמות הגבוהות לפעמים שואלים דווקא על החיצים שמסביב. קראו את הכלל בכל כרטיס.',
+      'ברמות הגבוהות ביותר יש גם כלל "הפוך": לחצו על הכיוון ההפוך (למשל החץ מצביע ימינה, לחצו שמאלה).'
     ],
     css: css,
     _makeSession: makeSession,   // exposed for tests
     _levels: LEVELS,
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var trials = makeSession(spec);
       var idx = 0;
@@ -195,8 +237,9 @@
 
       function play(tr) {
         root.innerHTML = '';
-        var prevOuter = idx > 1 && trials[idx - 2].outer;
-        ctx.setStatus(tr.outer ? 'שימו לב: לאן מצביעים החיצים שמסביב?' : 'לאן מצביע החץ שבאמצע?');
+        var prevRule = idx > 1 ? trials[idx - 2].rule : 'mid';
+        var R = RULES[tr.rule];
+        ctx.setStatus(R.status);
         var cells = [];
         var byPos = {};
         tr.items.forEach(function (it) { byPos[it.r * tr.cols + it.c] = it; });
@@ -228,8 +271,8 @@
         var pad = el('div', { class: 'ma-pad ma-pad' + spec.dirs }, btns);
         if (spec.outer) {
           root.appendChild(el('span', {
-            class: 'ma-rule' + (tr.outer ? ' is-outer' : '') + (!!tr.outer !== !!prevOuter ? ' is-changed' : '')
-          }, tr.outer ? 'הכלל: החיצים שמסביב' : 'הכלל: החץ שבאמצע'));
+            class: 'ma-rule' + R.cls + (tr.rule !== prevRule ? ' is-changed' : '')
+          }, R.label));
         }
         root.appendChild(field);
         root.appendChild(pad);
@@ -246,13 +289,20 @@
           }
           buttons[d].classList.add('is-wrong');
           buttons[tr.answer].classList.add('is-correct');
-          if (tr.outer) {
+          var msg;
+          if (tr.rule === 'outer') {
             ctx.setStatus('הפעם שאלנו על החיצים שמסביב');
+            msg = 'החיצים שמסביב הצביעו ' + WORD[tr.answer];
+          } else if (tr.rule === 'antiOuter') {
+            ctx.setStatus('הפעם: הפוך מהחיצים שמסביב');
+            msg = 'הפוך מ' + WORD[tr.items[1].dir] + ' זה ' + WORD[tr.answer];
           } else {
             midCell.classList.add('ma-show');
             ctx.setStatus('החץ האמצעי מסומן בצהוב');
+            msg = tr.rule === 'anti' ? 'הפוך מ' + WORD[tr.mid] + ' זה ' + WORD[tr.answer]
+              : 'החץ האמצעי הצביע ' + WORD[tr.mid];
           }
-          ctx.feedback(false, tr.outer ? 'החיצים שמסביב הצביעו ' + WORD[tr.answer] : 'החץ האמצעי הצביע ' + WORD[tr.mid]).then(function () {
+          ctx.feedback(false, msg).then(function () {
             return ctx.wait(900);
           }).then(next);
         }
