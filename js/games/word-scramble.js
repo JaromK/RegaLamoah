@@ -61,18 +61,32 @@
   /* Word length range by level (index = level - 1). */
   var LEN = [[3, 3], [3, 3], [3, 4], [4, 4], [4, 4], [4, 5], [5, 5], [5, 5], [5, 6], [5, 6],
              [6, 6], [6, 6], [6, 7], [6, 7], [7, 7], [7, 7], [7, 8], [7, 8], [8, 9], [8, 9],
-             [7, 8], [7, 9], [6, 8], [7, 8], [7, 9], [6, 8], [7, 8], [7, 9], [7, 9], [8, 9]];
+             [7, 8], [7, 9], [6, 8], [7, 8], [7, 9], [6, 8], [7, 8], [7, 9], [7, 9], [8, 9],
+             // 31–50: long words with extra letters that look like the word's own letters
+             [7, 8], [7, 9], [7, 9], [8, 9], [8, 9], [7, 8], [7, 8], [7, 9], [7, 9], [8, 9],
+             [8, 9], [8, 9], [8, 9], [8, 9], [8, 9], [7, 8], [7, 9], [8, 9], [8, 9], [8, 9]];
   // Extra letter tiles that do not belong to the word.
-  var DECOY_N = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3];
+  var DECOY_N = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3,
+                 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4];
+  // From this level the extra letters look like letters of the word (ה/ח, ב/כ, ד/ר…), so they are harder to rule out.
+  var ALIKE_FROM = 31;
+  var ALIKE = { 'ה': 'חק', 'ח': 'הת', 'ב': 'כפ', 'כ': 'בנ', 'ד': 'ר', 'ר': 'ד', 'ו': 'זי', 'ז': 'ו', 'ס': 'טם', 'ט': 'ס',
+    'ע': 'צש', 'צ': 'ע', 'נ': 'גכ', 'ג': 'נ', 'י': 'ו', 'ק': 'ה', 'ש': 'ע', 'ת': 'ח', 'מ': 'ט', 'ל': 'ד', 'א': 'ע', 'פ': 'כ' };
   // From this level the category hint is hidden (only the number of letters is shown).
   var NO_CATEGORY_FROM = 23;
 
   /* Shuffle tile order so the word letters never appear in the original order
      and never spell any word from the bank. */
-  function scrambleOrder(letters, nDecoy, shuffle) {
+  function scrambleOrder(letters, nDecoy, shuffle, alike) {
     var tiles = letters.slice();
     for (var d = 0; d < nDecoy; d++) {
       var free = DECOYS.filter(function (l) { return tiles.indexOf(l) === -1; });
+      if (alike) {
+        // a look-alike of one of the word's letters, when there is one not already on the board
+        var near = [];
+        letters.forEach(function (l) { (ALIKE[l] || '').split('').forEach(function (a) { if (free.indexOf(a) !== -1 && near.indexOf(a) === -1) near.push(a); }); });
+        if (near.length) free = near;
+      }
       tiles.push(free[Math.floor(Math.random() * free.length)]);
     }
     var target = letters.join('');
@@ -132,7 +146,7 @@
     ],
     css: CSS,
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
+      var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level) || 1)));
       var range = LEN[level - 1];
       var nDecoy = DECOY_N[level - 1];
       var round = 0;
@@ -166,7 +180,7 @@
         var word = pickWord();
         var target = word.n;           // regular letter forms
         var n = target.length;
-        var tiles = scrambleOrder(target, nDecoy, ctx.shuffle);
+        var tiles = scrambleOrder(target, nDecoy, ctx.shuffle, level >= ALIKE_FROM);
         var tileUsed = tiles.map(function () { return false; });
         var slots = [];                // n entries: null or { ti, locked }
         for (var i = 0; i < n; i++) slots.push(null);
