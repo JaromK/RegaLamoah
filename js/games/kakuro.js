@@ -175,7 +175,7 @@
 
   var css = [
     /* the grid is a size container: cell text scales with the real cell size (100cqw / columns) */
-    '.kk-grid{display:grid;grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:2px;width:min(100%,calc((100svh - 22.5rem) * var(--c) / var(--r)),30rem);',
+    '.kk-grid{display:grid;grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:2px;width:min(100%,30rem);',
     'direction:rtl;background:var(--ink);border:3px solid var(--ink);border-radius:var(--radius-sm);overflow:hidden;container-type:inline-size;}',
     '.kk-cell{aspect-ratio:1;min-width:0;padding:0;border:0;background:var(--surface);color:var(--c-blue);font-family:var(--font-display);font-weight:900;',
     'font-size:calc(100cqw / var(--c) * .58);line-height:1;cursor:pointer;display:grid;place-items:center;}',
@@ -189,8 +189,8 @@
     '.kk-n{display:flex;align-items:center;gap:.05em;font-weight:900;font-size:calc(100cqw / var(--c) * .4);line-height:1;direction:ltr;white-space:nowrap;}',
     '.kk-n i{font-style:normal;font-size:.9em;color:var(--sun);}',
     '.kk-done .kk-cell{background:var(--good-soft);}',
-    '.kk-pad{display:grid;grid-template-columns:repeat(var(--k),minmax(0,1fr));gap:.4rem;width:100%;max-width:30rem;}',
-    '.kk-pad .g-choice{min-height:3rem;font-size:1.55rem;padding:.1rem;}'
+    '.kk-pad{display:grid;grid-template-columns:repeat(var(--k),minmax(0,1fr));gap:.35rem;width:100%;max-width:30rem;}',
+    '.kk-pad .g-choice{min-height:2.75rem;font-size:1.45rem;padding:0;}'
   ].join('');
 
   BrainGames.register({
@@ -255,8 +255,8 @@
           pad.appendChild(el('button', { class: 'g-choice', type: 'button', onclick: function () { put(v); } }, String(v)));
         })(v);
         pad.appendChild(el('button', { class: 'g-choice', type: 'button', 'aria-label': 'מחיקה', onclick: function () { put(0); } }, '⌫'));
-        var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
-        var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'הראו פתרון');
+        var hintBtn = el('button', { class: 'btn btn-secondary btn-sm', type: 'button', onclick: hint }, 'רמז');
+        var showBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: reveal }, 'הראו פתרון');
         var actions = el('div', { class: 'g-actions' }, [hintBtn, showBtn]);
         root.appendChild(grid); root.appendChild(pad); root.appendChild(actions);
         ctx.setStatus('מלאו מספרים מ-1 עד ' + P.dmax);
