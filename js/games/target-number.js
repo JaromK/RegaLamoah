@@ -99,6 +99,16 @@
     '.tn-target{display:flex;align-items:center;gap:.7rem;font-size:1.3rem;font-weight:800;}',
     '.tn-target b{font-family:var(--font-display);font-size:2.6rem;font-weight:900;min-width:5rem;text-align:center;padding:.1rem .8rem;',
     'border:3px solid var(--c-red);border-radius:var(--radius);color:var(--c-red);background:var(--c-red-soft);line-height:1.2;}',
+    /* the exercise being built: [number] [operation] [number] = [result], filled in as the player taps */
+    '.tn-build{display:flex;align-items:center;justify-content:center;gap:.35rem;direction:ltr;width:100%;max-width:24rem;}',
+    '.tn-slot{min-width:3.6rem;height:3.2rem;padding:0 .4rem;border:3px dashed var(--line);border-radius:var(--radius-sm);display:grid;place-items:center;',
+    'font-family:var(--font-display);font-size:1.7rem;font-weight:900;color:var(--ink);background:var(--surface);}',
+    '.tn-slot.is-empty{font-family:var(--font-body);font-size:.85rem;font-weight:800;color:var(--ink-soft);}',
+    '.tn-slot.is-next{border-color:var(--sun);box-shadow:0 0 0 3px var(--sun-soft);}',
+    '.tn-slot.s-num{border-style:solid;border-color:var(--c-blue);background:var(--c-blue-soft);}',
+    '.tn-slot.s-op{min-width:2.8rem;border-style:solid;border-color:var(--c-purple);background:var(--c-purple-soft);}',
+    '.tn-slot.s-res{border-style:solid;border-color:var(--c-green);background:var(--c-green-soft);}',
+    '.tn-eq{font-size:1.7rem;font-weight:900;}',
     '.tn-tiles{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:.5rem;width:100%;max-width:26rem;direction:ltr;}',
     '.tn-tile{min-height:4.4rem;font-family:var(--font-display);font-size:2rem;font-weight:900;padding:.1rem;border-radius:var(--radius);',
     'border:3px solid var(--c-blue);background:var(--c-blue-soft);color:var(--ink);cursor:pointer;}',
@@ -126,7 +136,8 @@
     benefit: 'חשבון בראש, תכנון וחשיבה גמישה',
     instructions: [
       'למעלה יש מספר מטרה, ולמטה כמה כרטיסי מספרים.',
-      'לחצו על מספר, אחר כך על פעולה (+ − × ÷), ואז על מספר שני. שני הכרטיסים יהפכו לכרטיס אחד עם התוצאה.',
+      'בונים תרגיל בשלושה צעדים: לוחצים על מספר, אחר כך על פעולה (+ − × ÷), ואז על מספר שני. התרגיל נבנה בתיבות שעל המסך.',
+      'למשל, כדי להגיע ל-10 מהמספרים 6 ו-4: לוחצים 6, אחר כך +, אחר כך 4. שני הכרטיסים הופכים לכרטיס אחד: 10.',
       'ממשיכים כך עד שאחד הכרטיסים שווה למטרה. התוצאה חייבת להיות מספר שלם וחיובי.',
       'טעיתם? "ביטול" מחזיר צעד אחורה. יש גם "רמז". אין שעון.'
     ],
@@ -167,16 +178,40 @@
           opsBox.appendChild(opBtns[o]);
         });
         var logBox = el('div', { class: 'tn-log', 'aria-live': 'polite' });
+        var buildBox = el('div', { class: 'tn-build', 'aria-label': 'התרגיל שאתם בונים' });
+        var shownStep = null; // the exercise just done, shown in the boxes until the next tap
+        // the very first exercise on the easy levels gets a small example
+        var example = level <= 5 && round === 1;
         var undoBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: undo }, 'ביטול');
         var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
         var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'פתרון');
         var actions = el('div', { class: 'g-actions tn-acts' }, [undoBtn, hintBtn, showBtn]);
-        [targetBox, tilesBox, opsBox, logBox, actions].forEach(function (n) { root.appendChild(n); });
+        [targetBox, tilesBox, buildBox, opsBox, logBox, actions].forEach(function (n) { root.appendChild(n); });
         status();
         render();
 
         function status(t) {
-          ctx.setStatus(t || (selA === null ? 'לחצו על מספר' : op === null ? 'עכשיו לחצו על פעולה' : 'עכשיו לחצו על המספר השני'));
+          ctx.setStatus(t || (selA === null ? '1. בחרו מספר' : op === null ? '2. בחרו פעולה: + − × ÷' : '3. בחרו את המספר השני'));
+        }
+        function slot(text, cls, empty, next) {
+          return el('span', { class: 'tn-slot ' + cls + (empty ? ' is-empty' : '') + (next ? ' is-next' : '') }, text);
+        }
+        function drawBuild() {
+          buildBox.innerHTML = '';
+          if (shownStep) { // the step just made: 3 + 4 = 7
+            buildBox.appendChild(slot(String(shownStep.a), 's-num'));
+            buildBox.appendChild(slot(SIGN[shownStep.op], 's-op'));
+            buildBox.appendChild(slot(String(shownStep.b), 's-num'));
+            buildBox.appendChild(el('span', { class: 'tn-eq' }, '='));
+            buildBox.appendChild(slot(String(shownStep.r), 's-res'));
+            return;
+          }
+          var a = selA === null ? null : tiles.filter(function (x) { return x.id === selA; })[0];
+          buildBox.appendChild(a ? slot(String(a.v), 's-num') : slot('מספר', '', true, true));
+          buildBox.appendChild(op ? slot(SIGN[op], 's-op') : slot('פעולה', '', true, !!a));
+          buildBox.appendChild(slot('מספר', '', true, !!(a && op)));
+          buildBox.appendChild(el('span', { class: 'tn-eq' }, '='));
+          buildBox.appendChild(slot('?', '', true));
         }
         function render() {
           tilesBox.innerHTML = '';
@@ -195,15 +230,19 @@
             opBtns[o].classList.toggle('is-hint', !!hintStep && hintStep.op === o && op !== o && !done);
             opBtns[o].disabled = done;
           });
+          drawBuild();
           logBox.innerHTML = '';
           logBox.classList.remove('is-sol');
-          log.slice(-3).forEach(function (s) { logBox.appendChild(el('div', null, stepText(s))); });
+          if (example && !log.length && selA === null) logBox.appendChild(el('div', null, 'דוגמה: 6 + 4 = 10. לוחצים 6, אחר כך +, אחר כך 4'));
+          // earlier steps (the latest one is in the boxes above)
+          log.slice(shownStep ? -3 : -2, shownStep ? -1 : undefined).forEach(function (s) { logBox.appendChild(el('div', null, stepText(s))); });
           undoBtn.disabled = done || !history.length;
           hintBtn.disabled = showBtn.disabled = done;
         }
         function pickTile(t) {
           if (done) return;
           ctx.sound('tap');
+          shownStep = null;
           if (selA === null || (op === null && selA !== t.id)) { selA = t.id; status(); render(); return; }
           if (selA === t.id) { selA = null; op = null; status(); render(); return; }
           var a = tiles.filter(function (x) { return x.id === selA; })[0];
@@ -216,6 +255,7 @@
           var nt = tile(r);
           tiles = tiles.filter(function (x) { return x.id !== a.id; }).map(function (x) { return x.id === t.id ? nt : x; });
           log.push({ a: a.v, op: op, b: t.v, r: r });
+          shownStep = log[log.length - 1];
           lastNew = nt.id; selA = null; op = null; hintStep = null;
           if (r === P.target) { win(); return; }
           if (tiles.length === 1) status('לא הגענו ל-' + P.target + '. לחצו "ביטול" ונסו דרך אחרת');
@@ -225,7 +265,8 @@
         function pickOp(o) {
           if (done) return;
           ctx.sound('tap');
-          if (selA === null) { status('קודם לחצו על מספר, ואחר כך על פעולה'); return; }
+          if (selA === null) { status('קודם בחרו מספר, ואחר כך פעולה'); return; }
+          shownStep = null;
           op = op === o ? null : o;
           status(); render();
         }
@@ -233,7 +274,7 @@
           if (done || !history.length) return;
           ctx.sound('tap');
           var h = history.pop();
-          tiles = h.tiles; log = h.log; selA = null; op = null; lastNew = null; hintStep = null;
+          tiles = h.tiles; log = h.log; selA = null; op = null; lastNew = null; hintStep = null; shownStep = null;
           status(); render();
         }
         function hint() {
@@ -249,7 +290,7 @@
           var s = path[0];
           var aT = tiles.filter(function (t) { return t.v === s.a; })[0];
           var bT = tiles.filter(function (t) { return t.v === s.b && t.id !== aT.id; })[0];
-          selA = aT.id; op = s.op; lastNew = null;
+          selA = aT.id; op = s.op; lastNew = null; shownStep = null;
           hintStep = { aId: aT.id, bId: bT.id, op: s.op };
           status('רמז: ' + s.a + ' ' + SIGN[s.op] + ' ' + s.b + ' — לחצו על ' + s.b);
           render();
@@ -260,6 +301,7 @@
           render();
           logBox.innerHTML = '';
           logBox.classList.add('is-sol');
+          buildBox.hidden = opsBox.hidden = true; // room for the solution steps
           P.solution.forEach(function (s) { logBox.appendChild(el('div', null, stepText(s))); });
           status('כך אפשר להגיע ל-' + P.target + ':');
           ctx.feedback(false, 'הנה פתרון אחד').then(nextBtn);
