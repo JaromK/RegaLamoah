@@ -93,7 +93,19 @@
     if (best) return best;
     // one letter off, for longer words (a typo)
     if (n.length >= 5) cat.words.forEach(function (w) { if (!best && norm(w).charAt(0) === n.charAt(0) && dist(norm(w), n) <= 1) best = w; });
-    return best;
+    if (best) return best;
+    // the big word lists from Wikidata (js/eretz-ir-words.js): exact or full/short spelling only
+    var ex = extra(cat);
+    return ex.byNorm[n] || ex.byLoose[l] || null;
+  }
+
+  var extraCache = {};
+  function extra(cat) {
+    if (extraCache[cat.id]) return extraCache[cat.id];
+    var e = { byNorm: {}, byLoose: {} };
+    var src = window.EretzIrWords && window.EretzIrWords[cat.id];
+    if (src) src.split('|').forEach(function (w) { e.byNorm[norm(w)] = w; e.byLoose[loose(w)] = w; });
+    return (extraCache[cat.id] = e);
   }
 
   function startsWith(cat, letter) {
