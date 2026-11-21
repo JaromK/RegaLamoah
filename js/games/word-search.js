@@ -119,14 +119,14 @@
     '.wsr-cell{min-width:0;min-height:0;padding:0;border:0;background:var(--surface);color:var(--ink);font-family:var(--font-display);',
     'font-weight:900;font-size:calc(min(100vw - 2.5rem,30rem) / var(--n) * .6);line-height:1;cursor:pointer;display:grid;place-items:center;}',
     '.wsr-cell.is-start{background:var(--sun);color:var(--c-on-yellow);}',
-    '.wsr-wrap{position:relative;width:min(100%,calc(100svh - 20rem),30rem);}',
+    '.wsr-wrap{position:relative;width:min(100%,calc(100svh - 24.2rem),30rem);}',
     '.wsr-wrap .wsr-grid{width:100%;}',
     '.wsr-rings{position:absolute;inset:3px;width:calc(100% - 6px);height:calc(100% - 6px);pointer-events:none;overflow:visible;}',
     '.wsr-rings rect{fill:none;stroke-width:1.1;}',
     '.wsr-rings rect.is-shown{stroke:var(--ink-soft);stroke-dasharray:2 1.4;}',
     '.wsr-cell.is-hint{box-shadow:inset 0 0 0 4px var(--sun);}',
-    '.wsr-words{display:flex;flex-wrap:wrap;gap:.4rem .5rem;justify-content:center;max-width:30rem;margin:0;padding:0;list-style:none;}',
-    '.wsr-words li{font-size:1.1rem;font-weight:800;padding:.05rem .6rem;border-radius:999px;background:var(--surface-2);border:2px solid var(--line);}',
+    '.wsr-words{display:flex;flex-wrap:wrap;gap:.3rem .4rem;justify-content:center;max-width:30rem;margin:0;padding:0;list-style:none;}',
+    '.wsr-words li{font-size:1.02rem;font-weight:800;padding:0 .5rem;border-radius:999px;background:var(--surface-2);border:2px solid var(--line);}',
     '.wsr-words li.is-found{text-decoration:line-through;color:var(--ink);}',
     '.wsr-theme{margin:0;font-size:1.2rem;font-weight:800;color:var(--language);}'
   ].join('');
@@ -208,7 +208,7 @@
         root.appendChild(wrap);
         root.appendChild(list);
         root.appendChild(actions);
-        var INTRO = 'נושא: ' + B.theme + '. לחצו על האות הראשונה של מילה ואז על האחרונה';
+        var INTRO = 'נושא: ' + B.theme;
         ctx.setStatus(INTRO);
 
         function line(a, b) {

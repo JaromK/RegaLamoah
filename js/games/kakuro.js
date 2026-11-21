@@ -174,7 +174,7 @@
   function sameFill(a, b, cells) { return cells.every(function (k) { return a[k] === b[k]; }); }
 
   var css = [
-    '.kk-grid{display:grid;grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:2px;width:min(100%,calc((100svh - 20rem) * var(--c) / var(--r)),30rem);',
+    '.kk-grid{display:grid;grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:2px;width:min(100%,calc((100svh - 26.5rem) * var(--c) / var(--r)),30rem);',
     'direction:rtl;background:var(--ink);border:3px solid var(--ink);border-radius:var(--radius-sm);overflow:hidden;}',
     '.kk-cell{aspect-ratio:1;min-width:0;padding:0;border:0;background:var(--surface);color:var(--c-blue);font-family:var(--font-display);font-weight:900;',
     'font-size:calc(min(100vw - 2.5rem,30rem) / var(--c) * .55);line-height:1;cursor:pointer;display:grid;place-items:center;}',
