@@ -5,8 +5,10 @@
 
   var PLUS = '+', MINUS = '−', TIMES = '×', DIV = '÷';
 
-  /* Per level (1–30): n × n grid (at most 5 × 5 so cells stay big), operations, largest cage,
-     given = cells filled in at the start, single = cages of one cell allowed (they are free hints). */
+  /* Per level (1–50): n × n grid (at most 5 × 5 so cells stay big), operations, largest cage,
+     given = cells filled in at the start, single = cages of one cell allowed (they are free hints),
+     big = mostly cages of 3 or more cells, hide = share of cages whose sign is hidden ("12?": any of the
+     four operations may be meant, and the solver checks the puzzle still has one solution that way). */
   var LEVELS = [
     { n: 3, ops: '+', max: 2, given: 3, single: true },    // 1
     { n: 3, ops: '+', max: 2, given: 2, single: true },    // 2
@@ -37,7 +39,28 @@
     { n: 5, ops: '+-x/', max: 4, given: 0, single: true }, // 27
     { n: 5, ops: '+-x/', max: 4, given: 0 },               // 28
     { n: 5, ops: '-x/', max: 4, given: 0 },                // 29: no plain sums when another op fits
-    { n: 5, ops: '-x/', max: 4, given: 0, big: true }      // 30: mostly 3–4 cell cages
+    { n: 5, ops: '-x/', max: 4, given: 0, big: true },     // 30: mostly 3–4 cell cages
+    // 31–50: cages of up to 5 cells, then more and more cages with a hidden sign (all of them at 50)
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true }, // 31
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true }, // 32
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.15 }, // 33
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.2 }, // 34
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.25 }, // 35
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.3 }, // 36
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.35 }, // 37
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.4 }, // 38
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.45 }, // 39
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.5 }, // 40
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.55 }, // 41
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.6 }, // 42
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.65 }, // 43
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.7 }, // 44
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.75 }, // 45
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.8 }, // 46
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.85 }, // 47
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.9 }, // 48
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 0.95 }, // 49
+    { n: 5, ops: '-x/', max: 5, given: 0, big: true, hide: 1 } // 50
   ];
 
   /* ---------- pure model ---------- */
@@ -99,6 +122,7 @@
       var vals = cg.cells.map(function (k) { return sol[Math.floor(k / n)][k % n]; });
       cg.op = chooseOp(vals, spec.ops, rnd);
       cg.target = calc(vals, cg.op);
+      if (spec.hide && cg.op && rnd.randInt(1, 100) <= spec.hide * 100) cg.hidden = true;
     });
     return { cages: cages, owner: owner };
   }
@@ -124,8 +148,21 @@
     return op === MINUS ? a - b : a / b;
   }
 
+  // the operations a hidden-sign cage of k cells may mean
+  function hiddenOps(k) { return k === 2 ? [PLUS, MINUS, TIMES, DIV] : [PLUS, TIMES]; }
+  function reaches(vals, op, target) {
+    if (op === DIV) { var a = Math.max(vals[0], vals[1]), b = Math.min(vals[0], vals[1]); if (a % b) return false; }
+    return calc(vals, op) === target;
+  }
+
   // can the cage still reach its target, given the values placed so far (0 = empty)?
   function cageOk(cg, vals) {
+    if (cg.hidden) {
+      var ops = hiddenOps(vals.length);
+      if (vals.every(function (v) { return v; })) return ops.some(function (op) { return reaches(vals, op, cg.target); });
+      if (vals.length === 2) return true;
+      return cageOk({ op: PLUS, target: cg.target }, vals) || cageOk({ op: TIMES, target: cg.target }, vals);
+    }
     var full = vals.every(function (v) { return v; });
     if (full) return calc(vals, cg.op) === cg.target;
     var known = vals.filter(function (v) { return v; });
@@ -209,13 +246,14 @@
       'מלאו מספרים בלוח: בכל שורה ובכל טור כל מספר מופיע פעם אחת בלבד.',
       'הלוח מחולק לכלובים בקו עבה. המספר בפינה והסימן אומרים מה התוצאה: "5+" פירושו שסכום המספרים בכלוב הוא 5.',
       'לחצו על משבצת ואז על מספר. ב"−" וב"÷" מחסרים או מחלקים את הגדול בקטן.',
-      'כשהלוח מלא ונכון, הוא נצבע בירוק. אין שעון.'
+      'כשהלוח מלא ונכון, הוא נצבע בירוק. אין שעון.',
+      'ברמות הגבוהות יש כלובים עם סימן שאלה, למשל "6?": הסימן מוסתר, ואחת מארבע הפעולות נותנת את התוצאה.'
     ],
     css: css,
-    _model: { makePuzzle: makePuzzle, countSolutions: countSolutions, calc: calc, LEVELS: LEVELS },
+    _model: { makePuzzle: makePuzzle, countSolutions: countSolutions, calc: calc, cageOk: cageOk, LEVELS: LEVELS },
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var ROUNDS = spec.n <= 3 ? 4 : 3;
       var round = 0, solved = 0;
@@ -242,7 +280,7 @@
         pz.cages.forEach(function (cg) {
           // label in the cage's top-right cell (rtl: the smallest row, then the smallest column = rightmost)
           var first = cg.cells.slice().sort(function (a, b) { return Math.floor(a / n) - Math.floor(b / n) || (a % n) - (b % n); })[0];
-          labelAt[first] = cg.op ? cg.target + cg.op : String(cg.target);
+          labelAt[first] = cg.hidden ? cg.target + '?' : cg.op ? cg.target + cg.op : String(cg.target);
         });
         var cells = [];
         for (var k = 0; k < n * n; k++) {

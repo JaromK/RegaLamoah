@@ -4,9 +4,12 @@
 (function () {
   'use strict';
 
-  /* Per level (1–30): rows × cols (at most 6 × 5 so cells stay about 52px on a phone), share of filled
+  /* Per level (1–50): rows × cols (at most 6 × 5 so cells stay about 52px on a phone), share of filled
      cells, the fewest solving passes (how many times all lines must be revisited: more = harder),
-     autoX = finished lines get their empty cells crossed automatically (a help for the early levels). */
+     autoX = finished lines get their empty cells crossed automatically (a help for the early levels).
+     31–50 (the board is full and passes rarely go past 7): free = at most this many cells can be worked
+     out from a single line's numbers at the start (fewer = harder to get going), noDim = clues of
+     finished lines are no longer greyed out (less help), tries = how many random pictures to try. */
   var LEVELS = [
     { r: 3, c: 3, fill: 0.6, passes: 1, autoX: true },   // 1
     { r: 3, c: 3, fill: 0.55, passes: 1, autoX: true },  // 2
@@ -37,7 +40,28 @@
     { r: 6, c: 5, fill: 0.42, passes: 7 },               // 27
     { r: 6, c: 5, fill: 0.42, passes: 7 },               // 28
     { r: 6, c: 5, fill: 0.4, passes: 7 },                // 29
-    { r: 6, c: 5, fill: 0.4, passes: 7 }                 // 30
+    { r: 6, c: 5, fill: 0.4, passes: 7 },                // 30
+    // 31–50: harder starts (free), then no greying of finished lines (36+), then deeper chains (46+)
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 8, tries: 20000 }, // 31
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 7, tries: 20000 }, // 32
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 6, tries: 20000 }, // 33
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 6, tries: 20000 }, // 34
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 5, tries: 20000 }, // 35
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 5, noDim: true, tries: 20000 }, // 36
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 4, noDim: true, tries: 20000 }, // 37
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 4, noDim: true, tries: 20000 }, // 38
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 3, noDim: true, tries: 20000 }, // 39
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 3, noDim: true, tries: 20000 }, // 40
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 3, noDim: true, tries: 20000 }, // 41
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 2, noDim: true, tries: 20000 }, // 42
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 2, noDim: true, tries: 20000 }, // 43
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 2, noDim: true, tries: 20000 }, // 44
+    { r: 6, c: 5, fill: 0.4, passes: 7, free: 2, noDim: true, tries: 20000 }, // 45
+    { r: 6, c: 5, fill: 0.4, passes: 8, free: 3, noDim: true, tries: 15000 }, // 46
+    { r: 6, c: 5, fill: 0.4, passes: 8, free: 3, noDim: true, tries: 15000 }, // 47
+    { r: 6, c: 5, fill: 0.4, passes: 8, free: 2, noDim: true, tries: 15000 }, // 48
+    { r: 6, c: 5, fill: 0.4, passes: 8, free: 2, noDim: true, tries: 15000 }, // 49
+    { r: 6, c: 5, fill: 0.4, passes: 8, free: 2, noDim: true, tries: 15000 } // 50
   ];
 
   /* ---------- pure model ---------- */
@@ -48,7 +72,13 @@
     return out.length ? out : [0];
   }
   // all ways to place the runs in a line of length n
+  // placements are only read (filtered into new arrays), so they are kept per clue and length
+  var placementCache = {};
   function placements(clue, n) {
+    var key = n + ':' + clue.join(',');
+    return placementCache[key] || (placementCache[key] = makePlacements(clue, n));
+  }
+  function makePlacements(clue, n) {
     if (clue.length === 1 && clue[0] === 0) { var z = []; for (var i = 0; i < n; i++) z.push(0); return [z]; }
     var out = [];
     (function rec(idx, pos, acc) {
@@ -108,9 +138,24 @@
   function rowClue(row) { return runs(row); }
   function colClue(grid, c) { return runs(grid.map(function (row) { return row[c]; })); }
 
+  // How many cells can be worked out from one line's numbers alone, on the empty board.
+  function freeCells(rowClues, colClues, R, C) {
+    var known = {};
+    rowClues.forEach(function (cl, r) {
+      var P = placements(cl, C);
+      for (var c = 0; c < C; c++) if (P.every(function (p) { return p[c] === P[0][c]; })) known[r * C + c] = true;
+    });
+    colClues.forEach(function (cl, c) {
+      var P = placements(cl, R);
+      for (var r = 0; r < R; r++) if (P.every(function (p) { return p[r] === P[0][r]; })) known[r * C + c] = true;
+    });
+    return Object.keys(known).length;
+  }
+
   function makePuzzle(spec, rnd) {
-    var best = null;
-    for (var attempt = 0; attempt < 3000; attempt++) {
+    var best = null, bestScore = -Infinity;
+    var tries = spec.tries || 3000;
+    for (var attempt = 0; attempt < tries; attempt++) {
       var grid = [];
       for (var r = 0; r < spec.r; r++) {
         grid.push([]);
@@ -124,8 +169,17 @@
       var res = solve(rc, cc, spec.r, spec.c);
       if (!res.solved) continue;
       var pz = { grid: grid, passes: res.passes };
-      if (res.passes >= spec.passes) return pz;
-      if (!best || res.passes > best.passes) best = pz;
+      if (spec.free === undefined) {
+        if (res.passes >= spec.passes) return pz;
+        if (!best || res.passes > best.passes) best = pz;
+        continue;
+      }
+      if (res.passes < spec.passes - 2) continue; // free cells only matter for the deep puzzles
+      pz.free = freeCells(rc, cc, spec.r, spec.c);
+      if (res.passes >= spec.passes && pz.free <= spec.free) return pz;
+      // otherwise keep the hardest so far: deep first, then few free cells
+      var score = Math.min(res.passes, spec.passes) * 10 - Math.max(0, pz.free - spec.free);
+      if (score > bestScore) { bestScore = score; best = pz; }
     }
     return best;
   }
@@ -163,13 +217,14 @@
       'המספרים מימין לכל שורה ומעל כל טור אומרים כמה משבצות צבועות ברצף יש שם, לפי הסדר.',
       'למשל "2 1": קודם שתי משבצות צבועות צמודות, אחר כך לפחות משבצת ריקה, ואז עוד אחת.',
       'לחיצה צובעת משבצת, לחיצה שנייה מסמנת ✗ (בטוח ריקה), ושלישית מנקה.',
-      'כשכל המשבצות הנכונות צבועות, הציור מתגלה. אין שעון.'
+      'כשכל המשבצות הנכונות צבועות, הציור מתגלה. אין שעון.',
+      'ברמות הגבוהות המספרים של שורה שהושלמה כבר לא נצבעים באפור, אז בדקו בעצמכם.'
     ],
     css: css,
-    _model: { runs: runs, solve: solve, makePuzzle: makePuzzle, LEVELS: LEVELS },
+    _model: { runs: runs, solve: solve, makePuzzle: makePuzzle, freeCells: freeCells, LEVELS: LEVELS },
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var ROUNDS = level <= 9 ? 4 : 3;
       var round = 0, solved = 0;
@@ -233,7 +288,8 @@
             b.classList.toggle('is-x', state[r][c] === 2);
             b.disabled = done;
           }
-          // dim the clues of lines that are already right
+          // dim the clues of lines that are already right (not from level 36: less help)
+          if (spec.noDim) return;
           for (r = 0; r < R; r++) {
             var on = state[r].map(function (v) { return v === 1 ? 1 : 0; });
             rowClues[r].classList.toggle('ng-line-ok', lineOk(on, runs(grid[r])));

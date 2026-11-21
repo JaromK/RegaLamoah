@@ -20,9 +20,12 @@
   var HUE = { LT: 'c-blue', MT: 'c-red', ST: 'c-yellow', SQ: 'c-green', PG: 'c-purple' }; // shared strong palette
   var NAME = { LT: 'משולש גדול', MT: 'משולש בינוני', ST: 'משולש קטן', SQ: 'ריבוע', PG: 'מקבילית' };
 
-  /* Per level (1–30): pieces in the figure (all placed by the player; no grey pieces are given), lines = the
+  /* Per level (1–50): pieces in the figure (all placed by the player; no grey pieces are given), lines = the
      outline of every piece is drawn inside the silhouette, turn = pieces in the tray start turned,
-     max = largest figure size (smaller = more compact, harder). pre stays 0 (kept for the model/tests). */
+     max = largest figure size (smaller = more compact, harder). pre stays 0 (kept for the model/tests).
+     31–50: nogrid = no grid lines on the board, spare = the tray holds the whole classic set but the figure
+     uses one piece less (that piece stays in the tray), compact = build that many figures and keep the most
+     compact one (the shortest outline gives the fewest clues). */
   var LEVELS = [
     { pieces: 2, pre: 0, lines: true },                  // 1
     { pieces: 2, pre: 0, lines: true },                  // 2
@@ -53,7 +56,27 @@
     { pieces: 7, pre: 0, turn: true, max: 6 },           // 27
     { pieces: 7, pre: 0, turn: true, max: 6 },           // 28
     { pieces: 7, pre: 0, turn: true, max: 5 },           // 29
-    { pieces: 7, pre: 0, turn: true, max: 5 }            // 30
+    { pieces: 7, pre: 0, turn: true, max: 5 },           // 30
+    { pieces: 7, pre: 0, turn: true, max: 5, nogrid: true },                          // 31
+    { pieces: 7, pre: 0, turn: true, max: 5, nogrid: true },                          // 32
+    { pieces: 7, pre: 0, turn: true, max: 5, nogrid: true, compact: 2 },              // 33
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1 },                              // 34
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1 },                              // 35
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, compact: 2 },                  // 36
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true },                // 37
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true },                // 38
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 2 },    // 39
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 2 },    // 40
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 3 },    // 41
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 3 },    // 42
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 4 },    // 43
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 4 },    // 44
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 5 },    // 45
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 6 },    // 46
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 7 },    // 47
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 8 },    // 48
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 9 },    // 49
+    { pieces: 6, pre: 0, turn: true, max: 5, spare: 1, nogrid: true, compact: 10 }    // 50
   ];
 
   /* ---------- geometry (pure) ---------- */
@@ -150,6 +173,36 @@
     }
     return null;
   }
+  /* Length of the silhouette's outline, in sample-cell edges (shorter = more compact, fewer clues). */
+  function outline(pcs) {
+    var map = coverage(pcs), n = 0;
+    Object.keys(map).forEach(function (k) {
+      var p = k.split(','), i = +p[0], j = +p[1];
+      if (!map[(i + 1) + ',' + j]) n++;
+      if (!map[(i - 1) + ',' + j]) n++;
+      if (!map[i + ',' + (j + 1)]) n++;
+      if (!map[i + ',' + (j - 1)]) n++;
+    });
+    return n;
+  }
+  /* The level's figure: with `compact`, the most compact of that many tries. */
+  function makePuzzle(spec, rnd) {
+    var best = null, bestLen = Infinity;
+    for (var k = 0; k < (spec.compact || 1); k++) {
+      var f = null;
+      for (var t = 0; t < 5 && !f; t++) f = makeFigure(spec, rnd);
+      if (!f) continue;
+      var len = spec.compact ? outline(f) : 0;
+      if (len < bestLen) { best = f; bestLen = len; }
+    }
+    return best;
+  }
+  /* The tray's spare pieces: the classic set minus the pieces the figure uses. */
+  function spareTypes(fig) {
+    var left = SET.slice();
+    fig.forEach(function (pc) { left.splice(left.indexOf(pc.type), 1); });
+    return left;
+  }
   function bounds(pcs) {
     var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     pcs.forEach(function (pc) {
@@ -171,6 +224,7 @@
     '.tg-board{width:min(100%,22rem);min-width:11rem;aspect-ratio:1;display:block;touch-action:none;',
     'background:var(--surface);border:2px solid var(--line);border-radius:var(--radius);}',
     '.tg-grid{stroke:var(--line);stroke-width:.03;}',
+    '.tg-nogrid .tg-grid{display:none;}',
     '.tg-sil{fill:var(--ink-soft);fill-opacity:.28;}',
     '.tg-line{fill:none;stroke:var(--surface);stroke-width:.08;stroke-linejoin:round;}',
     '.tg-pre{fill:var(--ink-soft);fill-opacity:.55;stroke:var(--surface);stroke-width:.06;}',
@@ -194,13 +248,14 @@
       'על הלוח יש צללית אפורה. צריך למלא אותה בדיוק בחלקים שלמטה.',
       'לחצו על חלק כדי להוציא אותו ללוח, ואז לחצו על המקום בלוח שאליו הוא צריך לזוז (אפשר גם לגרור).',
       '"סובבו" מסובב את החלק שנבחר רבע סיבוב, ו"הפכו" הופך את המקבילית כמו במראה.',
-      'כשהצללית מלאה בדיוק, החלקים נצבעים בירוק. אפשר לבקש רמז אחד בכל צללית. אין שעון.'
+      'כשהצללית מלאה בדיוק, החלקים נצבעים בירוק. אפשר לבקש רמז אחד בכל צללית. אין שעון.',
+      'ברמות הגבוהות אין קווי עזר בלוח, ויש במגש חלק אחד מיותר שנשאר בחוץ.'
     ],
     css: css,
-    _model: { makeFigure: makeFigure, matches: matches, coverage: coverage, LEVELS: LEVELS },
+    _model: { makeFigure: makeFigure, makePuzzle: makePuzzle, outline: outline, spareTypes: spareTypes, matches: matches, coverage: coverage, LEVELS: LEVELS },
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var round = 0, solved = 0, hintRounds = 0;
       var cleanupDrag = null;
@@ -216,8 +271,7 @@
           return;
         }
         ctx.setProgress(round, ROUNDS);
-        var fig = null;
-        for (var t = 0; t < 5 && !fig; t++) fig = makeFigure(spec, ctx);
+        var fig = makePuzzle(spec, ctx);
         if (!fig) fig = makeFigure({ pieces: Math.min(4, spec.pieces), pre: 0 }, ctx);
         play(fig);
       }
@@ -239,10 +293,15 @@
             x: 0, y: 0, onBoard: false
           });
         });
+        // spare pieces (levels 34–50): in the tray, not part of the figure
+        if (spec.spare) spareTypes(fig).forEach(function (type) {
+          mine.push({ type: type, sol: -1, rot: ctx.randInt(0, 3), flip: type === 'PG' && ctx.randInt(0, 1) === 1, x: 0, y: 0, onBoard: false });
+        });
+        var needOnBoard = mine.length - (spec.spare ? spareTypes(fig).length : 0);
         mine = ctx.shuffle(mine);
         var sel = -1, done = false, hints = 0;
 
-        var svg = svgEl('svg', { viewBox: '0 0 ' + BOARD + ' ' + BOARD, class: 'tg-board', role: 'img', 'aria-label': 'לוח הטנגרם' });
+        var svg = svgEl('svg', { viewBox: '0 0 ' + BOARD + ' ' + BOARD, class: 'tg-board' + (spec.nogrid ? ' tg-nogrid' : ''), role: 'img', 'aria-label': 'לוח הטנגרם' });
         var tray = el('div', { class: 'tg-tray', 'aria-label': 'חלקים' });
         var rotBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: rotateSel }, 'סובבו ↻');
         var flipBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: flipSel }, 'הפכו ⇆');
@@ -256,7 +315,7 @@
         root.appendChild(tray);
         root.appendChild(actions);
         root.appendChild(extra);
-        ctx.setStatus('מלאו את הצללית האפורה');
+        ctx.setStatus(spec.spare ? 'מלאו את הצללית. חלק אחד מיותר' : 'מלאו את הצללית האפורה');
 
         function draw() {
           while (svg.firstChild) svg.removeChild(svg.firstChild);
@@ -413,9 +472,13 @@
         }
 
         function checkDone() {
-          if (done || mine.some(function (pc) { return !pc.onBoard; })) return;
+          if (done) return;
+          var on = mine.filter(function (pc) { return pc.onBoard; }).length;
+          // with a spare piece another set of pieces may fill the figure too, so any count is checked
+          if (on < needOnBoard && !spec.spare) return;
           if (!matches(allPieces(), targetMap)) {
-            ctx.setStatus('כמעט! הזיזו או סובבו חלק');
+            if (on > needOnBoard) ctx.setStatus('חלק אחד מיותר: החזירו אותו למגש');
+            else if (on === needOnBoard) ctx.setStatus('כמעט! הזיזו או סובבו חלק');
             return;
           }
           done = true;
@@ -433,10 +496,19 @@
         function hint() {
           if (done) return;
           var wrong = mine.filter(function (pc) {
+            if (pc.sol < 0) return false;
             var s = fig[pc.sol];
             return !(pc.onBoard && pc.x === s.x && pc.y === s.y && pc.rot === s.rot && pc.flip === s.flip);
           });
-          if (!wrong.length) return;
+          if (!wrong.length) {
+            // every figure piece is in place: the spare piece on the board goes back to the tray
+            var sp = mine.filter(function (pc) { return pc.sol < 0 && pc.onBoard; })[0];
+            if (!sp) return;
+            sp.onBoard = false; sel = -1; hints++;
+            ctx.setStatus('ה' + NAME[sp.type] + ' מיותר, הוא חזר למגש');
+            draw(); checkDone();
+            return;
+          }
           var pc = wrong[0], s = fig[pc.sol];
           pc.rot = s.rot; pc.flip = s.flip; pc.x = s.x; pc.y = s.y; pc.onBoard = true;
           sel = mine.indexOf(pc);
@@ -457,7 +529,10 @@
         var giveUp = el('button', { class: 'btn btn-quiet', type: 'button', onclick: function () {
           if (done) return;
           done = true;
-          mine.forEach(function (pc) { var s = fig[pc.sol]; pc.rot = s.rot; pc.flip = s.flip; pc.x = s.x; pc.y = s.y; pc.onBoard = true; });
+          mine.forEach(function (pc) {
+            if (pc.sol < 0) { pc.onBoard = false; return; }
+            var s = fig[pc.sol]; pc.rot = s.rot; pc.flip = s.flip; pc.x = s.x; pc.y = s.y; pc.onBoard = true;
+          });
           sel = -1;
           draw();
           ctx.setStatus('כך החלקים ממלאים את הצללית');
