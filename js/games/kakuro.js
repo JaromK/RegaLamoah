@@ -174,24 +174,23 @@
   function sameFill(a, b, cells) { return cells.every(function (k) { return a[k] === b[k]; }); }
 
   var css = [
-    '.kk-grid{display:grid;grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:2px;width:min(100%,calc((100svh - 26.5rem) * var(--c) / var(--r)),30rem);',
-    'direction:rtl;background:var(--ink);border:3px solid var(--ink);border-radius:var(--radius-sm);overflow:hidden;}',
+    /* the grid is a size container: cell text scales with the real cell size (100cqw / columns) */
+    '.kk-grid{display:grid;grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:2px;width:min(100%,calc((100svh - 22.5rem) * var(--c) / var(--r)),30rem);',
+    'direction:rtl;background:var(--ink);border:3px solid var(--ink);border-radius:var(--radius-sm);overflow:hidden;container-type:inline-size;}',
     '.kk-cell{aspect-ratio:1;min-width:0;padding:0;border:0;background:var(--surface);color:var(--c-blue);font-family:var(--font-display);font-weight:900;',
-    'font-size:calc(min(100vw - 2.5rem,30rem) / var(--c) * .55);line-height:1;cursor:pointer;display:grid;place-items:center;}',
+    'font-size:calc(100cqw / var(--c) * .58);line-height:1;cursor:pointer;display:grid;place-items:center;}',
     '.kk-cell.is-given{color:var(--ink);background:var(--surface-2);cursor:default;}',
     '.kk-cell.is-sel{background:var(--sun);color:var(--c-on-yellow);}',
     '.kk-cell.is-run{background:var(--c-blue-soft);}',
     '.kk-cell.is-clash{color:var(--c-red);text-decoration:underline;}',
     '.kk-black{aspect-ratio:1;min-width:0;background:var(--ink-soft);position:relative;}',
-    '.kk-clue{background:var(--ink);color:var(--surface);}',
-    '.kk-clue svg{position:absolute;inset:0;width:100%;height:100%;}',
-    '.kk-clue line{stroke:var(--surface);stroke-width:1.5;opacity:.7;}',
-    '.kk-n{position:absolute;font-weight:800;font-size:calc(min(100vw - 2.5rem,30rem) / var(--c) * .38);line-height:1;}',
-    '.kk-n.a{top:5%;left:6%;}',          /* across sum: points left, into its row */
-    '.kk-n.d{bottom:5%;right:6%;}',      /* down sum: above its column */
+    /* a clue cell: each sum with an arrow to where it counts — "10◂" for the row to its left, "9▾" for the column below */
+    '.kk-clue{background:var(--ink);color:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4%;}',
+    '.kk-n{display:flex;align-items:center;gap:.05em;font-weight:900;font-size:calc(100cqw / var(--c) * .4);line-height:1;direction:ltr;white-space:nowrap;}',
+    '.kk-n i{font-style:normal;font-size:.9em;color:var(--sun);}',
     '.kk-done .kk-cell{background:var(--good-soft);}',
     '.kk-pad{display:grid;grid-template-columns:repeat(var(--k),minmax(0,1fr));gap:.4rem;width:100%;max-width:30rem;}',
-    '.kk-pad .g-choice{min-height:3.3rem;font-size:1.55rem;padding:.1rem;}'
+    '.kk-pad .g-choice{min-height:3rem;font-size:1.55rem;padding:.1rem;}'
   ].join('');
 
   BrainGames.register({
@@ -199,14 +198,13 @@
     name: 'קאקורו',
     skill: 'logic',
     isNew: true,
-    levelPicker: true,
     tagline: 'תשבץ של מספרים: כל שורה וטור מגיעים לסכום',
     benefit: 'חשבון, חשיבה לוגית ותכנון',
     instructions: [
-      'במשבצות הכהות כתובים סכומים. המספר העליון הוא הסכום של המשבצות משמאלו, והתחתון של המשבצות מתחתיו.',
+      'במשבצות הכהות כתובים סכומים. החץ מראה לאן הסכום שייך: ◂ למשבצות שמשמאלו באותה שורה, ▾ למשבצות שמתחתיו באותו טור.',
       'מלאו מספרים במשבצות הלבנות כך שכל שורה וכל טור יגיעו לסכום שלהם.',
       'אסור לחזור על אותו מספר באותה שורה או באותו טור. לחצו על משבצת ואז על מספר.',
-      'בחרו רמה כאן למטה. אין שעון, ויש "רמז" אם נתקעים.'
+      'אין שעון, ויש "רמז" אם נתקעים.'
     ],
     css: css,
     _model: { spec: spec, makePuzzle: makePuzzle, search: search },
@@ -216,7 +214,7 @@
       var sp = spec(level);
       var ROUNDS = sp.h <= 4 ? 3 : sp.h <= 5 ? 2 : 1;
       var round = 0, solved = 0;
-      var SVG = '<svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true"><line x1="10" y1="0" x2="0" y2="10"/></svg>';
+      // clue cells show each sum with an arrow (see css)
 
       function nextRound() {
         round++;
@@ -243,9 +241,10 @@
               kids.push(btn[k]);
             } else if (across[k] || down[k]) {
               var label = (across[k] ? 'סכום שמאלה ' + across[k] : '') + (down[k] ? ' סכום למטה ' + down[k] : '');
-              kids.push(el('div', { class: 'kk-black kk-clue', html: SVG, 'aria-label': label }, [
-                across[k] ? el('span', { class: 'kk-n a' }, String(across[k])) : null,
-                down[k] ? el('span', { class: 'kk-n d' }, String(down[k])) : null
+              // ltr inside the span: the arrow sits on the side it points to
+              kids.push(el('div', { class: 'kk-black kk-clue', 'aria-label': label }, [
+                across[k] ? el('span', { class: 'kk-n a' }, [el('i', null, '◂'), String(across[k])]) : null,
+                down[k] ? el('span', { class: 'kk-n d' }, [String(down[k]), el('i', null, '▾')]) : null
               ]));
             } else kids.push(el('div', { class: 'kk-black', 'aria-hidden': 'true' }));
           })(r * P.C + c);
@@ -260,7 +259,7 @@
         var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'הראו פתרון');
         var actions = el('div', { class: 'g-actions' }, [hintBtn, showBtn]);
         root.appendChild(grid); root.appendChild(pad); root.appendChild(actions);
-        ctx.setStatus('מספרים מ-1 עד ' + P.dmax + '. לחצו על משבצת ואז על מספר');
+        ctx.setStatus('מלאו מספרים מ-1 עד ' + P.dmax);
         sel = P.cells.filter(function (k) { return !val[k]; })[0];
         render();
 
