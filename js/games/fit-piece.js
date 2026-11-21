@@ -4,7 +4,7 @@
 
   var ROUNDS = 7;
 
-  // Per level (1–30): board size, hole size (cells), options shown, rotation allowed.
+  // Per level (1–50): board size, hole size (cells), options shown, rotation allowed.
   var LEVELS = [
     { n: 4, hole: 2, options: 3, rot: false }, // 1
     { n: 4, hole: 3, options: 3, rot: false }, // 2
@@ -36,7 +36,29 @@
     { n: 5, hole: 9, options: 4, rot: true, same: true }, // 27
     { n: 5, hole: 10, options: 4, rot: true, same: true }, // 28
     { n: 5, hole: 10, options: 4, rot: true, same: true }, // 29
-    { n: 5, hole: 10, options: 4, rot: true, same: true }  // 30
+    { n: 5, hole: 10, options: 4, rot: true, same: true }, // 30
+    // 31–50: every wrong piece also fills the same box as the hole (box); from 36 there are six pieces
+    // to choose from, and from 41 the right piece is always shown turned (turned), never as the hole sits
+    { n: 5, hole: 10, options: 4, rot: true, same: true, box: true }, // 31
+    { n: 5, hole: 10, options: 4, rot: true, same: true, box: true }, // 32
+    { n: 5, hole: 10, options: 4, rot: true, same: true, box: true }, // 33
+    { n: 5, hole: 11, options: 4, rot: true, same: true, box: true }, // 34
+    { n: 5, hole: 11, options: 4, rot: true, same: true, box: true }, // 35
+    { n: 5, hole: 10, options: 6, rot: true, same: true, box: true }, // 36
+    { n: 5, hole: 10, options: 6, rot: true, same: true, box: true }, // 37
+    { n: 5, hole: 11, options: 6, rot: true, same: true, box: true }, // 38
+    { n: 5, hole: 11, options: 6, rot: true, same: true, box: true }, // 39
+    { n: 5, hole: 11, options: 6, rot: true, same: true, box: true }, // 40
+    { n: 5, hole: 11, options: 6, rot: true, same: true, box: true, turned: true }, // 41
+    { n: 5, hole: 11, options: 6, rot: true, same: true, box: true, turned: true }, // 42
+    { n: 5, hole: 11, options: 6, rot: true, same: true, box: true, turned: true }, // 43
+    { n: 5, hole: 12, options: 6, rot: true, same: true, box: true, turned: true }, // 44
+    { n: 5, hole: 12, options: 6, rot: true, same: true, box: true, turned: true }, // 45
+    { n: 5, hole: 12, options: 6, rot: true, same: true, box: true, turned: true }, // 46
+    { n: 5, hole: 12, options: 6, rot: true, same: true, box: true, turned: true }, // 47
+    { n: 5, hole: 13, options: 6, rot: true, same: true, box: true, turned: true }, // 48
+    { n: 5, hole: 13, options: 6, rot: true, same: true, box: true, turned: true }, // 49
+    { n: 5, hole: 13, options: 6, rot: true, same: true, box: true, turned: true }  // 50
   ];
   var MAX_EXTENT = 4; // pieces stay within a 4 × 4 box so the option cards stay readable
 
@@ -142,8 +164,13 @@
       var target = classKey(shape, spec.rot);
       var used = {}; used[target] = true;
       var distractors = [];
+      var hb = extent(shape);
       function tryAdd(s) {
         if (!s || !small(s) || distractors.length >= spec.options - 1) return;
+        if (spec.box) { // same outline box as the hole (either way round when pieces may turn)
+          var e = extent(normalize(s));
+          if (!((e.h === hb.h && e.w === hb.w) || (spec.rot && e.h === hb.w && e.w === hb.h))) return;
+        }
         var k = classKey(s, spec.rot);
         if (used[k]) return;
         used[k] = true;
@@ -157,12 +184,14 @@
       tryAdd(moveCell(shape, rnd));
       // 3. One cell more or fewer (as a last resort only when needed).
       var extra = rnd.shuffle([function () { return addCell(shape, rnd); }, function () { return removeCell(shape, rnd); }]);
-      for (var e = 0; e < (spec.same ? 30 : 4) && distractors.length < spec.options - 1; e++) tryAdd(moveCell(shape, rnd));
+      for (var e = 0; e < (spec.box ? 80 : spec.same ? 30 : 4) && distractors.length < spec.options - 1; e++) tryAdd(moveCell(shape, rnd));
       if (spec.same && distractors.length < spec.options - 1) continue; // same cell count only: try another hole
       extra.forEach(function (f) { tryAdd(f()); });
       for (var g = 0; g < 10 && distractors.length < spec.options - 1; g++) tryAdd(rnd.pick(extra)());
       if (distractors.length < spec.options - 1) continue;
-      var correct = spec.rot ? rotate(shape, rnd.randInt(0, 3)) : shape;
+      var correct = spec.rot ? rotate(shape, rnd.randInt(spec.turned ? 1 : 0, 3)) : shape;
+      // turned: never in the hole's own position (only possible when a turn changes the look)
+      if (spec.turned) for (var q = 0; q < 3 && keyOf(correct) === keyOf(shape); q++) correct = rot90(correct);
       var shown = distractors.map(function (s) { return spec.rot ? rotate(s, rnd.randInt(0, 3)) : s; });
       var options = rnd.shuffle([correct].concat(shown));
       return { n: spec.n, hole: hole, options: options, answer: options.indexOf(correct), rot: spec.rot };
@@ -206,13 +235,14 @@
       'בלוח חסר חלק, והוא מסומן בקו מקווקו.',
       'מתחת ללוח יש כמה חלקים. רק אחד ממלא את החור בדיוק.',
       'לחצו על החלק המתאים.',
-      'בשלבים מתקדמים החלק מוצג מסובב, ואפשר לסובב אותו בדמיון.'
+      'בשלבים מתקדמים החלק מוצג מסובב, ואפשר לסובב אותו בדמיון.',
+      'ברמות הגבוהות כל החלקים דומים מאוד: אותו מספר משבצות ואותו גודל. השוו משבצת אחרי משבצת.'
     ],
     css: css,
     _model: { LEVELS: LEVELS, makeRound: makeRound, fitsHole: fitsHole, normalize: normalize },
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var round = 0, score = 0;
 
@@ -261,7 +291,7 @@
             onclick: function () { onPick(idx); }
           }, [el('div', { class: 'fp-mini', style: { '--n': box } }, mini), mark]);
         });
-        var opts = el('div', { class: 'fp-opts' + (buttons.length === 3 ? ' fp-three' : '') }, buttons);
+        var opts = el('div', { class: 'fp-opts' + (buttons.length === 3 || buttons.length === 6 ? ' fp-three' : '') }, buttons);
 
         root.appendChild(board);
         root.appendChild(opts);

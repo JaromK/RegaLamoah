@@ -1,4 +1,7 @@
-/* פנים ושמות — remember who is who: name (and at higher levels profession and city) (memory). */
+/* פנים ושמות — remember who is who: name (and at higher levels profession and city) (memory).
+   Levels 1–20 add people and details, 21–30 make them easier to mix up, and 31–50 ask harder questions:
+   wrong answers that differ in one detail only, a detail asked by the name alone, and (41+) linking two
+   details without the face or the name ("what does the one from Haifa do?"). */
 (function () {
   'use strict';
 
@@ -62,7 +65,7 @@
 
   function clampLevel(l) {
     l = Math.round(Number(l) || 1);
-    return Math.max(1, Math.min(30, l));
+    return Math.max(1, Math.min(50, l));
   }
 
   BrainGames.register({
@@ -74,7 +77,8 @@
     instructions: [
       'יופיעו כמה דמויות, ולכל אחת שם (ובשלבים מתקדמים גם מקצוע ועיר).',
       'זכרו מי זה מי, ולחצו "זכרתי, הלאה" כשתהיו מוכנים.',
-      'כל דמות תופיע שוב לבד. בחרו את השם הנכון מתוך ארבע אפשרויות (ברמות הגבוהות לפעמים להפך: בחרו את הדמות).'
+      'כל דמות תופיע שוב לבד. בחרו את השם הנכון מתוך ארבע אפשרויות (ברמות הגבוהות לפעמים להפך: בחרו את הדמות).',
+      'ברמות הגבוהות ביותר יש גם שאלות בלי פנים: "מה המקצוע של רחל?" או "מה המקצוע של מי שגרה בחיפה?".'
     ],
     css: css,
     start: function (root, ctx) {
@@ -88,7 +92,13 @@
       // the details are shown and the player picks the face.
       var sameGender = level >= 21;
       var similarNames = level >= 24;
-      var reverseShare = level >= 26 ? (level >= 28 ? 0.5 : 0.35) : 0;
+      var reverseShare = level >= 26 ? (level >= 35 ? 0.25 : level >= 28 ? 0.5 : 0.35) : 0;
+      // 31–50: every wrong answer differs from the right one in one detail only (31+); some questions
+      // show only the name and ask one detail (35+); some link two details with no face and no name
+      // (41+, more of them each level). The rest are the usual "who is this?" questions.
+      var oneSwap = level >= 31;
+      var detailShare = level >= 35 ? 0.25 : 0;
+      var chainShare = level >= 41 ? 0.2 + (level - 41) * 0.03 : 0;
       var totalQ = n >= MIN_QUESTIONS ? n : Math.min(MAX_QUESTIONS, n * Math.ceil(MIN_QUESTIONS / n));
 
       var asked = 0;
@@ -185,8 +195,22 @@
           }
           return ctx.shuffle([p].concat(out));
         }
-        // Mix of "right name, wrong detail" and "wrong name, right detail" so both links are tested.
         var cands = [];
+        if (oneSwap) {
+          // 31+: each wrong answer changes exactly one thing, taken from another person on the board
+          var swaps = [];
+          others.forEach(function (q) {
+            swaps.push({ name: q.name, g: q.g, prof: p.prof, city: p.city });
+            swaps.push({ name: p.name, g: p.g, prof: q.prof, city: p.city });
+            if (withCity) swaps.push({ name: p.name, g: p.g, prof: p.prof, city: q.city });
+          });
+          // one of each kind first, so name, profession and city are all tested
+          var kinds = withCity ? 3 : 2;
+          for (var s0 = 0; s0 < kinds; s0++) add(swaps[s0]);
+          ctx.shuffle(swaps).forEach(add);
+          if (out.length >= 3) return ctx.shuffle([p].concat(out));
+        }
+        // Mix of "right name, wrong detail" and "wrong name, right detail" so both links are tested.
         var a = otherName(0), b = otherName(1);
         cands.push({ name: p.name, g: p.g, prof: otherProf(0), city: p.city });
         cands.push({ name: a.name, g: a.g, prof: p.prof, city: p.city });
@@ -252,7 +276,10 @@
         ctx.setProgress(asked + 1, totalQ);
         root.innerHTML = '';
         var she = p.g === 'f';
-        if (reverseShare && Math.random() < reverseShare) { askFace(order, i, people); return; }
+        var roll = Math.random();
+        if (roll < chainShare) { askChain(order, i, people); return; }
+        if (roll < chainShare + detailShare) { askDetail(order, i, people); return; }
+        if (roll < chainShare + detailShare + reverseShare) { askFace(order, i, people); return; }
         ctx.setStatus(withProf ? (she ? 'מי זאת?' : 'מי זה?') : (she ? 'איך קוראים לה?' : 'איך קוראים לו?'));
         var choices = buildChoices(p, people);
         var answered = false;
@@ -318,6 +345,76 @@
           ctx.feedback(ok, ok ? undefined : labelOf(p) + ' ' + (she ? 'היא ' : 'הוא ') + p.emoji).then(function () {
             return ctx.wait(500);
           }).then(function () { ask(order, i + 1, people); });
+        }
+      }
+
+      // Shared body for the text questions (35+): a question box and four answers taken from the board.
+      function askText(order, i, people, question, status, values, right, fullAnswer) {
+        var p = order[i];
+        ctx.setStatus(status);
+        var choices = ctx.shuffle(values);
+        var answered = false;
+        var buttons = choices.map(function (v) {
+          return el('button', { class: 'g-choice', type: 'button', onclick: function () { choose(v); } }, v);
+        });
+        root.appendChild(el('div', { class: 'fn-ask' }, [
+          el('p', { class: 'fn-label-q' }, question),
+          el('p', { class: 'g-hint' }, 'בחרו את התשובה הנכונה')
+        ]));
+        root.appendChild(el('div', { class: 'g-choices fn-choices fn-wide' }, buttons));
+
+        function choose(v) {
+          if (answered) return;
+          answered = true;
+          buttons.forEach(function (b) { b.disabled = true; });
+          var ok = v === right;
+          asked++;
+          if (ok) score++;
+          choices.forEach(function (x, k) {
+            if (x === right) buttons[k].classList.add('is-correct');
+            else if (x === v) buttons[k].classList.add('is-wrong');
+          });
+          ctx.feedback(ok, ok ? undefined : fullAnswer + ' ' + p.emoji).then(function () {
+            return ctx.wait(500);
+          }).then(function () { ask(order, i + 1, people); });
+        }
+      }
+
+      // Four answers: the right one and three from other people on the board (all different).
+      function boardValues(p, people, valueOf) {
+        var right = valueOf(p);
+        var out = [right];
+        ctx.shuffle(people.filter(function (q) { return q !== p; })).forEach(function (q) {
+          var v = valueOf(q);
+          if (out.length < 4 && out.indexOf(v) === -1) out.push(v);
+        });
+        return out;
+      }
+      function cityOf(p) { return CITIES[p.city]; }
+
+      // 35+: only the name is shown; which profession / city goes with it?
+      function askDetail(order, i, people) {
+        var p = order[i];
+        var she = p.g === 'f';
+        var full = p.name + ' ' + (she ? 'היא ' : 'הוא ') + detailOf(p).trim();
+        if (Math.random() < 0.5) {
+          askText(order, i, people, 'מה המקצוע של ' + p.name + '?', 'מה המקצוע?', boardValues(p, people, profOf), profOf(p), full);
+        } else {
+          askText(order, i, people, 'מאיפה ' + p.name + '?', 'מאיזו עיר?', boardValues(p, people, cityOf), cityOf(p), full);
+        }
+      }
+
+      // 41+: no face and no name: from one detail to the other ("what does the one from Haifa do?").
+      function askChain(order, i, people) {
+        var p = order[i];
+        var she = p.g === 'f';
+        var full = labelOf(p);
+        if (Math.random() < 0.5) {
+          askText(order, i, people, 'מה המקצוע של מי ש' + (she ? 'גרה' : 'גר') + ' ב' + cityOf(p) + '?', 'מה המקצוע?',
+            boardValues(p, people, profOf), profOf(p), full);
+        } else {
+          askText(order, i, people, 'באיזו עיר ' + (she ? 'גרה מי שעובדת' : 'גר מי שעובד') + ' כ' + profOf(p) + '?', 'מאיזו עיר?',
+            boardValues(p, people, cityOf), cityOf(p), full);
         }
       }
 
