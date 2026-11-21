@@ -262,6 +262,8 @@
             ? 'רמה ' + picked + ' נשמרה ל"' + name + '". עוד לא הגעתם אליה, זה יהיה אתגר. בהצלחה!'
             : 'רמה ' + picked + ' נשמרה ל"' + name + '".';
           drawLevels();
+          // choosing a level is enough: save it and close the settings
+          setTimeout(function () { if (dialog.open) dialog.close(); }, 250);
         }
       }));
       levelNote.hidden = !levelNote.textContent;
@@ -300,9 +302,7 @@
         // takes effect from the next game started, so a running round never changes mid-way
         el('p', { class: 'settings-hint' }, 'כשהשעון כבוי אין שום לחץ זמן. כשהוא פועל רואים כמה זמן עבר, וזמן הזכירה מוגבל. השינוי חל מהמשחק הבא.')
       ]),
-      levelSection,
-      el('div', { class: 'settings-foot' },
-        el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { dialog.close(); } }, 'סיום'))
+      levelSection
     ]));
 
     dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); }); // backdrop
