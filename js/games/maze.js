@@ -122,7 +122,7 @@
   var ICON = { key: '🔑', star: '⭐' };
 
   var css = [
-    '.mz-wrap{width:min(100%,calc(100svh - 19rem),30rem);aspect-ratio:1;position:relative;}',
+    '.mz-wrap{width:min(100%,max(calc(100svh - 19rem), 82vw),30rem);aspect-ratio:1;position:relative;}',
     '.mz-svg{width:100%;height:100%;display:block;touch-action:manipulation;cursor:pointer;}',
     '.mz-bg{fill:var(--surface);}',
     '.mz-seen{fill:var(--c-blue-soft);}',

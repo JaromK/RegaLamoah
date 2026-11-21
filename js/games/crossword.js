@@ -283,7 +283,7 @@
     '.cw-clue-text{flex:1;text-align:center;font-size:1.15rem;font-weight:800;line-height:1.25;text-wrap:balance;}',
     '.cw-clue-text small{font-size:1rem;font-weight:800;color:var(--language);white-space:nowrap;}',
     '.cw-nav{min-width:2.6rem;min-height:2.9rem;border:0;border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font-size:1.5rem;font-weight:900;cursor:pointer;}',
-    '.cw-grid{--cs:min(calc((100vw - 3rem) / var(--cols)), calc((100svh - 27.5rem) / var(--rows)), 3.6rem);display:grid;',
+    '.cw-grid{--cs:min(calc((100vw - 3rem) / var(--cols)), max(calc((100svh - 27.5rem) / var(--rows)), calc(82vw / var(--cols))), 3.6rem);display:grid;',
     'grid-template-columns:repeat(var(--cols),var(--cs));grid-auto-rows:var(--cs);direction:rtl;gap:0;touch-action:manipulation;}',
     '.cw-cell{position:relative;margin:0;padding:0;border:1px solid var(--ink);background:var(--surface);color:var(--ink);',
     'font-family:var(--font-display);font-weight:900;font-size:calc(var(--cs) * .62);line-height:1;display:grid;place-items:center;cursor:pointer;margin-inline-start:-1px;margin-top:-1px;}',

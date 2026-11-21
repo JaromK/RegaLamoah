@@ -111,7 +111,7 @@
     '.lo-mini span{width:1rem;height:1rem;border-radius:3px;background:var(--line);}',
     '.lo-mini span.on{background:var(--c-yellow);}',
     '.lo-mini span.me{background:var(--c-yellow);box-shadow:0 0 0 2px var(--ink);}',
-    '.lo-grid{display:grid;grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:.4rem;width:min(100%,calc((100svh - 24rem) * var(--c) / var(--r)),24rem);direction:ltr;}',
+    '.lo-grid{display:grid;grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:.4rem;width:min(100%,max(calc((100svh - 24rem) * var(--c) / var(--r)), 82vw),24rem);direction:ltr;}',
     '.lo-lamp{aspect-ratio:1;min-width:0;border-radius:50%;border:3px solid var(--line);background:var(--surface-2);cursor:pointer;padding:0;transition:background .15s,box-shadow .15s;}',
     '.lo-lamp.is-on{background:var(--c-yellow);border-color:var(--c-yellow);box-shadow:0 0 14px var(--c-yellow);}',
     '.lo-lamp.is-hint{outline:5px solid var(--c-green);outline-offset:2px;}',

@@ -151,7 +151,7 @@
   }
 
   var css = [
-    '.bp-wrap{width:calc(100% + 1.5rem);max-width:min(28rem,calc(100svh - 15rem));min-width:17rem;margin-inline:-.75rem;}',
+    '.bp-wrap{width:calc(100% + 1.5rem);max-width:min(28rem,max(calc(100svh - 15rem), 82vw));min-width:17rem;margin-inline:-.75rem;}',
     '.bp-board{--n:4;--slot:3rem;display:grid;direction:ltr;gap:4px;width:100%;',
     'grid-template-columns:var(--slot) repeat(var(--n),minmax(0,1fr)) var(--slot);}',
     '.bp-cell{aspect-ratio:1;position:relative;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;overflow:hidden;',

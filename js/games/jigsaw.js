@@ -13,7 +13,7 @@
 
   var css = [
     '.jg-wrap{display:flex;flex-direction:column;align-items:center;gap:.5rem;width:100%;}',
-    '.jg-board{display:grid;grid-template-columns:repeat(var(--g),minmax(0,1fr));gap:2px;width:min(100%,calc(100svh - 19rem),28rem);aspect-ratio:1;',
+    '.jg-board{display:grid;grid-template-columns:repeat(var(--g),minmax(0,1fr));gap:2px;width:min(100%,max(calc(100svh - 19rem), 82vw),28rem);aspect-ratio:1;',
     'background:var(--ink);border:3px solid var(--ink);border-radius:var(--radius-sm);overflow:hidden;direction:ltr;}',
     '.jg-p{aspect-ratio:1;min-width:0;padding:0;border:0;cursor:pointer;background-repeat:no-repeat;background-size:calc(var(--g) * 100%) calc(var(--g) * 100%);',
     'transition:transform .2s;position:relative;}',

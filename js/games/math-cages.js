@@ -217,7 +217,7 @@
   function fixedCells(n) { var a = []; for (var i = 0; i < n * n; i++) a.push(i); return a; }
 
   var css = [
-    '.mc-grid{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));grid-template-rows:repeat(var(--n),minmax(0,1fr));width:min(100%,calc(var(--n) * 4.2rem),calc(100svh - 21rem));',
+    '.mc-grid{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));grid-template-rows:repeat(var(--n),minmax(0,1fr));width:min(100%,calc(var(--n) * 4.2rem),max(calc(100svh - 21rem), 82vw));',
     'aspect-ratio:1;direction:rtl;border:3px solid var(--ink);border-radius:var(--radius-sm);overflow:hidden;background:var(--ink);gap:0;}',
     '.mc-cell{position:relative;min-height:0;min-width:0;padding:0;border:0;background:var(--surface);color:var(--ink);font-family:var(--font-display);',
     'font-weight:900;font-size:clamp(1.5rem,7vw,2.1rem);cursor:pointer;display:grid;place-items:center;',

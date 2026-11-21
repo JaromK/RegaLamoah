@@ -151,7 +151,7 @@
   }
 
   var css = [
-    '.cc-fig{width:100%;max-width:min(20rem,calc(100svh - 22rem));display:flex;justify-content:center;}',
+    '.cc-fig{width:100%;max-width:min(20rem,max(calc(100svh - 22rem), 82vw));display:flex;justify-content:center;}',
     '.cc-two{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;width:100%;max-width:26rem;}',
     '.cc-two figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:.2rem;}',
     '.cc-two figcaption{font-weight:800;font-size:1.15rem;}',

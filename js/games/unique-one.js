@@ -264,7 +264,7 @@
 
   var css = [
     /* 16rem = header, status, card padding and the "next" button that shows after a miss */
-    '.uo-grid{max-width:min(26rem,calc((100svh - 16rem) * var(--cols) / var(--rows)));gap:.45rem;}',
+    '.uo-grid{max-width:min(26rem,max(calc((100svh - 16rem) * var(--cols) / var(--rows)), 82vw));gap:.45rem;}',
     '.uo-grid .g-tile{background:var(--surface);}',
     '.uo-grid .g-tile svg{width:92%;height:92%;display:block;overflow:visible;}',
     '.uo-grid .g-tile.is-correct{border-width:4px;box-shadow:0 0 0 3px var(--good-soft);}',
