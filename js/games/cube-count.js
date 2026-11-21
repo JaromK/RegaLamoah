@@ -6,7 +6,7 @@
 
   var ROUNDS = 7;
 
-  /* Per level (1–30): grid w × d, tallest stack, gaps = some places stay empty,
+  /* Per level (1–50): grid w × d, tallest stack, gaps = some places stay empty,
      ask: count (how many cubes), box (how many are missing to fill a w × d × h box), diff (two stacks). */
   var LEVELS = [
     { w: 2, d: 2, h: 1, ask: 'count' }, { w: 2, d: 2, h: 2, ask: 'count' }, { w: 3, d: 2, h: 2, ask: 'count' },
@@ -19,7 +19,15 @@
     { w: 3, d: 2, h: 2, ask: 'box' }, { w: 3, d: 3, h: 2, ask: 'box' }, { w: 3, d: 3, h: 3, ask: 'box' },
     { w: 4, d: 3, h: 3, ask: 'box' }, { w: 4, d: 4, h: 3, ask: 'box' },
     { w: 3, d: 3, h: 2, ask: 'diff' }, { w: 3, d: 3, h: 3, ask: 'diff' }, { w: 4, d: 3, h: 3, ask: 'diff' },
-    { w: 4, d: 3, h: 3, ask: 'diff', gaps: true }, { w: 4, d: 4, h: 3, ask: 'diff' }
+    { w: 4, d: 3, h: 3, ask: 'diff', gaps: true }, { w: 4, d: 4, h: 3, ask: 'diff' },
+    // 31–50: bigger boxes with gaps, "how many can't be seen at all", and from 46 all questions mixed
+    { w: 4, d: 4, h: 3, ask: 'box', gaps: true }, { w: 4, d: 4, h: 4, ask: 'box' }, { w: 5, d: 4, h: 3, ask: 'box', gaps: true },
+    { w: 3, d: 3, h: 3, ask: 'hidden' }, { w: 4, d: 3, h: 3, ask: 'hidden' }, { w: 4, d: 4, h: 3, ask: 'hidden' },
+    { w: 4, d: 4, h: 4, ask: 'diff', gaps: true }, { w: 5, d: 4, h: 3, ask: 'diff', gaps: true }, { w: 5, d: 4, h: 4, ask: 'diff' },
+    { w: 4, d: 4, h: 4, ask: 'hidden', gaps: true }, { w: 5, d: 4, h: 4, ask: 'hidden' }, { w: 5, d: 5, h: 4, ask: 'hidden' },
+    { w: 5, d: 4, h: 4, ask: 'box', gaps: true }, { w: 5, d: 5, h: 3, ask: 'box', gaps: true }, { w: 5, d: 5, h: 4, ask: 'box' },
+    { w: 4, d: 4, h: 4, ask: 'mix', gaps: true }, { w: 5, d: 4, h: 4, ask: 'mix', gaps: true }, { w: 5, d: 5, h: 4, ask: 'mix' },
+    { w: 5, d: 5, h: 4, ask: 'mix', gaps: true }, { w: 5, d: 5, h: 5, ask: 'mix', gaps: true }
   ];
 
   /* heights[y][x]: x to the right, y going back. Back rows and left columns are never lower. */
@@ -108,6 +116,7 @@
   }
 
   function makeRound(spec, rnd) {
+    if (spec.ask === 'mix') return makeRound(Object.assign({}, spec, { ask: rnd.pick(['count', 'box', 'hidden', 'diff']) }), rnd);
     if (spec.ask === 'diff') {
       var A = makeStack(spec, rnd), B, tries = 0;
       do { B = makeStack(spec, rnd); tries++; } while ((count(B) >= count(A)) && tries < 50);
@@ -130,6 +139,12 @@
       if (miss <= 0) return makeRound(spec, rnd);
       return { ask: 'box', H: Hs, full: spec.h, answer: miss, options: numberChoices(miss, [full - visible(Hs), total], rnd),
         explain: 'תיבה מלאה: ' + spec.w + '×' + spec.d + '×' + spec.h + ' = ' + full + ' קוביות. יש ' + total + ', אז חסרות ' + miss + '.' };
+    }
+    if (spec.ask === 'hidden') {
+      var hid = total - visible(Hs);
+      if (hid < 1) return makeRound(spec, rnd); // nothing hidden: build another stack
+      return { ask: 'hidden', H: Hs, answer: hid, options: numberChoices(hid, [total, visible(Hs), hid + 2], rnd),
+        explain: 'יש ' + total + ' קוביות, ורואים חלק מ-' + visible(Hs) + ' מהן. ' + hid + ' מוסתרות לגמרי.' };
     }
     return { ask: 'count', H: Hs, answer: total, options: numberChoices(total, [visible(Hs)], rnd),
       explain: 'יש ' + total + ' קוביות, כולל אלה שמתחת ומאחור.' };
@@ -159,7 +174,7 @@
     instructions: [
       'יופיע בניין של קוביות. כל קובייה עומדת על הרצפה או על קובייה אחרת, אין קוביות באוויר.',
       'ספרו את כל הקוביות, גם את אלה שמסתתרות מתחת ומאחור.',
-      'ברמות הגבוהות שואלים כמה קוביות חסרות כדי למלא תיבה, או כמה יותר יש בבניין אחד מבשני.',
+      'ברמות הגבוהות שואלים כמה קוביות חסרות כדי למלא תיבה, כמה יותר יש בבניין אחד מבשני, או כמה קוביות מוסתרות לגמרי.',
       'בחרו את המספר. אין שעון.'
     ],
     css: css,
@@ -188,7 +203,8 @@
           fb.appendChild(drawStack(R.B)); fb.appendChild(el('figcaption', null, 'ב'));
           root.appendChild(el('div', { class: 'cc-two' }, [fa, fb]));
         } else {
-          ctx.setStatus(R.ask === 'box' ? 'כמה קוביות חסרות כדי למלא את התיבה המקווקוות?' : 'כמה קוביות יש בבניין?');
+          ctx.setStatus(R.ask === 'box' ? 'כמה קוביות חסרות כדי למלא את התיבה המקווקוות?'
+            : R.ask === 'hidden' ? 'כמה קוביות מוסתרות לגמרי (לא רואים מהן כלום)?' : 'כמה קוביות יש בבניין?');
           var fig = el('div', { class: 'cc-fig', role: 'img', 'aria-label': 'בניין קוביות' });
           fig.appendChild(drawStack(R.H, R.ask === 'box' ? R.full : 0));
           root.appendChild(fig);

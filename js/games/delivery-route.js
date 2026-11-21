@@ -4,7 +4,7 @@
 
   var ROUNDS = 5;
 
-  // Per level (1–30): grid columns × rows (never more than 5 × 5, so cells stay big),
+  // Per level (1–50): grid columns × rows (never more than 5 × 5, so cells stay big),
   // houses to deliver to, blocked cells (trees), and how many extra steps beyond the
   // shortest route still count as a good route. From level 16 the maps are picked so that
   // "always go to the nearest house" is NOT the shortest route — real planning is needed.
@@ -39,7 +39,29 @@
     { cols: 5, rows: 5, k: 7, walls: 8, slack: 0, tricky: true }, // 27
     { cols: 5, rows: 5, k: 7, walls: 9, slack: 0, tricky: true }, // 28
     { cols: 5, rows: 5, k: 7, walls: 10, slack: 0, tricky: true }, // 29
-    { cols: 5, rows: 5, k: 7, walls: 11, slack: 0, tricky: true }  // 30
+    { cols: 5, rows: 5, k: 7, walls: 11, slack: 0, tricky: true }, // 30
+    // 31–50: urgent parcels. House ① must get its parcel first (and ② second); passing another house
+    // before that does not count as delivering there. From 46 the shortest length is not shown.
+    { cols: 5, rows: 5, k: 6, walls: 8, slack: 1, urgent: 1 },   // 31
+    { cols: 5, rows: 5, k: 6, walls: 9, slack: 0, urgent: 1 },   // 32
+    { cols: 5, rows: 5, k: 6, walls: 10, slack: 0, urgent: 1 },  // 33
+    { cols: 5, rows: 5, k: 6, walls: 11, slack: 0, urgent: 1 },  // 34
+    { cols: 5, rows: 5, k: 7, walls: 8, slack: 1, urgent: 1 },   // 35
+    { cols: 5, rows: 5, k: 7, walls: 9, slack: 0, urgent: 1 },   // 36
+    { cols: 5, rows: 5, k: 7, walls: 10, slack: 0, urgent: 1 },  // 37
+    { cols: 5, rows: 5, k: 7, walls: 11, slack: 0, urgent: 1 },  // 38
+    { cols: 5, rows: 5, k: 7, walls: 11, slack: 0, urgent: 1 },  // 39
+    { cols: 5, rows: 5, k: 7, walls: 12, slack: 0, urgent: 1 },  // 40
+    { cols: 5, rows: 5, k: 6, walls: 8, slack: 1, urgent: 2 },   // 41
+    { cols: 5, rows: 5, k: 6, walls: 9, slack: 0, urgent: 2 },   // 42
+    { cols: 5, rows: 5, k: 6, walls: 10, slack: 0, urgent: 2 },  // 43
+    { cols: 5, rows: 5, k: 7, walls: 9, slack: 0, urgent: 2 },   // 44
+    { cols: 5, rows: 5, k: 7, walls: 10, slack: 0, urgent: 2 },  // 45
+    { cols: 5, rows: 5, k: 6, walls: 10, slack: 0, urgent: 2, hideBest: true }, // 46
+    { cols: 5, rows: 5, k: 7, walls: 9, slack: 0, urgent: 2, hideBest: true },  // 47
+    { cols: 5, rows: 5, k: 7, walls: 10, slack: 0, urgent: 2, hideBest: true }, // 48
+    { cols: 5, rows: 5, k: 7, walls: 11, slack: 0, urgent: 2, hideBest: true }, // 49
+    { cols: 5, rows: 5, k: 7, walls: 12, slack: 0, urgent: 2, hideBest: true }  // 50
   ];
 
   /* ---------- map helpers (pure) ---------- */
@@ -79,11 +101,16 @@
   }
 
   // Shortest tour depot → all houses → depot. Returns { steps, order }.
-  function bestTour(depot, houses, open, cols, rows) {
+  // urgent = how many of the first houses must be visited first, in their order (houses[0], houses[1]).
+  function bestTour(depot, houses, open, cols, rows, urgent) {
     var keys = [depot].concat(houses);
     var D = keys.map(function (k) { return bfs(k, open, cols, rows).dist; });
     var best = null;
-    permutations(houses.map(function (_, i) { return i + 1; })).forEach(function (perm) {
+    var u = urgent || 0;
+    var rest = houses.map(function (_, i) { return i + 1; }).slice(u);
+    var head = houses.slice(0, u).map(function (_, i) { return i + 1; });
+    permutations(rest).forEach(function (tail) {
+      var perm = head.concat(tail);
       var at = 0, sum = 0;
       perm.forEach(function (j) { sum += D[at][keys[j]]; at = j; });
       sum += D[at][depot];
@@ -139,10 +166,12 @@
         if (!close || attempt > 200) houses.push(c);
       });
       if (houses.length < k) continue;
-      var tour = bestTour(depot, houses, open, cols, rows);
+      var tour = bestTour(depot, houses, open, cols, rows, spec.urgent);
       // skip maps where the route is trivially just "there and back" for multi-house levels
       if (k >= 2 && tour.steps < 2 * k + 2 && attempt < 300) continue;
       if (spec.tricky && attempt < 300 && greedyTour(depot, houses, open, cols, rows) <= tour.steps) continue;
+      // urgent levels: the urgent house should not simply be the nearest one
+      if (spec.urgent && attempt < 300 && bestTour(depot, houses, open, cols, rows).steps >= tour.steps) continue;
       return { open: open, depot: depot, houses: houses, tour: tour };
     }
     return null;
@@ -168,6 +197,7 @@
     'background:var(--executive);opacity:.35;bottom:8%;inset-inline-start:8%;}',
     '.dr-cell.dr-path{box-shadow:inset 0 0 0 4px var(--good);}',
     '.dr-badge{position:absolute;top:2px;inset-inline-end:2px;font-size:.55em;line-height:1;}',
+    '.dr-badge.dr-urgent{font-size:.75em;font-weight:900;color:var(--c-red);}',
     '.dr-bike{position:absolute;inset:0;display:grid;place-items:center;font-size:1.05em;',
     'background:var(--surface);border-radius:calc(var(--radius-sm) - 2px);box-shadow:inset 0 0 0 3px var(--executive);}',
     '.dr-actions{flex-wrap:nowrap;width:100%;max-width:22rem;}',
@@ -184,9 +214,11 @@
       'האופניים יוצאים מהסניף 🏤. כל בית עם 📦 מחכה לחבילה.',
       'לחצו על משבצת שכנה כדי לנסוע אליה. אי אפשר לעבור דרך עצים.',
       'בקרו בכל הבתים וחזרו לסניף בכמה שפחות צעדים.',
-      'אפשר לחזור צעד אחורה או להתחיל מחדש בכל רגע.'
+      'אפשר לחזור צעד אחורה או להתחיל מחדש בכל רגע.',
+      'ברמות הגבוהות יש חבילות דחופות: לבית ① מגיעים ראשון (ואחריו לבית ②), ורק אחר כך לשאר הבתים.'
     ],
     css: css,
+    _model: { LEVELS: LEVELS, makeMap: makeMap, bestTour: bestTour },
     start: function (root, ctx) {
       var el = ctx.el;
       var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
@@ -215,13 +247,15 @@
       function playRound() {
         root.innerHTML = '';
         var map = makeMap(spec, cols, rows, rand) ||
-          makeMap({ k: spec.k, walls: 0, slack: spec.slack }, cols, rows, rand);
+          makeMap({ k: spec.k, walls: 0, slack: spec.slack, urgent: spec.urgent }, cols, rows, rand);
         var n = cols * rows;
         var open = map.open, depot = map.depot;
         var isHouse = {};
         map.houses.forEach(function (h) { isHouse[h] = true; });
         var best = map.tour.steps;
         var K = map.houses.length;
+        var urg = map.houses.slice(0, spec.urgent || 0); // ① (and ②) must be delivered first, in order
+        var URG_MARK = ['①', '②'];
 
         var pos = depot;
         var trail = [depot];     // cells visited, in order
@@ -251,7 +285,13 @@
 
         function recompute() {
           delivered = {};
-          trail.forEach(function (c) { if (isHouse[c]) delivered[c] = true; });
+          var nextUrg = 0;
+          trail.forEach(function (c) {
+            if (!isHouse[c] || delivered[c]) return;
+            var ui = urg.indexOf(c);
+            // an urgent house in its turn, or any house once all urgent ones are done
+            if (ui >= 0 ? ui === nextUrg : nextUrg >= urg.length) { delivered[c] = true; if (ui >= 0) nextUrg++; }
+          });
           pos = trail[trail.length - 1];
         }
 
@@ -272,7 +312,8 @@
             else if (isHouse[i]) {
               b.classList.add(delivered[i] ? 'dr-done' : 'dr-house');
               b.appendChild(el('span', { 'aria-hidden': 'true' }, '🏠'));
-              b.appendChild(el('span', { class: 'dr-badge', 'aria-hidden': 'true' }, delivered[i] ? '✓' : '📦'));
+              b.appendChild(el('span', { class: 'dr-badge' + (urg.indexOf(i) >= 0 && !delivered[i] ? ' dr-urgent' : ''), 'aria-hidden': 'true' },
+                delivered[i] ? '✓' : urg.indexOf(i) >= 0 ? URG_MARK[urg.indexOf(i)] : '📦'));
             } else if (walked[i]) b.classList.add('dr-walked');
             if (next[i]) b.classList.add('dr-next');
             if (i === pos) b.appendChild(el('span', { class: 'dr-bike', 'aria-hidden': 'true' }, '🚲'));
@@ -281,7 +322,9 @@
           if (accepting) {
             var left = remaining();
             if (left === 0 && pos !== depot) cells[depot].classList.add('dr-goal');
-            ctx.setStatus((left === 0 ? 'חזרו לסניף · ' : '') + 'צעדים: ' + steps() + ' · אפשר ב-' + best);
+            var urgLeft = urg.filter(function (h) { return !delivered[h]; }).length;
+            ctx.setStatus((left === 0 ? 'חזרו לסניף · ' : urgLeft ? (urgLeft === urg.length ? 'קודם לבית ①' : 'עכשיו לבית ②') + ' · ' : '') +
+              'צעדים: ' + steps() + (spec.hideBest ? '' : ' · אפשר ב-' + best));
           }
           undoBtn.disabled = !accepting || trail.length <= 1;
           resetBtn.disabled = !accepting || trail.length <= 1;
@@ -290,9 +333,10 @@
         function onTap(i) {
           if (!accepting || !open[i]) return;
           if (neighbours(pos, cols, rows).indexOf(i) < 0) return;
-          var fresh = isHouse[i] && !delivered[i];
+          var before = remaining();
           trail.push(i);
           recompute();
+          var fresh = remaining() < before;
           ctx.sound(fresh ? 'good' : 'tap');
           if (pos === depot && remaining() === 0) { accepting = false; draw(); finishRound(); return; }
           draw();

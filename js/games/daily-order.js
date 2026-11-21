@@ -6,13 +6,25 @@
 
   // Per level (1–20): how many steps of the task to order. Small steps, never speed.
   var LEVELS = [3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 8, 8];
-  // Levels 21–30 never show more than the 8 lines of level 20: n real steps plus extra steps that
+  // Levels 21–50 never show more than the 8 lines of level 20: n real steps plus extra steps that
   // belong to a different task (intr) and must be left without a number; noTitle hides the task name.
   var EXTRA = [
     { n: 5, intr: 1 }, { n: 6, intr: 1 }, { n: 7, intr: 1 },                                  // 21–23
     { n: 6, intr: 1, noTitle: true }, { n: 7, intr: 1, noTitle: true },                       // 24–25
     { n: 5, intr: 2 }, { n: 6, intr: 2 },                                                     // 26–27
-    { n: 5, intr: 2, noTitle: true }, { n: 6, intr: 2, noTitle: true }, { n: 6, intr: 2, noTitle: true } // 28–30
+    { n: 5, intr: 2, noTitle: true }, { n: 6, intr: 2, noTitle: true }, { n: 6, intr: 2, noTitle: true }, // 28–30
+    // 31–50: the extra steps come from a SIMILAR task (same group: kitchen with kitchen…), and from 41 the steps
+    // are numbered backwards, from the last to the first. Still at most 8 lines on screen.
+    { n: 6, intr: 1, near: true }, { n: 7, intr: 1, near: true }, { n: 6, intr: 1, near: true, noTitle: true },  // 31–33
+    { n: 7, intr: 1, near: true, noTitle: true }, { n: 6, intr: 2, near: true },                                 // 34–35
+    { n: 6, intr: 2, near: true, noTitle: true }, { n: 6, intr: 2, near: true, noTitle: true },                  // 36–37
+    { n: 7, intr: 1, near: true, noTitle: true }, { n: 6, intr: 2, near: true, noTitle: true },                  // 38–39
+    { n: 6, intr: 2, near: true, noTitle: true },                                                                 // 40
+    { n: 5, rev: true }, { n: 6, rev: true }, { n: 7, rev: true }, { n: 6, intr: 1, rev: true },                 // 41–44
+    { n: 7, intr: 1, rev: true, noTitle: true },                                                                  // 45
+    { n: 6, intr: 1, near: true, rev: true }, { n: 6, intr: 2, near: true, rev: true },                          // 46–47
+    { n: 6, intr: 2, near: true, rev: true, noTitle: true }, { n: 6, intr: 2, near: true, rev: true, noTitle: true }, // 48–49
+    { n: 6, intr: 2, near: true, rev: true, noTitle: true }                                                       // 50
   ];
   var MAX_LEVEL = LEVELS.length + EXTRA.length;
 
@@ -294,7 +306,8 @@
       'מופיעה משימה יומיומית, והשלבים שלה מעורבבים.',
       'לחצו על השלבים לפי הסדר: קודם הראשון, אחר כך השני, וכן הלאה. כל שלב מקבל מספר.',
       'טעיתם? לחצו שוב על שלב ממוספר כדי לבטל את המספר שלו.',
-      'כשכל השלבים במקום, לחצו "בדיקה". ברמות הגבוהות יש שלב שלא שייך למשימה: השאירו אותו בלי מספר.'
+      'כשכל השלבים במקום, לחצו "בדיקה". ברמות הגבוהות יש שלב שלא שייך למשימה: השאירו אותו בלי מספר.',
+      'ברמות הגבוהות מאוד מסדרים מהסוף להתחלה: מספר 1 הוא השלב האחרון.'
     ],
     css: css,
     start: function (root, ctx) {
@@ -302,7 +315,8 @@
       var level = Math.max(1, Math.min(MAX_LEVEL, Math.round(Number(ctx.level)) || 1));
       var extra = level > LEVELS.length ? EXTRA[level - LEVELS.length - 1] : null;
       var count = extra ? extra.n : LEVELS[level - 1];
-      var nIntr = extra ? extra.intr : 0;
+      var nIntr = extra ? extra.intr || 0 : 0;
+      var rev = !!(extra && extra.rev);
 
       var pool = TASKS.filter(function (t) { return t.steps.length >= count; });
       var tasks = ctx.shuffle(pool).slice(0, ROUNDS);
@@ -341,7 +355,9 @@
         var all = task.title + ' ' + task.steps.join(' ');
         var pool = [];
         TASKS.forEach(function (t) {
-          if ((GROUP[t.title] || 'o') === g) return;
+          if (t.title === task.title) return;
+          // usually from another group; at 31+ ('near') from a similar task of the same group
+          if (((GROUP[t.title] || 'o') === g) !== !!(extra && extra.near)) return;
           t.steps.forEach(function (s) { if (!sharesWord(s, all)) pool.push({ s: s, from: t.title }); });
         });
         var out = [];
@@ -391,7 +407,8 @@
         ]);
         root.appendChild(wrap);
 
-        ctx.setStatus(!extraSteps.length ? 'לחצו על השלבים לפי הסדר הנכון'
+        ctx.setStatus(rev ? (extraSteps.length ? 'מהסוף להתחלה, ' + (extraSteps.length === 1 ? 'ושלב אחד מיותר' : 'ו-2 שלבים מיותרים') : 'מהסוף להתחלה: קודם השלב האחרון')
+          : !extraSteps.length ? 'לחצו על השלבים לפי הסדר הנכון'
           : extraSteps.length === 1 ? 'יש שלב אחד מיותר, דלגו עליו'
             : 'יש 2 שלבים מיותרים, דלגו עליהם');
         render();
@@ -426,16 +443,18 @@
           locked = true;
           var ok = true;
           // Rearrange the list into the right order; mark each step by where the player put it.
-          for (var idx = 0; idx < n; idx++) {
+          // backwards levels: the k-th tap should be the k-th step from the end
+          for (var k = 0; k < n; k++) {
+            var idx = rev ? n - 1 - k : k;
             var it = items[idx];
             var chosen = placed.indexOf(idx);
-            var right = chosen === idx;
+            var right = chosen === k;
             if (!right) ok = false;
             it.btn.disabled = true;
             it.btn.classList.remove('is-placed');
             it.btn.classList.add(right ? 'is-correct' : 'is-wrong');
-            it.num.textContent = String(idx + 1);
-            it.btn.setAttribute('aria-label', 'שלב ' + (idx + 1) + ': ' + steps[idx] + (right ? '' : '. שמתם אותו במקום ' + (chosen + 1)));
+            it.num.textContent = String(k + 1);
+            it.btn.setAttribute('aria-label', 'שלב ' + (k + 1) + ': ' + steps[idx] + (right ? '' : '. שמתם אותו במקום ' + (chosen + 1)));
             list.appendChild(it.li);
           }
           // The steps from another task go last, marked "לא שייך" (green if left without a number).
@@ -453,7 +472,7 @@
           }
           titleEl.textContent = task.title;
           if (ok) score++;
-          ctx.setStatus(ok ? 'מצוין! זה הסדר הנכון' : 'כמעט. כך הסדר הנכון');
+          ctx.setStatus(ok ? 'מצוין! זה הסדר הנכון' : rev ? 'כמעט. כך הסדר מהסוף להתחלה' : 'כמעט. כך הסדר הנכון');
           checkBtn.hidden = true;
           ctx.feedback(ok, ok ? undefined : 'הרשימה מסודרת עכשיו נכון').then(function () {
             if (ok) return ctx.wait(900).then(nextRound);
