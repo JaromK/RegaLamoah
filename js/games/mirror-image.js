@@ -4,7 +4,7 @@
 
   var ROUNDS = 7;
 
-  // Per level (1–30): grid size, filled cells, options shown, colours (1–2),
+  // Per level (1–50): grid size, filled cells, options shown, colours (1–3),
   // and `near` = the "one cell moved" distractor moves only to a neighbouring cell (subtler).
   var LEVELS = [
     { size: 3, count: 3,  options: 3, colors: 1, near: false }, // 1
@@ -38,7 +38,30 @@
     { size: 5, count: 14, options: 4, colors: 2, near: true, hard: 2 }, // 27
     { size: 5, count: 15, options: 4, colors: 2, near: true, hard: 2 }, // 28
     { size: 5, count: 16, options: 4, colors: 2, near: true, hard: 2 }, // 29
-    { size: 5, count: 17, options: 4, colors: 2, near: true, hard: 2 }  // 30
+    { size: 5, count: 17, options: 4, colors: 2, near: true, hard: 2 }, // 30
+    // 31–50: three colours (31+), then two of the three wrong answers are colour swaps (hard 3, 34+); from 39
+    // some rounds use a mirror below the picture (ud = share: top and bottom swap), and from 46 the
+    // swapped colours sit side by side (nearSwap)
+    { size: 5, count: 15, options: 4, colors: 3, near: true, hard: 2 }, // 31
+    { size: 5, count: 16, options: 4, colors: 3, near: true, hard: 2 }, // 32
+    { size: 5, count: 17, options: 4, colors: 3, near: true, hard: 2 }, // 33
+    { size: 5, count: 14, options: 4, colors: 3, near: true, hard: 3 }, // 34
+    { size: 5, count: 15, options: 4, colors: 3, near: true, hard: 3 }, // 35
+    { size: 5, count: 16, options: 4, colors: 3, near: true, hard: 3 }, // 36
+    { size: 5, count: 17, options: 4, colors: 3, near: true, hard: 3 }, // 37
+    { size: 5, count: 18, options: 4, colors: 3, near: true, hard: 3 }, // 38
+    { size: 5, count: 17, options: 4, colors: 3, near: true, hard: 3, ud: 0.25 }, // 39
+    { size: 5, count: 18, options: 4, colors: 3, near: true, hard: 3, ud: 0.3 }, // 40
+    { size: 5, count: 16, options: 4, colors: 3, near: true, hard: 3, ud: 0.4 }, // 41
+    { size: 5, count: 17, options: 4, colors: 3, near: true, hard: 3, ud: 0.4 }, // 42
+    { size: 5, count: 17, options: 4, colors: 3, near: true, hard: 3, ud: 0.4 }, // 43
+    { size: 5, count: 18, options: 4, colors: 3, near: true, hard: 3, ud: 0.4 }, // 44
+    { size: 5, count: 18, options: 4, colors: 3, near: true, hard: 3, ud: 0.4 }, // 45
+    { size: 5, count: 17, options: 4, colors: 3, near: true, hard: 3, ud: 0.5, nearSwap: true }, // 46
+    { size: 5, count: 18, options: 4, colors: 3, near: true, hard: 3, ud: 0.5, nearSwap: true }, // 47
+    { size: 5, count: 18, options: 4, colors: 3, near: true, hard: 3, ud: 0.5, nearSwap: true }, // 48
+    { size: 5, count: 19, options: 4, colors: 3, near: true, hard: 3, ud: 0.5, nearSwap: true }, // 49
+    { size: 5, count: 19, options: 4, colors: 3, near: true, hard: 3, ud: 0.5, nearSwap: true } // 50
   ];
 
   var css = [
@@ -53,6 +76,10 @@
     '.mi-cell{aspect-ratio:1;border-radius:3px;background:var(--surface-2);}',
     '.mi-cell.mi-a{background:var(--c-blue);}',
     '.mi-cell.mi-b{background:var(--c-yellow);}',
+    '.mi-cell.mi-c{background:var(--c-red);}',
+    /* mirror below the picture (top ↔ bottom) */
+    '.mi-stage.mi-ud{flex-direction:column;align-items:center;gap:.3rem;}',
+    '.mi-ud .mi-mirror{width:min(8rem,17svh);height:.55rem;background:repeating-linear-gradient(to right,var(--accent) 0 .7rem,var(--accent-soft) .7rem 1.1rem);}',
     '.mi-hint{margin:0;font-size:1.1rem;line-height:1.3;}',
     /* options: 2×2 grid sized by screen height so the whole round fits one phone screen */
     '.mi-opts{display:flex;flex-wrap:wrap;justify-content:center;gap:.7rem;width:100%;max-width:20rem;}',
@@ -63,7 +90,7 @@
     '.mi-mark:empty{display:none;}'
   ].join('');
 
-  /* ---------- pattern helpers (pattern = flat array, 0 empty / 1 colour A / 2 colour B) ---------- */
+  /* ---------- pattern helpers (pattern = flat array, 0 empty / 1 colour A / 2 colour B / 3 colour C) ---------- */
   function keyOf(p) { return p.join(''); }
 
   function flipLR(p, n) {
@@ -84,6 +111,13 @@
     var cells = ctx.shuffle(idx).slice(0, count);
     var p = [];
     for (i = 0; i < n * n; i++) p.push(0);
+    if (colors > 2) {
+      // three colours, about a third each (each at least 2)
+      var third = Math.floor(count / 3);
+      var c3 = Math.max(2, third - ctx.randInt(0, 1)), c2 = Math.max(2, third + ctx.randInt(0, 1) - ctx.randInt(0, 1));
+      cells.forEach(function (cell, k) { p[cell] = k < c3 ? 3 : k < c3 + c2 ? 2 : 1; });
+      return p;
+    }
     var bCount = colors > 1 ? Math.max(1, Math.floor(count / 2) - ctx.randInt(0, 1)) : 0;
     cells.forEach(function (cell, k) { p[cell] = k < bCount ? 2 : 1; });
     return p;
@@ -117,24 +151,31 @@
     return null;
   }
 
-  // Swap the colours of one cell of each colour (same shape, colours in the wrong places).
-  function colorSwap(p, ctx) {
-    var a = [], b = [];
-    p.forEach(function (v, k) { if (v === 1) a.push(k); else if (v === 2) b.push(k); });
-    if (!a.length || !b.length) return null;
+  // Swap the colours of two cells of different colours (same shape, colours in the wrong places).
+  // adjacent: only two cells side by side or one above the other (subtler).
+  function colorSwap(p, ctx, n, adjacent) {
+    var pairs = [];
+    for (var i = 0; i < p.length; i++) for (var j = i + 1; j < p.length; j++) {
+      if (!p[i] || !p[j] || p[i] === p[j]) continue;
+      if (adjacent && Math.abs(Math.floor(i / n) - Math.floor(j / n)) + Math.abs((i % n) - (j % n)) !== 1) continue;
+      pairs.push([i, j]);
+    }
+    if (!pairs.length) return adjacent ? colorSwap(p, ctx, n, false) : null;
+    var pr = ctx.pick(pairs);
     var out = p.slice();
-    var i = ctx.pick(a), j = ctx.pick(b);
-    out[i] = 2; out[j] = 1;
+    out[pr[0]] = p[pr[1]]; out[pr[1]] = p[pr[0]];
     return out;
   }
 
   // Build one round: original, answer (mirror) and distinct distractors.
-  function buildRound(spec, ctx) {
+  // axis: 'lr' = the usual mirror at the side (left ↔ right), 'ud' = a mirror below (top ↔ bottom);
+  // the "wrong mirror" distractor is then the flip the other way.
+  function buildRound(spec, ctx, axis) {
     var n = spec.size;
     for (var attempt = 0; attempt < 400; attempt++) {
       var orig = makePattern(n, spec.count, spec.colors, ctx);
-      var answer = flipLR(orig, n);
-      var upDown = flipUD(orig, n);
+      var answer = axis === 'ud' ? flipUD(orig, n) : flipLR(orig, n);
+      var upDown = axis === 'ud' ? flipLR(orig, n) : flipUD(orig, n);
       var seen = {};
       seen[keyOf(answer)] = true;
       // a left↔right symmetric pattern looks the same in the mirror — regenerate
@@ -156,19 +197,22 @@
       if (spec.hard) {
         var near = [];
         for (var h = 0; h < 30 && near.length < spec.hard; h++) {
-          var c2 = near.length % 2 === 0 ? moveOne(answer, n, true, ctx) : colorSwap(answer, ctx);
-          var swapKind = near.length % 2 === 0 ? 'moved' : 'swap';
+          // hard 3 (34+): both extra near misses are colour swaps, the subtlest change
+          var wantMove = spec.hard < 3 && near.length % 2 === 0;
+          var c2 = wantMove ? moveOne(answer, n, true, ctx) : colorSwap(answer, ctx, n, spec.nearSwap);
+          var swapKind = wantMove ? 'moved' : 'swap';
           if (c2 && !seen[keyOf(c2)] && keyOf(c2) !== keyOf(moved)) { seen[keyOf(c2)] = true; near.push({ p: c2, kind: swapKind }); }
         }
         if (near.length < spec.hard) continue;
-        // keep the "moved" one; hard 1 replaces the unchanged picture, hard 2 also the upside-down one
+        // keep the "moved" one; hard 1 replaces the unchanged picture, hard 2 also the upside-down one,
+        // hard 3 makes both of the others colour swaps
         distractors = [{ p: moved, kind: 'moved' }].concat(near);
         if (spec.hard < 2) distractors.push({ p: upDown, kind: 'updown' });
         distractors = distractors.slice(0, 3);
       }
       distractors = ctx.shuffle(distractors).slice(0, spec.options - 1);
       var options = ctx.shuffle([{ p: answer, kind: 'answer' }].concat(distractors));
-      return { orig: orig, options: options };
+      return { orig: orig, options: options, axis: axis === 'ud' ? 'ud' : 'lr' };
     }
     return null;
   }
@@ -183,12 +227,14 @@
       'משמאל יש ציור של משבצות, ולידו קו של מראה.',
       'דמיינו איך הציור ייראה במראה: מה שבצד שמאל יעבור לצד ימין.',
       'לחצו על התמונה שנראית בדיוק כמו במראה.',
-      'אין שעון. הסתכלו בנחת לפני שבוחרים.'
+      'אין שעון. הסתכלו בנחת לפני שבוחרים.',
+      'ברמות הגבוהות לפעמים המראה מתחת לציור: אז מה שלמעלה עובר למטה, וימין ושמאל נשארים.'
     ],
     css: css,
+    _model: { LEVELS: LEVELS, buildRound: buildRound, flipLR: flipLR, flipUD: flipUD },
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var n = spec.size;
       var round = 0;
@@ -196,7 +242,7 @@
 
       function gridNode(p) {
         var cells = p.map(function (v) {
-          return el('div', { class: 'mi-cell' + (v === 1 ? ' mi-a' : v === 2 ? ' mi-b' : '') });
+          return el('div', { class: 'mi-cell' + (v === 1 ? ' mi-a' : v === 2 ? ' mi-b' : v === 3 ? ' mi-c' : '') });
         });
         return el('div', { class: 'mi-grid', style: { '--n': String(n) }, 'aria-hidden': 'true' }, cells);
       }
@@ -217,12 +263,17 @@
 
       function playRound() {
         root.innerHTML = '';
-        var data = buildRound(spec, ctx);
+        var ud = spec.ud && Math.random() < spec.ud;
+        var data = buildRound(spec, ctx, ud ? 'ud' : 'lr');
         if (!data) { nextRound(); return; } // practically unreachable
 
-        ctx.setStatus('איך הציור ייראה במראה?');
+        ctx.setStatus(ud ? 'המראה למטה: איך הציור ייראה בה?' : 'איך הציור ייראה במראה?');
 
-        var stage = el('div', { class: 'mi-stage' }, [
+        // a mirror below the picture: no "?" box and no caption, just the picture and the mirror line under it
+        var stage = ud ? el('div', { class: 'mi-stage mi-ud' }, [
+          el('div', { class: 'mi-side', 'aria-label': 'הציור, והמראה מתחתיו' }, [gridNode(data.orig)]),
+          el('div', { class: 'mi-mirror', 'aria-hidden': 'true' })
+        ]) : el('div', { class: 'mi-stage' }, [
           el('div', { class: 'mi-side' }, [el('span', { class: 'mi-cap' }, 'הציור'), gridNode(data.orig)]),
           el('div', { class: 'mi-mirror', 'aria-hidden': 'true' }),
           el('div', { class: 'mi-side' }, [el('span', { class: 'mi-cap' }, 'במראה'), el('div', { class: 'mi-q', 'aria-hidden': 'true' }, '?')])
@@ -241,7 +292,7 @@
         var opts = el('div', { class: 'mi-opts' }, buttons);
 
         root.appendChild(stage);
-        root.appendChild(el('p', { class: 'g-hint mi-hint' }, 'רק ימין ושמאל מתחלפים.'));
+        root.appendChild(el('p', { class: 'g-hint mi-hint' }, ud ? 'רק למעלה ולמטה מתחלפים.' : 'רק ימין ושמאל מתחלפים.'));
         root.appendChild(opts);
 
         function choose(i) {
@@ -259,7 +310,7 @@
           var msg;
           if (!ok) {
             if (chosen.kind === 'same') msg = 'זה הציור עצמו, בלי מראה. התשובה מסומנת בירוק';
-            else if (chosen.kind === 'updown') msg = 'זה הפוך מלמעלה למטה. התשובה מסומנת בירוק';
+            else if (chosen.kind === 'updown') msg = (ud ? 'זה הפוך מימין לשמאל.' : 'זה הפוך מלמעלה למטה.') + ' התשובה מסומנת בירוק';
             else if (chosen.kind === 'swap') msg = 'כמעט! שני צבעים התחלפו. התשובה מסומנת בירוק';
             else msg = 'כמעט! משבצת אחת זזה. התשובה מסומנת בירוק';
           }

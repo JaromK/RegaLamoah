@@ -10,10 +10,12 @@
   /* Isolate a math snippet as LTR inside Hebrew text (LRI ... PDI). */
   function ltr(s) { return '⁦' + s + '⁩'; }
 
-  var MAX_L = 30;
+  var MAX_L = 50;
 
   /* Per level: pattern pool, difficulty of the numbers (d, the old 1–10 scale),
-     sequence length n, and how often the gap is in the middle instead of the end. */
+     sequence length n, and how often the gap is in the middle instead of the end.
+     31–50: new rules (n×(n+1), two series where one doubles, ×3−1, Fibonacci + 1, differences ×3),
+     mixed with the hardest older ones; from 41 `two` = share of questions with TWO missing numbers. */
   var LEVELS = {
     1:  { pool: ['add'], d: 1, n: 5, mid: 0 },
     2:  { pool: ['add', 'sub'], d: 2, n: 5, mid: 0 },
@@ -45,19 +47,76 @@
     27: { pool: ['sqplus', 'mulinc', 'dblm1', 'incdiff2', 'inter'], d: 12, n: 6, mid: 0.6 },
     28: { pool: ['tri', 'cubes', 'diffmul', 'half', 'sqplus'], d: 12, n: 6, mid: 0.65 },
     29: { pool: ['mulinc', 'tri', 'sqplus', 'cubes', 'dblm1', 'diffmul'], d: 12, n: 6, mid: 0.65 },
-    30: { pool: ['mulinc', 'tri', 'sqplus', 'cubes', 'dblm1', 'diffmul', 'half', 'incdiff2'], d: 12, n: 6, mid: 0.7 }
+    30: { pool: ['mulinc', 'tri', 'sqplus', 'cubes', 'dblm1', 'diffmul', 'half', 'incdiff2'], d: 12, n: 6, mid: 0.7 },
+    // 31–40: new kinds of rules; 41–50: more and more questions with two missing numbers
+    31: { pool: ['pron', 'intermul', 'tri', 'sqplus', 'cubes', 'diffmul'], d: 12, n: 6, mid: 0.7 },
+    32: { pool: ['pron', 'intermul', 'x3m1', 'mulinc', 'dblm1', 'incdiff2'], d: 12, n: 6, mid: 0.7 },
+    33: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'tri', 'cubes'], d: 12, n: 6, mid: 0.75 },
+    34: { pool: ['intermul', 'x3m1', 'fibp1', 'diffx3', 'sqplus', 'diffmul'], d: 12, n: 6, mid: 0.75 },
+    35: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'mulinc'], d: 12, n: 6, mid: 0.75 },
+    36: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'dblm1'], d: 12, n: 6, mid: 0.8 },
+    37: { pool: ['intermul', 'x3m1', 'fibp1', 'diffx3', 'cubes', 'sqplus'], d: 12, n: 6, mid: 0.8 },
+    38: { pool: ['pron', 'intermul', 'fibp1', 'diffx3', 'tri', 'diffmul', 'half'], d: 12, n: 6, mid: 0.8 },
+    39: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'mulinc', 'incdiff2'], d: 12, n: 6, mid: 0.85 },
+    40: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'cubes', 'sqplus'], d: 12, n: 6, mid: 0.85 },
+    41: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'sqplus', 'incdiff2', 'fib', 'inter'], d: 12, n: 6, mid: 0.85, two: 0.3 },
+    42: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'sqplus', 'incdiff2', 'fib', 'inter'], d: 12, n: 6, mid: 0.85, two: 0.35 },
+    43: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'sqplus', 'incdiff2', 'fib', 'inter'], d: 12, n: 6, mid: 0.85, two: 0.4 },
+    44: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'sqplus', 'incdiff2', 'fib', 'inter'], d: 12, n: 6, mid: 0.85, two: 0.45 },
+    45: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'sqplus', 'incdiff2', 'fib', 'inter'], d: 12, n: 6, mid: 0.85, two: 0.5 },
+    46: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'cubes', 'sqplus', 'mulinc', 'dblm1', 'diffmul', 'incdiff2'], d: 12, n: 6, mid: 0.85, two: 0.55 },
+    47: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'cubes', 'sqplus', 'mulinc', 'dblm1', 'diffmul', 'incdiff2'], d: 12, n: 6, mid: 0.85, two: 0.6 },
+    48: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'cubes', 'sqplus', 'mulinc', 'dblm1', 'diffmul', 'incdiff2'], d: 12, n: 6, mid: 0.85, two: 0.65 },
+    49: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'cubes', 'sqplus', 'mulinc', 'dblm1', 'diffmul', 'incdiff2'], d: 12, n: 6, mid: 0.85, two: 0.7 },
+    50: { pool: ['pron', 'intermul', 'x3m1', 'fibp1', 'diffx3', 'tri', 'cubes', 'sqplus', 'mulinc', 'dblm1', 'diffmul', 'incdiff2'], d: 12, n: 6, mid: 0.85, two: 0.8 }
   };
 
   var PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
 
   var HINTS = {
     inter: 'רמז: אולי יש כאן שתי סדרות שמשתלבות, בדקו כל מספר שני',
+    intermul: 'רמז: אולי יש כאן שתי סדרות שמשתלבות, בדקו כל מספר שני',
     primes: 'רמז: מספר ראשוני מתחלק רק ב־1 ובעצמו'
   };
 
   function build(type, L, n, R) {
     var seq = [], i, explain, step = 1;
-    if (type === 'incdiff2') {
+    if (type === 'pron') {
+      // n × (n+1): 2, 6, 12, 20…
+      var r0 = R.randInt(1, 4);
+      for (i = 0; i < n; i++) seq.push((r0 + i) * (r0 + i + 1));
+      step = 2 * (r0 + n - 1);
+      explain = 'כל מספר הוא מספר כפול המספר שאחריו: ' + ltr(r0 + TIMES + (r0 + 1) + ', ' + (r0 + 1) + TIMES + (r0 + 2) + ', ' + (r0 + 2) + TIMES + (r0 + 3) + '…');
+    } else if (type === 'intermul') {
+      // two interleaved series: the even places double, the odd places add. Only the adding series
+      // may lose a number (with three numbers each, a doubling series of two would also fit "+").
+      var e0 = R.randInt(1, 3), ea = R.randInt(5, 20), ed = R.randInt(2, 7);
+      for (i = 0; i < n; i++) {
+        var kk2 = Math.floor(i / 2);
+        var isDbl = i % 2 === 0;
+        seq.push(isDbl ? e0 * Math.pow(2, kk2) : ea + kk2 * ed);
+      }
+      step = ed;
+      explain = 'שתי סדרות לסירוגין: באחת כופלים ב־2, ובשנייה מוסיפים ' + ed;
+    } else if (type === 'x3m1') {
+      var z0 = R.randInt(1, 3);
+      seq.push(z0);
+      for (i = 1; i < n; i++) seq.push(seq[i - 1] * 3 - 1);
+      step = seq[n - 2];
+      explain = 'כל מספר הוא המספר שלפניו כפול 3, פחות 1';
+    } else if (type === 'fibp1') {
+      var fa = R.randInt(1, 4), fb = R.randInt(1, 4);
+      seq.push(fa, fb);
+      for (i = 2; i < n; i++) seq.push(seq[i - 1] + seq[i - 2] + 1);
+      step = seq[n - 2];
+      explain = 'כל מספר הוא סכום שני המספרים שלפניו, ועוד 1';
+    } else if (type === 'diffx3') {
+      // the difference is multiplied by 3: +1, +3, +9, +27…
+      var dx = R.randInt(1, 2), sx = R.randInt(1, 10);
+      for (i = 0; i < n; i++) { seq.push(sx); sx += dx * Math.pow(3, i); }
+      step = dx * Math.pow(3, n - 2);
+      explain = 'ההפרש גדל פי 3 כל פעם: ' + ltr('+' + dx + ', +' + (3 * dx) + ', +' + (9 * dx) + ', +' + (27 * dx) + '…');
+    } else if (type === 'incdiff2') {
       // the difference grows by 2 or 3 each time: +2, +4, +6…
       var g = R.randInt(2, 3), dd = R.randInt(1, 4), w2 = R.randInt(1, 15);
       for (i = 0; i < n; i++) { seq.push(w2); w2 += dd + i * g; }
@@ -204,6 +263,22 @@
     return out;
   }
 
+  function pairKey(a, b) { return a + ' , ' + b; }
+
+  // Two gaps that leave the rule clear: never the first two numbers ('tri' keeps its first three),
+  // and in two interleaved series one gap in each series, so each keeps two of its numbers.
+  function pickTwoGaps(type, n, R) {
+    var lo = type === 'tri' ? 3 : 2;
+    var inter = type === 'inter';
+    for (var t = 0; t < 50; t++) {
+      var g1 = R.randInt(lo, n - 1), g2 = R.randInt(lo, n - 1);
+      if (g1 === g2) continue;
+      if (inter && g1 % 2 === g2 % 2) continue;
+      return g1 < g2 ? [g1, g2] : [g2, g1];
+    }
+    return [n - 2, n - 1];
+  }
+
   function makeQuestion(level, R, prevType) {
     var lv = Math.max(1, Math.min(MAX_L, level | 0)) || 1;
     var cfg = LEVELS[lv] || LEVELS[1];
@@ -215,6 +290,20 @@
     var b = build(type, cfg.d, n, R);
     var missing = n - 1;
     if (R.randInt(1, 100) <= cfg.mid * 100) missing = R.randInt(type === 'tri' ? 3 : 2, n - 2); // 'tri' needs its first three numbers
+    if (type === 'intermul' && missing % 2 === 0) missing++; // the gap is in the adding series
+    // 41+: sometimes two numbers are missing; the answer is the pair, left to right
+    // ('tri' and 'intermul' keep one gap: with two, too few of their numbers would be left)
+    if (cfg.two && type !== 'tri' && type !== 'intermul' && R.randInt(1, 100) <= cfg.two * 100) {
+      var gaps = pickTwoGaps(type, n, R);
+      var a1 = b.seq[gaps[0]], a2 = b.seq[gaps[1]];
+      var d1 = makeDistractors(a1, b.step, R), d2 = makeDistractors(a2, b.step, R);
+      var key = pairKey(a1, a2);
+      var pairs = [key, pairKey(a1, d2[0]), pairKey(d1[0], a2), pairKey(d1[1], d2[1])];
+      return {
+        type: type, seq: b.seq, missing: gaps[0], missing2: gaps[1], answer: key, answers: [a1, a2],
+        explain: b.explain, hint: HINTS[type] || null, choices: R.shuffle(pairs)
+      };
+    }
     var ans = b.seq[missing];
     return {
       type: type,
@@ -237,7 +326,8 @@
       'הסתכלו על שורת המספרים, משמאל לימין.',
       'חפשו את החוקיות: מה משתנה ממספר למספר?',
       'בחרו את המספר שמתאים במקום סימן השאלה.',
-      'אחרי כל תשובה יופיע הסבר קצר. לחצו "לשאלה הבאה" כשתהיו מוכנים.'
+      'אחרי כל תשובה יופיע הסבר קצר. לחצו "לשאלה הבאה" כשתהיו מוכנים.',
+      'ברמות הגבוהות לפעמים חסרים שני מספרים. בחרו את הזוג הנכון, משמאל לימין.'
     ],
     css: [
       '.ns-row{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;width:100%;direction:ltr}',
@@ -248,6 +338,7 @@
       '.ns-missing.ns-solved{border-style:solid;border-color:var(--good);background:var(--good-soft);color:var(--good)}',
       '.ns-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:26rem}',
       '.ns-choices .g-choice{font-size:1.7rem;font-variant-numeric:tabular-nums}',
+      '.ns-choices.ns-pairs .g-choice{font-size:1.45rem;padding-inline:.3rem;white-space:nowrap}',
       '.ns-explain{font-size:1.2rem;font-weight:700;text-align:center;background:var(--sun-soft);color:var(--ink);',
       'padding:.8rem 1.1rem;border-radius:var(--radius);max-width:100%;text-wrap:balance}',
       '.ns-after{display:flex;flex-direction:column;align-items:center;gap:.75rem;width:100%}',
@@ -267,15 +358,20 @@
         }
         ctx.setProgress(round, ROUNDS);
         var q = makeQuestion(ctx.level, ctx, prevType);
-        ctx.setStatus(q.hint || 'איזה מספר חסר בסדרה?');
+        var isTwo = q.missing2 !== undefined;
+        ctx.setStatus(q.hint || (isTwo ? 'שני מספרים חסרים. איזה זוג מתאים?' : 'איזה מספר חסר בסדרה?'));
         prevType = q.type;
 
         root.innerHTML = '';
-        var missingBox = null;
+        var missingBox = null, missingBox2 = null;
         var row = ctx.el('div', { class: 'ns-row', dir: 'ltr' }, q.seq.map(function (v, i) {
           if (i === q.missing) {
             missingBox = ctx.el('span', { class: 'ns-box ns-missing', 'aria-label': 'מספר חסר' }, '?');
             return missingBox;
+          }
+          if (isTwo && i === q.missing2) {
+            missingBox2 = ctx.el('span', { class: 'ns-box ns-missing', 'aria-label': 'מספר חסר' }, '?');
+            return missingBox2;
           }
           return ctx.el('span', { class: 'ns-box' }, String(v));
         }));
@@ -283,7 +379,7 @@
 
         var buttons = [];
         var answered = false;
-        var grid = ctx.el('div', { class: 'g-choices ns-choices' });
+        var grid = ctx.el('div', { class: 'g-choices ns-choices' + (isTwo ? ' ns-pairs' : '') });
         q.choices.forEach(function (val) {
           var b = ctx.el('button', {
             class: 'g-choice', type: 'button', dir: 'ltr',
@@ -304,21 +400,24 @@
             o.btn.disabled = true;
             if (o.val === q.answer) o.btn.classList.add('is-correct');
           });
-          missingBox.textContent = String(q.answer);
-          missingBox.classList.add('ns-solved');
-          missingBox.removeAttribute('aria-label');
+          var solvedBoxes = isTwo ? [[missingBox, q.answers[0]], [missingBox2, q.answers[1]]] : [[missingBox, q.answer]];
+          solvedBoxes.forEach(function (mb) {
+            mb[0].textContent = String(mb[1]);
+            mb[0].classList.add('ns-solved');
+            mb[0].removeAttribute('aria-label');
+          });
           var ok = val === q.answer;
           if (ok) correct++;
           else btn.classList.add('is-wrong');
 
           after.appendChild(ctx.el('p', { class: 'ns-explain' },
-            (ok ? '' : 'התשובה הנכונה: ' + q.answer + '. ') + q.explain + '.'));
+            (ok ? '' : 'התשובה הנכונה: ' + (isTwo ? ltr(q.answer) : q.answer) + '. ') + q.explain + '.'));
           var nextBtn = ctx.el('button', {
             class: 'btn btn-primary btn-lg', type: 'button',
             onclick: function () { nextBtn.disabled = true; nextRound(); }
           }, round >= ROUNDS ? 'לסיכום' : 'לשאלה הבאה');
           after.appendChild(nextBtn);
-          ctx.feedback(ok, ok ? 'נכון! ' + q.explain : 'התשובה הנכונה: ' + q.answer);
+          ctx.feedback(ok, ok ? 'נכון! ' + q.explain : 'התשובה הנכונה: ' + (isTwo ? ltr(q.answer) : q.answer));
           ctx.wait(50).then(function () { try { nextBtn.focus({ preventScroll: true }); } catch (e) { /* ignore */ } });
         }
       }
