@@ -14,7 +14,7 @@
      hide = the friends' words disappear (keep the count in your head). */
   function spec(level) {
     var L = level;
-    var s = { a: 7, contains: L >= 4, b: 0, step: 1, down: false, friends: 1, hide: false, from: 1 };
+    var s = { a: 7, contains: true, b: 0, step: 1, down: false, friends: 1, hide: false, from: 1 };
     if (L >= 3) s.friends = 2;
     if (L >= 6) s.from = 1 + 10 * ((L - 6) % 5);                // start further on: 11, 21…
     if (L >= 11 && L <= 20) s.a = [3, 4, 6, 8, 9][(L - 11) % 5]; // other numbers
