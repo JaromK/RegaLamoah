@@ -31,6 +31,8 @@
     '.cw-rule-word{background:var(--logic-soft);color:var(--logic);border-color:var(--logic)}',
     '.cw-rule-match{background:var(--language-soft);color:var(--language);border-color:var(--language)}',
     '.cw-rule.is-changed{box-shadow:0 0 0 4px var(--sun)}',
+    '.cw-rule-frame{background:var(--perception-soft);color:var(--perception);border-color:var(--perception)}',
+    '.cw-word.cw-framed{border:.55rem solid var(--cw-frame);border-radius:var(--radius)}',
     '.cw-word{font-family:var(--font-display);font-weight:900;font-size:clamp(3.2rem,16vw,5.2rem);line-height:1.15;',
     'text-align:center;padding:.4rem 1.2rem;min-height:1.3em}',
     '.cw-ink-yellow{text-shadow:0 0 1px var(--cw-outline),0 0 2px var(--cw-outline)}',
@@ -55,8 +57,13 @@
   var P_WORD = [0, 0, 0, 0, 0, 0, 0, 0.2, 0.25, 0.25, 0.3, 0.35, 0.4, 0.4, 0.45];
   var P_SWITCH = { 16: 0.45, 17: 0.55, 18: 0.55, 19: 0.6, 20: 0.65,
     21: 0.68, 22: 0.7, 23: 0.7, 24: 0.72, 25: 0.75, 26: 0.75, 27: 0.78, 28: 0.8, 29: 0.82, 30: 0.85 };
+  for (var lv = 31; lv <= 50; lv++) P_SWITCH[lv] = Math.min(0.92, 0.82 + (lv - 30) * 0.005);
   var P_MATCH = { 18: 0.25, 19: 0.3, 20: 0.35, // share of rule changes that go to the yes/no rule
     21: 0.35, 22: 0.38, 23: 0.38, 24: 0.4, 25: 0.4, 26: 0.42, 27: 0.42, 28: 0.45, 29: 0.45, 30: 0.5 };
+  for (lv = 31; lv <= 50; lv++) P_MATCH[lv] = 0.3;
+  // Levels 31-50: the word sits in a coloured frame, and a fourth rule asks for the frame's colour.
+  // From 41 a rule change is no longer announced; from 46 the rule is shown in one short word.
+  var FRAME_FROM = 31, QUIET_FROM = 41, SHORT_FROM = 46;
   // Levels 21-30: from 23 the answer buttons lose their colour dot (only the name is left), and from 26
   // each name on a button is itself printed in a different colour, one more thing to ignore.
   var NO_SWATCH_FROM = 23;
@@ -65,8 +72,10 @@
   var RULES = {
     ink: { cls: 'cw-rule-ink', q: 'באיזה צבע כתובה המילה?', pill: 'בחרו את צבע הכתב' },
     word: { cls: 'cw-rule-word', q: 'מה כתוב במילה?', pill: 'בחרו את מה שכתוב' },
-    match: { cls: 'cw-rule-match', q: 'האם צבע הכתב זהה למה שכתוב?', pill: 'ענו כן או לא: הצבע זהה למילה?' }
+    match: { cls: 'cw-rule-match', q: 'האם צבע הכתב זהה למה שכתוב?', pill: 'ענו כן או לא: הצבע זהה למילה?' },
+    frame: { cls: 'cw-rule-frame', q: 'באיזה צבע המסגרת?', pill: 'בחרו את צבע המסגרת' }
   };
+  var SHORT = { ink: 'צבע הכתב', word: 'המילה', match: 'כן או לא', frame: 'המסגרת' };
   var YES = { id: 'yes', name: 'כן' };
   var NO = { id: 'no', name: 'לא' };
 
@@ -79,14 +88,14 @@
     instructions: [
       'על המסך תופיע מילה של צבע, כתובה בצבע כלשהו.',
       'בחרו את הצבע שבו המילה כתובה, ולא את מה שכתוב בה.',
-      'בשלבים מתקדמים הכלל מתחלף לפעמים. קראו את הכלל המודגש בכל שלב.',
+      'בשלבים מתקדמים הכלל מתחלף לפעמים, ובהמשך יש גם מסגרת צבעונית. קראו את הכלל בכל שלב.',
       'אין שעון. קחו את הזמן.'
     ],
     css: CSS,
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
-      var nChoices = N_CHOICES[level - 1];
-      var pCongruent = P_CONGRUENT[level - 1];
+      var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level) || 1)));
+      var nChoices = N_CHOICES[Math.min(30, level) - 1];
+      var pCongruent = P_CONGRUENT[Math.min(30, level) - 1];
       var pWordRule = level <= 15 ? P_WORD[level - 1] : 0;
       var pSwitch = P_SWITCH[level] || 0;
       var pMatch = P_MATCH[level] || 0;
@@ -115,6 +124,10 @@
           rule = Math.random() < pWordRule ? 'word' : 'ink';
         } else if (pMatch && !usedMatch && round >= 5 && prevRule !== 'match') {
           rule = 'match'; // make sure the third rule shows up at least once at levels 18-20
+        } else if (level >= FRAME_FROM && Math.random() < pSwitch) {
+          // four rules: change to any other one
+          var others = ['ink', 'word', 'frame', 'match'].filter(function (r) { return r !== prevRule; });
+          rule = Math.random() < pMatch && prevRule !== 'match' ? 'match' : ctx.pick(others.filter(function (r) { return r !== 'match'; }));
         } else if (Math.random() < pSwitch) {
           if (prevRule !== 'match' && Math.random() < pMatch) rule = 'match';
           else if (prevRule === 'match') rule = ctx.pick(['ink', 'word']);
@@ -131,7 +144,9 @@
         var congruent = Math.random() < (rule === 'match' ? 0.5 : pCongruent);
         var ink = congruent ? word : ctx.pick(COLORS.filter(function (c) { return c.id !== word.id; }));
         if (!congruent && rule !== 'match') conflictTotal++;
-        var target = rule === 'ink' ? ink : rule === 'word' ? word : (congruent ? YES : NO);
+        // the frame: a third colour, different from the ink and the word
+        var frame = level >= FRAME_FROM ? ctx.pick(COLORS.filter(function (c) { return c.id !== ink.id && c.id !== word.id; })) : null;
+        var target = rule === 'ink' ? ink : rule === 'word' ? word : rule === 'frame' ? frame : (congruent ? YES : NO);
 
         var opts;
         if (rule === 'match') {
@@ -140,6 +155,7 @@
           // Options always include both the written word and the ink colour.
           opts = [word];
           if (ink.id !== word.id) opts.push(ink);
+          if (frame) opts.push(frame);
           ctx.shuffle(COLORS).forEach(function (c) {
             if (opts.length < nChoices && opts.indexOf(c) === -1) opts.push(c);
           });
@@ -158,16 +174,17 @@
           }
         }
 
-        ctx.setStatus((changed && rule === 'match' ? 'שאלה חדשה: ' : '') + RULES[rule].q);
+        var quiet = level >= QUIET_FROM; // the player has to notice a change alone
+        ctx.setStatus(level >= SHORT_FROM ? 'מה הכלל עכשיו?' : (changed && rule === 'match' && !quiet ? 'שאלה חדשה: ' : '') + RULES[rule].q);
 
         var pill = ctx.el('span', {
-          class: 'cw-rule ' + RULES[rule].cls + (changed ? ' is-changed' : ''),
-          text: (changed ? 'שימו לב, הכלל השתנה: ' : 'הכלל: ') + RULES[rule].pill
+          class: 'cw-rule ' + RULES[rule].cls + (changed && !quiet ? ' is-changed' : ''),
+          text: level >= SHORT_FROM ? 'הכלל: ' + SHORT[rule] : (changed && !quiet ? 'שימו לב, הכלל השתנה: ' : 'הכלל: ') + RULES[rule].pill
         });
 
         var wordEl = ctx.el('div', {
-          class: 'cw-word cw-ink-' + ink.id,
-          style: { color: inkVar(ink.id) },
+          class: 'cw-word cw-ink-' + ink.id + (frame ? ' cw-framed' : ''),
+          style: { color: inkVar(ink.id), '--cw-frame': frame ? inkVar(frame.id) : null },
           'aria-label': 'המילה ' + word.name + ' כתובה בצבע ' + ink.name
         }, word.name);
 
@@ -209,6 +226,8 @@
             ? 'המילה כתובה בצבע ' + ink.name
             : rule === 'word'
               ? 'כתוב במילה: "' + word.name + '"'
+              : rule === 'frame'
+              ? 'המסגרת בצבע ' + frame.name
               : 'כתוב "' + word.name + '" בצבע ' + ink.name + ', לכן התשובה: ' + target.name);
           ctx.feedback(ok, msg)
             .then(function () { return ctx.wait(ok ? 400 : 900); })

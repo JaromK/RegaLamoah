@@ -346,8 +346,14 @@
     }
   }
 
+  var TOP = 50;
+  function clampL(level) { return Math.max(1, Math.min(TOP, Math.round(Number(level)) || 1)); }
+
+  /* The 30 steps of single exercises are spread over the 50 levels. */
+  function regLevel(level) { return Math.max(1, Math.min(MAX_L, Math.round(1 + (clampL(level) - 1) * (MAX_L - 1) / (TOP - 1)))); }
+
   function makeQuestion(level, R) {
-    var ex = makeExercise(level, R);
+    var ex = makeExercise(regLevel(level), R);
     var wrong = makeDistractors(ex.answer, ex.extras, R);
     return {
       text: ex.text,
@@ -358,16 +364,110 @@
     };
   }
 
+  /* ---------- chains: start from a number, then one operation at a time ---------- */
+
+  /* mode: 'each' = answer after every step (the running result is shown) · 'show' = the steps stay on screen,
+     answer only at the end · 'hide' = each step is shown once, then hidden; answer at the end.
+     Every step is player-paced ("הבא"), never timed. */
+  function chainSpec(level) {
+    var L = clampL(level), mode, steps;
+    if (L <= 12) { mode = 'each'; steps = L <= 4 ? 2 : L <= 8 ? 3 : 4; }
+    else if (L <= 30) { mode = 'show'; steps = L <= 15 ? 2 : L <= 20 ? 3 : L <= 25 ? 4 : 5; }
+    else { mode = 'hide'; steps = L <= 33 ? 2 : L <= 38 ? 3 : L <= 43 ? 4 : L <= 47 ? 5 : 6; }
+    var ops = L < 3 ? [PLUS, MINUS] : L < 7 ? [PLUS, MINUS, TIMES] : [PLUS, MINUS, TIMES, DIV];
+    var sp = {
+      level: L, mode: mode, steps: steps, ops: ops,
+      addMax: 5 + Math.floor(L * 0.9),
+      mulMax: L < 7 ? 2 : L < 12 ? 3 : L < 20 ? 5 : L < 35 ? 6 : 9,
+      cap: 20 + L * 5
+    };
+    if (mode === 'hide') { sp.cap = 60 + (L - 30) * 6; sp.addMax = 10 + (L - 30); sp.mulMax = L < 45 ? 5 : 9; }
+    sp.divMax = sp.mulMax;
+    sp.startMax = Math.max(6, Math.min(Math.floor(sp.cap / 2), 8 + L * 2));
+    // how many of the 8 rounds are chains: more and more with the level
+    sp.count = Math.min(6, 2 + Math.floor(L / 12));
+    return sp;
+  }
+
+  function apply(v, op, n) { return op === PLUS ? v + n : op === MINUS ? v - n : op === TIMES ? v * n : v / n; }
+
+  var UNDO = { '+': '−', '−': '+', '×': '÷', '÷': '×' };
+  function chainStep(v, sp, R, prev) {
+    for (var t = 0; t < 80; t++) {
+      var s = tryStep(v, sp, R, R.pick(sp.ops));
+      if (!s) continue;
+      if (prev && t < 40 && (s.op === prev.op || (s.op === UNDO[prev.op] && s.n === prev.n))) continue; // vary; never undo the last step
+      return s;
+    }
+    return v > 2 ? { op: MINUS, n: 1 } : { op: PLUS, n: 1 };
+  }
+  function tryStep(v, sp, R, op) {
+    var n;
+    if (op === PLUS) { n = R.randInt(1, sp.addMax); if (v + n <= sp.cap) return { op: op, n: n }; }
+    else if (op === MINUS) { if (v > 2) { n = R.randInt(1, Math.min(sp.addMax, v - 1)); return { op: op, n: n }; } }
+    else if (op === TIMES) { n = R.randInt(2, sp.mulMax); if (v * n <= sp.cap) return { op: op, n: n }; }
+    else {
+      var ds = [];
+      for (var d = 2; d <= sp.divMax; d++) if (v % d === 0) ds.push(d);
+      if (ds.length) return { op: op, n: R.pick(ds) };
+    }
+    return null;
+  }
+
+  /* { start, steps: [{op, n, before, after}], answer, choices } — whole numbers ≥ 1 all the way. */
+  function makeChain(level, R) {
+    var sp = chainSpec(level);
+    var v = R.randInt(sp.level < 5 ? 2 : 3, sp.startMax), start = v, steps = [], prev = null;
+    for (var i = 0; i < sp.steps; i++) {
+      var s = chainStep(v, sp, R, prev);
+      var after = apply(v, s.op, s.n);
+      steps.push({ op: s.op, n: s.n, before: v, after: after });
+      v = after; prev = s;
+    }
+    // typical slips: forgetting one step, stopping one step early, a wrong last step
+    var extras = [steps[steps.length - 1].before];
+    for (var k = 0; k < steps.length; k++) {
+      var w = start, okW = true;
+      for (var j = 0; j < steps.length; j++) {
+        if (j === k) continue;
+        w = apply(w, steps[j].op, steps[j].n);
+        if (w !== Math.round(w)) { okW = false; break; }
+      }
+      if (okW) extras.push(w);
+    }
+    var last = steps[steps.length - 1];
+    if (last.op === PLUS) extras.push(last.before - last.n);
+    if (last.op === MINUS) extras.push(last.before + last.n);
+    var wrong = makeDistractors(v, extras, R);
+    return { mode: sp.mode, start: start, steps: steps, answer: v, choices: R.shuffle([v].concat(wrong)) };
+  }
+
+  /* one step of an 'each' chain, asked on its own */
+  function stepQuestion(step, R) {
+    var ex = simple(step.before, step.op, step.n);
+    return R.shuffle([ex.answer].concat(makeDistractors(ex.answer, ex.extras, R)));
+  }
+
+  /* which rounds of the session are chains */
+  function plan(level, R, rounds) {
+    var sp = chainSpec(level), out = [];
+    for (var i = 0; i < rounds; i++) out.push(i < sp.count ? 'chain' : 'single');
+    out = R.shuffle(out);
+    if (out[0] === 'chain' && out.indexOf('single') > 0) { var j = out.indexOf('single'); out[j] = 'chain'; out[0] = 'single'; }
+    return out;
+  }
+
   BrainGames.register({
     id: 'mental-math',
     name: 'חשבון בראש',
     skill: 'logic',
-    tagline: 'פתרו תרגילי חשבון קצרים בלי דף ועט',
-    benefit: 'זיכרון עבודה, חישוב מהיר וגמישות מספרית',
+    tagline: 'תרגילים קצרים ושרשראות חשבון, בלי דף ועט',
+    benefit: 'זיכרון עבודה, חישוב בראש וגמישות מספרית',
     instructions: [
-      'הסתכלו על התרגיל שבמרכז המסך.',
-      'פתרו אותו בראש, בלי למהר.',
-      'לחצו על התשובה הנכונה מבין ארבע האפשרויות.'
+      'פתרו את התרגיל בראש ולחצו על התשובה הנכונה מבין ארבע האפשרויות.',
+      'בשרשרת מתחילים ממספר, ואז מגיעים צעדים אחד אחרי השני, למשל: 12, אחר כך × 2, אחר כך − 5. כל צעד עושים על התוצאה הקודמת.',
+      'בהתחלה עונים אחרי כל צעד. בהמשך עונים רק בסוף, ובשלבים הגבוהים כל צעד מופיע פעם אחת ונעלם. לחצו "הבא" כשאתם מוכנים.',
+      'אין שעון. אחרי שרשרת מופיע הפתרון צעד אחרי צעד.'
     ],
     css: [
       '.mm-expr{display:inline-block;direction:ltr;unicode-bidi:isolate;white-space:nowrap;font-size:min(4rem,12vw)}',
@@ -376,60 +476,194 @@
       '.mm-expr.mm-xl{font-size:min(2.6rem,6.2vw)}',
       '.mm-q{color:var(--accent)}',
       '.mm-q.mm-done{color:var(--good)}',
-      '.mm-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:26rem}',
-      '.mm-choices .g-choice{font-size:1.7rem;font-variant-numeric:tabular-nums;direction:ltr}'
+      '.mm-choices{grid-template-columns:repeat(2,minmax(0,1fr));max-width:26rem;width:100%}',
+      '.mm-choices .g-choice{font-size:1.7rem;font-variant-numeric:tabular-nums;direction:ltr}',
+      /* chains */
+      '.mm-label{margin:0;font-size:1.15rem;font-weight:800;color:var(--ink-soft);text-align:center}',
+      '.mm-cards{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.45rem;direction:ltr;max-width:24rem}',
+      '.mm-card{min-width:4.4rem;padding:.35rem .6rem;border-radius:var(--radius);border:3px solid var(--line);background:var(--surface-2);',
+      'font-family:var(--font-display);font-weight:900;font-size:2rem;line-height:1.15;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}',
+      '.mm-card.mm-start{border-color:var(--c-blue);background:var(--c-blue-soft);color:var(--ink)}',
+      '.mm-card.mm-op{border-color:var(--c-yellow);background:var(--c-yellow-soft);color:var(--ink)}',
+      '.mm-card.mm-res{border-color:var(--good);background:var(--good-soft);color:var(--ink);font-size:1.6rem;min-width:3.6rem}',
+      '.mm-card.mm-now{box-shadow:0 0 0 4px var(--accent)}',
+      '.mm-card.mm-huge{font-size:4.2rem;min-width:9rem;padding:.6rem 1.2rem}',
+      '.mm-eq{font-family:var(--font-display);font-weight:900;font-size:2rem;direction:ltr}',
+      '.mm-hist{margin:0;color:var(--ink-soft);font-weight:700;font-size:1.1rem;direction:ltr;text-align:center;min-height:1.5rem}',
+      '.mm-sol{width:100%;max-width:24rem;background:var(--sun-soft);border:2px solid var(--sun);border-radius:var(--radius-sm);',
+      'padding:.4rem .7rem;display:flex;flex-direction:column;gap:0;font-weight:800;font-size:1.2rem;line-height:1.45}',
+      '.mm-sol h3{margin:0;font-size:1.1rem}',
+      '.mm-sol .mm-line{direction:ltr;text-align:center;font-variant-numeric:tabular-nums}',
+      '.mm-steps-done{display:flex;gap:.35rem;justify-content:center;direction:ltr}',
+      '.mm-steps-done i{width:1rem;height:1rem;border-radius:50%;background:var(--line)}',
+      '.mm-steps-done i.on{background:var(--accent)}'
     ].join('\n'),
     generate: makeQuestion,
+    _model: { makeQuestion: makeQuestion, makeChain: makeChain, chainSpec: chainSpec, plan: plan, stepQuestion: stepQuestion, regLevel: regLevel },
     start: function (root, ctx) {
+      var el = ctx.el;
+      var level = clampL(ctx.level);
+      var kinds = plan(level, ctx, ROUNDS);
       var round = 0;
-      var correct = 0;
+      var correct = 0, total = 0, chainsRight = 0, chains = 0;
 
       function nextRound() {
         round++;
         if (round > ROUNDS) {
-          ctx.finish({ correct: correct, total: ROUNDS, note: 'פתרתם נכון ' + correct + ' תרגילים מתוך ' + ROUNDS + '.' });
+          var note = 'פתרתם נכון ' + correct + ' מתוך ' + total + ' תשובות';
+          if (chains) note += ' · שרשראות שפתרתם עד הסוף בלי טעות: ' + chainsRight + ' מתוך ' + chains;
+          ctx.finish({ correct: correct, total: total, note: note });
           return;
         }
         ctx.setProgress(round, ROUNDS);
-        var q = makeQuestion(ctx.level, ctx);
-        ctx.setStatus(q.hint || (q.twoStep ? 'זכרו: קודם כפל, ואחר כך חיבור וחיסור' : 'כמה זה?'));
-
         root.innerHTML = '';
-        var len = (q.text + ' = ?').length;
-        var qMark = ctx.el('span', { class: 'mm-q' }, '?');
-        var expr = ctx.el('span', { class: 'mm-expr' + (len > 18 ? ' mm-xl' : len > 13 ? ' mm-l' : len > 8 ? ' mm-m' : ''), dir: 'ltr' },
-          [q.text + ' = ', qMark]);
-        root.appendChild(ctx.el('div', { class: 'g-big', 'aria-live': 'polite' }, expr));
+        if (kinds[round - 1] === 'chain') chainRound(); else singleRound();
+      }
 
-        var buttons = [];
-        var answered = false;
-        var grid = ctx.el('div', { class: 'g-choices mm-choices' });
-        q.choices.forEach(function (val) {
-          var b = ctx.el('button', {
-            class: 'g-choice', type: 'button', dir: 'ltr',
-            onclick: function () { choose(val, b); }
-          }, String(val));
+      /* four answer buttons; onPick(ok) after the player chose */
+      function choiceGrid(values, answer, onPick) {
+        var answered = false, buttons = [];
+        var grid = el('div', { class: 'g-choices mm-choices' });
+        values.forEach(function (val) {
+          var b = el('button', { class: 'g-choice', type: 'button', dir: 'ltr', onclick: function () {
+            if (answered) return;
+            answered = true;
+            buttons.forEach(function (o) { o.btn.disabled = true; if (o.val === answer) o.btn.classList.add('is-correct'); });
+            var ok = val === answer;
+            if (!ok) b.classList.add('is-wrong');
+            total++; if (ok) correct++;
+            onPick(ok);
+          } }, String(val));
           buttons.push({ val: val, btn: b });
           grid.appendChild(b);
         });
-        root.appendChild(grid);
+        return grid;
+      }
 
-        function choose(val, btn) {
-          if (answered) return;
-          answered = true;
-          buttons.forEach(function (o) {
-            o.btn.disabled = true;
-            if (o.val === q.answer) o.btn.classList.add('is-correct');
-          });
+      function singleRound() {
+        var q = makeQuestion(level, ctx);
+        ctx.setStatus(q.hint || (q.twoStep ? 'זכרו: קודם כפל, ואחר כך חיבור וחיסור' : 'כמה זה?'));
+        var len = (q.text + ' = ?').length;
+        var qMark = el('span', { class: 'mm-q' }, '?');
+        var expr = el('span', { class: 'mm-expr' + (len > 18 ? ' mm-xl' : len > 13 ? ' mm-l' : len > 8 ? ' mm-m' : ''), dir: 'ltr' },
+          [q.text + ' = ', qMark]);
+        root.appendChild(el('div', { class: 'g-big', 'aria-live': 'polite' }, expr));
+        root.appendChild(choiceGrid(q.choices, q.answer, function (ok) {
           qMark.textContent = String(q.answer);
           qMark.classList.add('mm-done');
-          var ok = val === q.answer;
-          if (ok) correct++;
-          else btn.classList.add('is-wrong');
           ctx.feedback(ok, ok ? null : 'התשובה הנכונה: ' + q.answer)
             .then(function () { return ctx.wait(ok ? 400 : 1200); })
             .then(nextRound);
+        }));
+      }
+
+      function card(text, cls) { return el('div', { class: 'mm-card ' + cls, dir: 'ltr' }, text); }
+      function opText(s) { return s.op + ' ' + s.n; }
+      function nextBtn(label, fn) {
+        var b = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { b.disabled = true; fn(); } }, label);
+        return el('div', { class: 'g-actions' }, b);
+      }
+
+      function chainRound() {
+        var C = makeChain(level, ctx);
+        chains++;
+        if (C.mode === 'each') eachChain(C); else endChain(C);
+      }
+
+      /* answer after every step; the running result stays on screen */
+      function eachChain(C) {
+        var i = 0, allOk = true;
+        function step() {
+          root.innerHTML = '';
+          if (i >= C.steps.length) {
+            if (allOk) chainsRight++;
+            nextRound();
+            return;
+          }
+          var s = C.steps[i];
+          ctx.setStatus(i === 0 ? 'שרשרת: מתחילים מ-' + C.start : 'ממשיכים מהתוצאה: ' + s.before);
+          var hist = C.steps.slice(0, i).map(function (p) { return p.before + ' ' + opText(p) + ' = ' + p.after; }).join('   ·   ');
+          root.appendChild(el('p', { class: 'mm-label' }, 'צעד ' + (i + 1) + ' מתוך ' + C.steps.length));
+          var qMark = el('span', { class: 'mm-q' }, '?');
+          root.appendChild(el('div', { class: 'mm-cards', 'aria-live': 'polite' }, [card(String(s.before), 'mm-start'), card(opText(s), 'mm-op mm-now'),
+            el('span', { class: 'mm-eq' }, ['= ', qMark])]));
+          root.appendChild(el('p', { class: 'mm-hist' }, hist));
+          root.appendChild(choiceGrid(stepQuestion(s, ctx), s.after, function (ok) {
+            if (!ok) allOk = false;
+            qMark.textContent = String(s.after);
+            qMark.classList.add('mm-done');
+            ctx.feedback(ok, ok ? null : '⁦' + s.before + ' ' + opText(s) + ' = ' + s.after + '⁩')
+              .then(function () { return ctx.wait(ok ? 300 : 900); })
+              .then(function () { i++; step(); });
+          }));
         }
+        step();
+      }
+
+      /* the steps come one by one ("הבא"); the answer is given only at the end */
+      function endChain(C) {
+        var hide = C.mode === 'hide';
+        var shown = -1; // -1 = only the start number
+        var label = el('p', { class: 'mm-label' });
+        var cards = el('div', { class: 'mm-cards', 'aria-live': 'polite' });
+        var dots = el('div', { class: 'mm-steps-done', 'aria-hidden': 'true' });
+        var actions = el('div');
+        root.appendChild(label);
+        root.appendChild(cards);
+        if (hide) root.appendChild(dots);
+        root.appendChild(actions);
+        ctx.setStatus(hide ? 'כל צעד מופיע פעם אחת. זכרו את התוצאה' : 'עשו את הצעדים בראש, אחד אחרי השני');
+
+        function render() {
+          cards.innerHTML = '';
+          dots.innerHTML = '';
+          if (shown < 0) {
+            label.textContent = 'מתחילים מ:';
+            cards.appendChild(card(String(C.start), 'mm-start mm-huge'));
+          } else if (hide) {
+            label.textContent = 'צעד ' + (shown + 1) + ' מתוך ' + C.steps.length;
+            cards.appendChild(card(opText(C.steps[shown]), 'mm-op mm-huge'));
+          } else {
+            label.textContent = 'צעד ' + (shown + 1) + ' מתוך ' + C.steps.length;
+            cards.appendChild(card(String(C.start), 'mm-start'));
+            for (var k = 0; k <= shown; k++) cards.appendChild(card(opText(C.steps[k]), 'mm-op' + (k === shown ? ' mm-now' : '')));
+          }
+          for (var d = 0; d < C.steps.length; d++) dots.appendChild(el('i', { class: d <= shown ? 'on' : '' }));
+          actions.innerHTML = '';
+          var lastStep = shown >= C.steps.length - 1;
+          actions.appendChild(nextBtn(lastStep ? 'לתשובה' : 'הבא', function () {
+            if (lastStep) ask(); else { shown++; render(); }
+          }));
+        }
+
+        function ask() {
+          actions.innerHTML = '';
+          dots.remove();
+          label.textContent = 'מה התוצאה בסוף?';
+          if (hide) {
+            cards.innerHTML = '';
+            cards.appendChild(card(String(C.start), 'mm-start'));
+            C.steps.forEach(function () { cards.appendChild(card('?', 'mm-op')); });
+          } else {
+            cards.querySelectorAll('.mm-now').forEach(function (c) { c.classList.remove('mm-now'); });
+          }
+          ctx.setStatus('מה יצא בסוף השרשרת?');
+          var grid = choiceGrid(C.choices, C.answer, function (ok) {
+            if (ok) chainsRight++;
+            // the solution, step by step
+            label.remove(); cards.remove();
+            var sol = el('div', { class: 'mm-sol', role: 'note' }, [el('h3', null, ok ? 'נכון! כך זה יוצא:' : 'כך פותרים:')].concat(C.steps.map(function (s) {
+              return el('div', { class: 'mm-line' }, s.before + ' ' + opText(s) + ' = ' + s.after);
+            })));
+            root.insertBefore(sol, grid);
+            ctx.setStatus(ok ? 'נכון! התוצאה: ' + C.answer : 'התוצאה הנכונה: ' + C.answer);
+            ctx.feedback(ok, ok ? null : 'התוצאה הנכונה: ' + C.answer).then(function () {
+              root.appendChild(nextBtn(round >= ROUNDS ? 'לסיכום' : 'הבא', nextRound));
+            });
+          });
+          root.insertBefore(grid, actions);
+        }
+        render();
       }
 
       nextRound();

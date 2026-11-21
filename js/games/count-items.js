@@ -20,7 +20,7 @@
   var css = [
     '.ci-board{position:relative;width:100%;max-width:26rem;aspect-ratio:1;background:var(--surface-2);',
     'border:2px solid var(--line);border-radius:var(--radius);overflow:hidden;container-type:inline-size;}',
-    '.ci-item{position:absolute;line-height:1;transform:translate(-50%,-50%) rotate(var(--rot,0deg));',
+    '.ci-item{position:absolute;line-height:1;transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(var(--sc,1)) scaleX(var(--sx,1));',
     'font-size:1.6rem;font-size:calc(100cqw / var(--cols) * .62);user-select:none;-webkit-user-select:none;',
     'border-radius:50%;}',
     '.ci-board.ci-done .ci-item{opacity:.35;}',
@@ -33,7 +33,7 @@
 
   function clampLevel(l) {
     l = Math.round(Number(l) || 1);
-    return Math.max(1, Math.min(30, l));
+    return Math.max(1, Math.min(50, l));
   }
 
   BrainGames.register({
@@ -45,7 +45,8 @@
     instructions: [
       'תופיע תמונה עם הרבה ציורים קטנים.',
       'קראו את השאלה וספרו רק את מה שמבקשים.',
-      'בחרו את המספר הנכון. אין מגבלת זמן, והתמונה נשארת מול העיניים.'
+      'בחרו את המספר הנכון. אין מגבלת זמן, והתמונה נשארת מול העיניים.',
+      'ברמות הגבוהות שימו לב לגודל ולכיוון: לפעמים סופרים רק את הגדולים, או רק את אלה שפונים לאותו צד.'
     ],
     css: css,
     start: function (root, ctx) {
@@ -54,7 +55,7 @@
       var cols = Math.min(7, 4 + Math.floor((level - 1) / 4));         // 4 → 7
       var cells = cols * cols;
       // The picture never grows past 7 × 7; levels 21–30 get a little denser and ask harder questions.
-      var totalItems = Math.round(cells * Math.min(0.7, 0.35 + 0.015 * (level - 1))); // 6 → 31 → 34
+      var totalItems = Math.round(cells * Math.min(level > 30 ? 0.76 : 0.7, 0.35 + 0.015 * (level - 1))); // 6 → 31 → 34 → 37
       var tLo = Math.min(9, 2 + Math.floor((level - 1) / 3));             // 2 → 8 → 9
       var tHi = Math.min(14, tLo + 2 + Math.floor(level / 8));            // 4 → 12 → 14
       var sameFamilyRatio = Math.max(0, Math.min(0.85, (level - 3) / 12));
@@ -91,8 +92,18 @@
         var mode = level >= 16 && (round % 2 === 0 || level >= 19) ? 'two' : 'one';
         if (level >= 23 && level <= 25 && round % 2 === 0) mode = 'diff';
         if (level >= 26) mode = round % (level >= 28 ? 2 : 3) === 0 ? 'three' : (round % 2 ? 'diff' : 'two');
-        var twoKind = mode !== 'one';
-        var famIdx = ctx.randInt(0, FAMILIES.length - 1);
+        // 31–50: count only the big ones ('size') or only those facing one way ('face'); from 46 all kinds mixed
+        if (level >= 31) {
+          var band = level <= 35 ? ['size', 'two', 'size', 'diff', 'size', 'three']
+            : level <= 40 ? ['face', 'diff', 'face', 'size', 'face', 'three']
+            : level <= 45 ? ['face', 'size', 'three', 'face', 'size', 'diff']
+            : ['face', 'size', 'face', 'three', 'size', 'diff'];
+          mode = band[(round - 1) % band.length];
+        }
+        var single = mode === 'one' || mode === 'size' || mode === 'face';
+        var twoKind = !single;
+        // facing needs pictures that look clearly different in a mirror: fish and cars (side views)
+        var famIdx = mode === 'face' ? ctx.pick([5, 8]) : ctx.randInt(0, FAMILIES.length - 1);
         var fam = ctx.shuffle(FAMILIES[famIdx]);
         var targets = fam.slice(0, mode === 'three' ? 3 : twoKind ? 2 : 1);
         var sameRest = fam.slice(targets.length);
@@ -126,10 +137,13 @@
         var nSameKinds = Math.min(sameRest.length, Math.round(distractorKinds * sameFamilyRatio));
         var kinds = sameRest.slice(0, nSameKinds).concat(otherKinds.slice(0, distractorKinds - nSameKinds));
         var targetCount = Object.keys(counts).reduce(function (s, k) { return s + counts[k]; }, 0);
-        var distractCount = totalItems - targetCount;
+        // size/face: the same picture also appears small or mirrored, and those do not count
+        var twins = mode === 'size' || mode === 'face' ? Math.max(2, Math.round(answer * 0.6)) : 0;
+        var distractCount = totalItems - targetCount - twins;
         var pieces = [];
         Object.keys(counts).forEach(function (k) { for (var i = 0; i < counts[k]; i++) pieces.push({ e: k, hit: true }); });
-        for (var d = 0; d < distractCount; d++) pieces.push({ e: kinds[d % kinds.length], hit: false });
+        for (var t = 0; t < twins; t++) pieces.push({ e: targets[0], hit: false, small: mode === 'size', flip: mode === 'face' });
+        for (var d = 0; d < distractCount; d++) pieces.push({ e: kinds[d % kinds.length], hit: false, small: mode === 'size' && Math.random() < 0.4 });
         pieces = ctx.shuffle(pieces);
 
         // Jittered grid placement: one item per cell, never overlapping.
@@ -146,7 +160,9 @@
             class: 'ci-item' + (pc.hit ? ' ci-hit' : ''), 'aria-hidden': 'true',
             style: { left: x + '%', top: y + '%' }
           }, pc.e);
-          node.style.setProperty('--rot', ctx.randInt(-18, 18) + 'deg');
+          node.style.setProperty('--rot', ctx.randInt(level >= 46 ? -35 : -18, level >= 46 ? 35 : 18) + 'deg');
+          if (pc.small) node.style.setProperty('--sc', '.58');
+          if (pc.flip) node.style.setProperty('--sx', '-1');
           board.appendChild(node);
         });
 
@@ -157,9 +173,15 @@
             ? el('p', { class: 'g-prompt ci-q' }, ['כמה', em(targets[0]), 'ועוד', em(targets[1]), 'ועוד', em(targets[2]), 'יש ביחד?'])
             : twoKind
               ? el('p', { class: 'g-prompt ci-q' }, ['כמה', em(targets[0]), 'ועוד', em(targets[1]), 'יש ביחד?'])
-              : el('p', { class: 'g-prompt ci-q' }, ['כמה', em(targets[0]), 'יש בתמונה?']);
+              : mode === 'size'
+                ? el('p', { class: 'g-prompt ci-q' }, ['כמה', em(targets[0]), 'גדולים יש?'])
+                : mode === 'face'
+                  ? el('p', { class: 'g-prompt ci-q' }, ['כמה', em(targets[0]), 'פונים לאותו צד כמו כאן?'])
+                  : el('p', { class: 'g-prompt ci-q' }, ['כמה', em(targets[0]), 'יש בתמונה?']);
         ctx.setStatus(mode === 'diff' ? 'ספרו כל סוג לחוד, ואז בדקו את ההפרש'
           : mode === 'three' ? 'ספרו את שלושת הסוגים יחד'
+            : mode === 'size' ? 'ספרו רק את הגדולים, לא את הקטנים'
+            : mode === 'face' ? 'ספרו רק את מי שפונה לאותו צד כמו בשאלה'
             : twoKind ? 'ספרו את שני הסוגים יחד' : 'ספרו בעיון, אין מגבלת זמן');
 
         var opts = choiceSet(answer);
@@ -190,6 +212,10 @@
               ' ועוד ' + counts[targets[2]] + ' ' + targets[2] + ' = ' + answer;
           } else if (twoKind) {
             msg = 'היו ' + counts[targets[0]] + ' ' + targets[0] + ' ועוד ' + counts[targets[1]] + ' ' + targets[1] + ' = ' + answer;
+          } else if (mode === 'size') {
+            msg = 'היו ' + answer + ' ' + targets[0] + ' גדולים (ועוד ' + twins + ' קטנים)';
+          } else if (mode === 'face') {
+            msg = 'היו ' + answer + ' ' + targets[0] + ' שפונים לאותו צד (ועוד ' + twins + ' הפוכים)';
           } else {
             msg = 'היו ' + answer + ' ' + targets[0];
           }
