@@ -1,6 +1,6 @@
 # רגע למוח
 
-אימון מוח יומי בעברית למבוגרים: 52 משחקי זיכרון, קשב, חשיבה, שפה, תפיסה מרחבית ותכנון, 30 רמות בכל משחק (50 במשחקי התמונות), גביע כסף ברמה 20 וגביע זהב ברמה האחרונה, בלי שעון ובלי לחץ. כל ההגדרות (שם, גודל טקסט, צלילים, שעון ורמות) נמצאות בכפתור "הגדרות" אחד.
+אימון מוח יומי בעברית למבוגרים: 64 משחקי זיכרון, קשב, חשיבה, שפה, תפיסה מרחבית ותכנון, עד 50 רמות בכל משחק, גביע כסף ברמה 20, זהב ברמה 30, פלטינה ברמה 40 ויהלום ברמה 50, בלי שעון ובלי לחץ. משחקים חדשים מופיעים בחלק נפרד בדף הבית. כל ההגדרות (שם, גודל טקסט, צלילים, שעון ורמות) נמצאות בכפתור "הגדרות" אחד.
 
 Daily Hebrew brain-training games for adults. Plain static site (HTML/CSS/JS), no build step.
 
@@ -24,7 +24,8 @@ Open `index.html` in a browser. That's it.
 - `js/core.js` – registry, daily rotation, levels, storage, sound, speech
 - `js/app.js` – screens: welcome, home, instructions, game, results
 - `js/games/*.js` – one file per game; see `GAME_API.md` to add a game
-- `js/photo-bank.js` + `img/photos/` – real photos for the two photo games; sources and licences in `img/photos/CREDITS.md`
+- `js/photo-bank.js` + `img/photos/` – real photos for the photo games and the jigsaw; sources and licences in `img/photos/CREDITS.md`
+- `js/eretz-ir-words.js` – big word lists that "ארץ עיר" accepts (built from Wikidata and public answer tables)
 
 ## Data & privacy
 Progress is kept only in the visitor's browser (`localStorage`, key `rega-lamoach-v1`). No cookies, no server, nothing is sent anywhere.
