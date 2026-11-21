@@ -85,14 +85,14 @@
   var css = [
     '.pb-note{width:100%;max-width:28rem;background:var(--surface);border:2px solid var(--line);border-radius:var(--radius-sm);padding:.3rem;margin:0;',
     'display:flex;flex-direction:column;gap:.1rem;}',
-    '.pb-line{display:flex;gap:.45rem;align-items:flex-start;font:inherit;font-weight:700;font-size:1.05rem;line-height:1.3;text-align:start;',
+    '.pb-line{display:flex;gap:.45rem;align-items:flex-start;font:inherit;font-weight:700;font-size:1rem;line-height:1.2;text-align:start;',
     'background:transparent;border:2px solid transparent;border-radius:8px;padding:.2rem .35rem;color:var(--ink);cursor:pointer;}',
     '.pb-line[aria-pressed="true"]{border-color:var(--sun);background:var(--sun-soft);}',
     '.pb-dot{display:inline-block;width:1.1rem;height:1.1rem;border-radius:50%;flex:none;margin-top:.15rem;border:2px solid var(--ink);}',
     '.pb-box{display:grid;grid-template-columns:3.6rem repeat(7,minmax(0,1fr));gap:3px;width:100%;max-width:28rem;direction:rtl;}',
     '.pb-h{font-weight:800;text-align:center;font-size:1rem;align-self:center;}',
     '.pb-t{font-weight:800;font-size:.9rem;align-self:center;}',
-    '.pb-cell{min-height:2.7rem;min-width:0;padding:2px;border:2px solid var(--line);border-radius:8px;background:var(--surface-2);cursor:pointer;',
+    '.pb-cell{min-height:2.3rem;min-width:0;padding:2px;border:2px solid var(--line);border-radius:8px;background:var(--surface-2);cursor:pointer;',
     'display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:2px;}',
     '.pb-cell .pb-dot{width:.85rem;height:.85rem;margin:0;border-width:1.5px;}',
     '.pb-cell.is-bad{border-color:var(--c-red);box-shadow:inset 0 0 0 2px var(--c-red);}',
@@ -140,7 +140,7 @@
         var pickBtns = note.map(function (n, i) {
           return el('button', { class: 'pb-line', type: 'button', 'aria-pressed': i === 0 ? 'true' : 'false',
             onclick: function () { cur = i; ctx.sound('tap'); pickBtns.forEach(function (b, j) { b.setAttribute('aria-pressed', j === i ? 'true' : 'false'); }); } },
-            [dot(n.pill), el('span', null, 'כדור ' + n.pill.name + ': ' + n.text)]);
+            [dot(n.pill), el('span', null, [el('b', null, n.pill.name + ': '), n.text])]);
         });
         root.appendChild(el('div', { class: 'pb-note', 'aria-label': 'הפתק של הרופא' }, pickBtns));
         var cells = {}, TIMES = slots(sp.times);
@@ -153,10 +153,10 @@
           })(d + ',' + t, d, t);
         }
         root.appendChild(el('div', { class: 'pb-box' }, grid));
-        var checkBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: check }, 'בדיקה');
+        var checkBtn = el('button', { class: 'btn btn-primary', type: 'button', onclick: check }, 'בדיקה');
         var actions = el('div', { class: 'g-actions' }, checkBtn);
         root.appendChild(actions);
-        ctx.setStatus(note.length > 1 ? 'לחצו על שורה בפתק, ואז על המשבצות של הכדור' : 'לחצו על המשבצות שבהן צריך כדור');
+        ctx.setStatus(note.length > 1 ? 'בחרו כדור בפתק, ואז את המשבצות שלו' : 'לחצו על המשבצות שבהן צריך כדור');
 
         function draw(k) {
           var c = cells[k];
