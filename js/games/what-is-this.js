@@ -105,8 +105,10 @@
     });
   });
 
-  /* Per level (1–30): word tiers, word length, extra letter tiles (dec), how many of those look like
+  /* Per level (1–50): word tiers, word length, extra letter tiles (dec), how many of those look like
      letters of the word (look), the category hint (cat, up to level 8) and the first letter given (first).
+     31–50: dup = how many of the extra tiles are a second copy of a letter that IS in the word, so a letter
+     cannot be ruled out just because it belongs to the word.
      Up to level 15 at most 8 tiles, later at most 12, so the picture, the word and the tiles fit one screen. */
   var LEVELS = [
     { t: [1], len: [2, 3], dec: 0, cat: true, first: true }, // 1
@@ -138,14 +140,38 @@
     { t: [3], len: [5, 8], dec: 4, look: 3 },                // 27
     { t: [2, 3], len: [6, 9], dec: 3, look: 3 },             // 28
     { t: [2, 3], len: [6, 9], dec: 4, look: 3 },             // 29
-    { t: [2, 3], len: [7, 9], dec: 4, look: 4 }              // 30
+    { t: [2, 3], len: [7, 9], dec: 4, look: 4 },             // 30
+    { t: [3], len: [5, 8], dec: 4, look: 4 },                // 31
+    { t: [2, 3], len: [6, 9], dec: 4, look: 4, dup: 1 },     // 32
+    { t: [3], len: [5, 8], dec: 5, look: 4 },                // 33
+    { t: [3], len: [5, 8], dec: 5, look: 4, dup: 1 },        // 34
+    { t: [2, 3], len: [5, 7], dec: 5, look: 5, dup: 1 },     // 35
+    { t: [3], len: [5, 7], dec: 5, look: 5, dup: 1 },        // 36
+    { t: [3], len: [5, 7], dec: 6, look: 5, dup: 1 },        // 37
+    { t: [2, 3], len: [5, 7], dec: 6, look: 6, dup: 1 },     // 38
+    { t: [3], len: [5, 7], dec: 6, look: 6, dup: 1 },        // 39
+    { t: [3], len: [5, 7], dec: 6, look: 6, dup: 2 },        // 40
+    { t: [3], len: [4, 6], dec: 7, look: 6, dup: 2 },        // 41
+    { t: [2, 3], len: [5, 6], dec: 7, look: 6, dup: 2 },     // 42
+    { t: [3], len: [5, 6], dec: 7, look: 7, dup: 2 },        // 43
+    { t: [3], len: [5, 7], dec: 7, look: 7, dup: 2 },        // 44
+    { t: [3], len: [4, 6], dec: 8, look: 7, dup: 2 },        // 45
+    { t: [2, 3], len: [4, 6], dec: 8, look: 8, dup: 3 },     // 46
+    { t: [3], len: [4, 7], dec: 8, look: 8, dup: 3 },        // 47
+    { t: [3], len: [5, 7], dec: 8, look: 8, dup: 3 },        // 48
+    { t: [2, 3], len: [5, 8], dec: 8, look: 8, dup: 3 },     // 49
+    { t: [3], len: [5, 8], dec: 8, look: 8, dup: 3 }         // 50
   ];
 
   /* Tiles: the word's letters plus extra letters that are not in the word; never in the right order. */
-  function makeTiles(letters, nDecoy, nLook, shuffle, pick) {
+  function makeTiles(letters, nDecoy, nLook, shuffle, pick, nDup) {
     var tiles = letters.slice();
     var extra = [];
-    for (var d = 0; d < nDecoy; d++) {
+    // second copies of letters from the word (levels 31–50), different letters where possible
+    var dupFrom = shuffle(letters.filter(function (l, i) { return letters.indexOf(l) === i; }));
+    nDup = Math.min(nDup || 0, nDecoy, dupFrom.length);
+    for (var u = 0; u < nDup; u++) extra.push(dupFrom[u]);
+    for (var d = nDup; d < nDecoy; d++) {
       var near = [];
       if (d < nLook) {
         letters.forEach(function (l) {
@@ -221,7 +247,7 @@
     _items: ITEMS,
     _levels: LEVELS,
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var maxTiles = level <= 15 ? 8 : 12;
       var round = 0;
@@ -260,7 +286,7 @@
         var target = item.n;
         var n = target.length;
         var nDecoy = Math.max(0, Math.min(spec.dec, maxTiles - n));
-        var tiles = makeTiles(target, nDecoy, Math.min(spec.look || 0, nDecoy), ctx.shuffle, ctx.pick);
+        var tiles = makeTiles(target, nDecoy, Math.min(spec.look || 0, nDecoy), ctx.shuffle, ctx.pick, spec.dup);
         var tileUsed = tiles.map(function () { return false; });
         var slots = [];
         for (var i = 0; i < n; i++) slots.push(null);
@@ -473,7 +499,7 @@
     instructions: [
       'תופיע תמונה: בעל חיים, כלי, כלי תחבורה ועוד.',
       'לחצו על האותיות לפי הסדר כדי לכתוב את השם שלה, מימין לשמאל.',
-      'ברמות מתקדמות יש גם אותיות מיותרות. לחיצה על אות שהנחתם מחזירה אותה.',
+      'ברמות מתקדמות יש גם אותיות מיותרות, ובהמשך גם אות שמופיעה פעמיים. לחיצה על אות שהנחתם מחזירה אותה.',
       'לא נזכרים? לחצו "רמז" ותקבלו את האות הבאה. אין שעון.'
     ],
     items: ITEMS,

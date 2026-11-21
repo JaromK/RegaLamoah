@@ -55,11 +55,13 @@
     '.sl2-bag-title:empty{display:none;}',
     '.sl2-bag-head{display:flex;align-items:center;gap:.45rem;font-weight:800;font-size:1.05rem;line-height:1.2;}',
     '.sl2-bag-icon{font-size:1.5rem;line-height:1;flex:none;}',
-    '.sl2-shelf.sl2-four{grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem;}',
+    '.sl2-shelf.sl2-four{grid-template-columns:repeat(4,minmax(0,1fr));gap:.4rem;}',
+    '.sl2-four .sl2-item{min-height:3.5rem;}',
+    '.sl2-four .sl2-item .sl2-em{font-size:1.45rem;}',
     '.sl2-four .sl2-item .sl2-word{font-size:.98rem;overflow-wrap:normal;hyphens:none;}',
     '.sl2-bag-items{display:flex;flex-wrap:wrap;gap:.3rem;flex:1;min-width:0;}',
     '.sl2-bag-items:empty{display:none;}',
-    '.sl2-chip{display:inline-flex;align-items:center;gap:.25rem;min-height:2.6rem;padding:.1rem .5rem;border-radius:999px;',
+    '.sl2-chip{display:inline-flex;align-items:center;justify-content:center;gap:.15rem;min-height:2.6rem;min-width:2.6rem;padding:.1rem .3rem;border-radius:999px;',
     'border:2px solid var(--memory);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:1.05rem;cursor:pointer;}',
     '.sl2-chip .sl2-em{font-size:1.35rem;line-height:1;}',
     '.sl2-chip b{color:var(--memory);}',
@@ -71,19 +73,27 @@
     '.sl2-fly{position:fixed;z-index:50;font-size:2.2rem;line-height:1;pointer-events:none;transform:translate(-50%,-50%);',
     'transition:transform .5s ease-in-out,opacity .5s ease-in;}',
     '.sl2-qty{font-weight:900;color:var(--memory);margin-inline-start:auto;font-variant-numeric:tabular-nums;}',
-    '.sl2-count{font-size:1rem;font-weight:900;color:var(--memory);min-height:1.1rem;line-height:1.1;}',
+    '.sl2-count{font-size:.95rem;font-weight:900;color:var(--memory);line-height:1.1;white-space:nowrap;}',
+    '.sl2-count:empty{display:none;}',
+    /* on the 4-column shelf the amount sits in the corner, so a picked tile does not grow */
+    '.sl2-four .sl2-item{position:relative;}',
+    '.sl2-four .sl2-count{position:absolute;top:3px;inset-inline-start:5px;}',
     '.sl2-item.is-correct .sl2-count{color:var(--good);}',
     '.sl2-legend{display:flex;flex-wrap:wrap;gap:.3rem .9rem;justify-content:center;color:var(--ink-soft);font-size:1.1rem;line-height:1.3;margin:0;}',
     '.sl2-legend span{display:inline-flex;align-items:center;gap:.35rem;}',
     '.sl2-sw{display:inline-block;width:1rem;height:1rem;border-radius:4px;border:2px solid var(--line);}',
     '.sl2-sw.g{background:var(--good-soft);border-color:var(--good);}',
     '.sl2-sw.m{border:2px dashed var(--sun);}',
-    '.sl2-sw.w{background:var(--bad-soft);border-color:var(--bad);}'
+    '.sl2-sw.w{background:var(--bad-soft);border-color:var(--bad);}',
+    /* 31–50: crossed-out lines on the list ("יש בבית") must not be bought */
+    '.sl2-list li.sl2-crossed{color:var(--ink-soft);}',
+    '.sl2-list li.sl2-crossed .sl2-w{text-decoration:line-through;text-decoration-thickness:3px;text-decoration-color:var(--c-red);}',
+    '.sl2-list.sl2-dense li{padding:.12rem 0;}'
   ].join('');
 
   function clampLevel(l) {
     l = Math.round(Number(l) || 1);
-    return Math.max(1, Math.min(30, l));
+    return Math.max(1, Math.min(50, l));
   }
 
   BrainGames.register({
@@ -96,7 +106,8 @@
       'תופיע רשימת קניות. קראו וזכרו את כל הפריטים.',
       'כשתהיו מוכנים לחצו "זכרתי, הלאה".',
       'על המדף יופיעו מוצרים רבים. לחצו על כל מה שהיה ברשימה, והוא ייכנס לסל. טעיתם? לחצו על המוצר בסל כדי להוציא אותו.',
-      'לחצו "בדיקה" כדי לראות מה זכרתם. ברמות הגבוהות זכרו גם כמה: כל לחיצה מוסיפה עוד אחד לסל, ולחיצה על המוצר בסל מוציאה אחד.'
+      'לחצו "בדיקה" כדי לראות מה זכרתם. ברמות הגבוהות זכרו גם כמה: כל לחיצה מוסיפה עוד אחד לסל, ולחיצה על המוצר בסל מוציאה אחד.',
+      'ברמות הגבוהות ביותר יש ברשימה גם מוצרים מחוקים: אותם יש כבר בבית, ולא קונים אותם. בסוף הרשימה מופיעה בלי תמונות.'
     ],
     css: css,
     start: function (root, ctx) {
@@ -104,14 +115,23 @@
       var level = clampLevel(ctx.level);
       // Levels 21–30 keep the level-20 shelf (15 tiles, no extra scrolling) and add quantities:
       // some items must be bought 2 or 3 times ("חלב ×2"); a tap adds one, a tap past 3 clears.
-      var QTY_LEN = [6, 7, 7, 8, 8, 8, 9, 9, 10, 10];
-      var QTY_SHARE = [0.3, 0.4, 0.4, 0.5, 0.5, 0.6, 0.6, 0.7, 0.7, 0.8];
+      var QTY_LEN = [6, 7, 7, 8, 8, 8, 9, 9, 10, 10,
+        10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10];
+      var QTY_SHARE = [0.3, 0.4, 0.4, 0.5, 0.5, 0.6, 0.6, 0.7, 0.7, 0.8,
+        0.8, 0.8, 0.8, 0.8, 0.9, 0.9, 0.9, 1, 1, 1, 0.8, 0.8, 0.9, 0.9, 1, 0.8, 0.9, 0.9, 1, 1];
+      // Levels 31–50 keep the same shelf and add rules: crossed-out lines ("יש בבית") that must not be
+      // bought — they wait on the shelf as traps; from 41 the list has words only (no pictures);
+      // from 46 an item may be needed up to 4 times.
+      var CROSSED = [1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3];
+      var nCrossed = level >= 31 ? CROSSED[level - 31] : 0;
+      var wordsOnly = level >= 41;
+      var maxQ = level >= 46 ? 4 : 3;
       var withQty = level >= 21;
       var listLen = withQty ? QTY_LEN[level - 21] : Math.round(3 + (level - 1) * 7 / 19); // 3 → 10
       // Shelf size is capped so every tile stays big and the round fits one phone screen
       // (12 tiles = 4 rows of 3 up to level 15; at 16–20 a little scrolling is allowed).
       var shelfMax = level <= 15 ? 12 : 15;
-      var distractors = Math.min(listLen + Math.floor((level - 1) / 6), shelfMax - listLen);
+      var distractors = Math.min(listLen + Math.floor((level - 1) / 6), shelfMax - listLen - nCrossed);
       var sameCatRatio = Math.min(0.9, 0.9 * (level - 1) / 19);          // 0 → 0.9
 
       var round = 0;
@@ -138,7 +158,11 @@
         var list = ctx.shuffle(BANK).slice(0, listLen);
         var inList = {}, cats = {};
         list.forEach(function (it) { inList[it.id] = true; cats[it.cat] = true; });
-        var rest = BANK.filter(function (it) { return !inList[it.id]; });
+        // crossed-out lines: from the same departments, so they look like the rest of the list
+        var crossed = ctx.shuffle(BANK.filter(function (it) { return !inList[it.id] && cats[it.cat]; })).slice(0, nCrossed);
+        var isCrossed = {};
+        crossed.forEach(function (it) { isCrossed[it.id] = true; });
+        var rest = BANK.filter(function (it) { return !inList[it.id] && !isCrossed[it.id]; });
         var same = ctx.shuffle(rest.filter(function (it) { return cats[it.cat]; }));
         var other = ctx.shuffle(rest.filter(function (it) { return !cats[it.cat]; }));
         var nSame = Math.min(same.length, Math.round(distractors * sameCatRatio));
@@ -150,9 +174,10 @@
         list.forEach(function (it) { qty[it.id] = 1; });
         if (withQty) {
           var nQty = Math.max(1, Math.round(listLen * QTY_SHARE[level - 21]));
-          ctx.shuffle(list).slice(0, nQty).forEach(function (it) { qty[it.id] = ctx.randInt(2, 3); });
+          ctx.shuffle(list).slice(0, nQty).forEach(function (it) { qty[it.id] = ctx.randInt(2, maxQ); });
         }
-        return { list: list, inList: inList, qty: qty, shelf: ctx.shuffle(list.concat(picks)) };
+        return { list: list, inList: inList, qty: qty, crossed: crossed, isCrossed: isCrossed,
+          note: ctx.shuffle(list.concat(crossed)), shelf: ctx.shuffle(list.concat(crossed, picks)) };
       }
 
       function playRound() {
@@ -162,11 +187,12 @@
         // Memorise phase.
         ctx.setStatus('זכרו את רשימת הקניות');
         var note = el('div', { class: 'sl2-note' }, [
-          el('p', { class: 'sl2-note-title' }, '🛒 צריך לקנות (' + listLen + ' פריטים):'),
-          el('ul', { class: 'sl2-list' }, data.list.map(function (it) {
-            return el('li', null, [
-              el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji), el('span', null, it.word),
-              data.qty[it.id] > 1 ? el('span', { class: 'sl2-qty' }, '×' + data.qty[it.id]) : null
+          el('p', { class: 'sl2-note-title' }, '🛒 צריך לקנות (' + listLen + ' פריטים)' + (nCrossed ? '. מחוק = יש בבית, לא קונים' : ':')),
+          el('ul', { class: 'sl2-list' + (data.note.length > 12 ? ' sl2-dense' : '') }, data.note.map(function (it) {
+            var cr = data.isCrossed[it.id];
+            return el('li', cr ? { class: 'sl2-crossed', 'aria-label': it.word + ', מחוק, יש בבית' } : null, [
+              wordsOnly ? null : el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji), el('span', { class: 'sl2-w' }, it.word),
+              !cr && data.qty[it.id] > 1 ? el('span', { class: 'sl2-qty' }, '×' + data.qty[it.id]) : null
             ]);
           }))
         ]);
@@ -174,7 +200,7 @@
         root.appendChild(note);
         if (!ctx.timed) root.appendChild(el('p', { class: 'g-hint', style: { margin: '0' } }, 'אין מגבלת זמן.'));
         root.appendChild(el('div', { class: 'g-actions' }, readyBtn));
-        ctx.studyTimer(readyBtn, 3000 + 1500 * data.list.length);
+        ctx.studyTimer(readyBtn, 3000 + 1500 * data.note.length);
 
         var started = false;
         function startPick() {
@@ -208,7 +234,7 @@
           var bag = el('div', { class: 'sl2-bag', 'aria-live': 'polite' }, [
             el('span', { class: 'sl2-bag-icon', 'aria-hidden': 'true' }, '🛍️'), bagTitle, bagItems
           ]);
-          var checkBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', disabled: true, onclick: check }, 'בדיקה');
+          var checkBtn = el('button', { class: 'btn btn-primary', type: 'button', disabled: true, onclick: check }, 'בדיקה');
           var actions = el('div', { class: 'g-actions' }, checkBtn);
           var chips = {}; // shelf index → chip in the bag
           var bagOrder = [];
@@ -226,8 +252,10 @@
               chips[i] = el('button', {
                 class: 'sl2-chip', type: 'button', 'aria-label': 'להוציא מהסל: ' + it.word + (withQty ? ' (' + c + ')' : ''),
                 onclick: function () { takeOut(i); }
-              }, [el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji), el('span', null, it.word),
-                withQty && c > 1 ? el('b', null, '×' + c) : null, el('span', { class: 'sl2-out', 'aria-hidden': 'true' }, '↩')]);
+              }, [el('span', { class: 'sl2-em', 'aria-hidden': 'true' }, it.emoji),
+                // with few items the name fits; with many only the picture, so the bag stays one or two rows
+                bagOrder.length <= 3 ? el('span', null, it.word) : null,
+                withQty && c > 1 ? el('b', null, '×' + c) : null]);
               bagItems.appendChild(chips[i]);
             });
             checkBtn.textContent = pickedCount ? 'בדיקה (' + pickedCount + ' בסל)' : 'בדיקה';
@@ -264,7 +292,7 @@
             if (!accepting) return;
             var it = data.shelf[i], c = picked[it.id] || 0;
             if (c && !withQty) { takeOut(i); return; } // tapping the empty spot brings it back
-            if (c >= 3) { ctx.setStatus('אפשר לקנות עד 3 מכל מוצר'); return; }
+            if (c >= maxQ) { ctx.setStatus('אפשר לקנות עד ' + maxQ + ' מכל מוצר'); return; }
             ctx.sound('tap');
             if (!c) { pickedCount++; bagOrder.push(i); }
             picked[it.id] = withQty ? c + 1 : true;
@@ -300,10 +328,13 @@
               if (withQty && picked[it.id] && data.inList[it.id] && picked[it.id] !== data.qty[it.id]) {
                 // right product, wrong amount: show the amount that was on the list
                 b.classList.add('sl2-missed');
-                b.querySelector('.sl2-count').textContent = '×' + data.qty[it.id] + ' (לא ×' + picked[it.id] + ')';
+                b.querySelector('.sl2-count').textContent = 'צריך ×' + data.qty[it.id]; // the dashed frame marks the wrong amount
                 badQty++;
               } else if (picked[it.id] && data.inList[it.id]) { b.classList.add('is-correct'); hits++; }
-              else if (picked[it.id]) { b.classList.add('is-wrong'); wrong++; }
+              else if (picked[it.id]) {
+                b.classList.add('is-wrong'); wrong++;
+                if (data.isCrossed[it.id]) b.querySelector('.sl2-count').textContent = 'מחוק';
+              }
               else if (data.inList[it.id]) {
                 b.classList.add('sl2-missed');
                 if (withQty && data.qty[it.id] > 1) b.querySelector('.sl2-count').textContent = '×' + data.qty[it.id];
@@ -319,13 +350,14 @@
             else {
               msg = 'זכרתם ' + hits + ' מתוך ' + listLen;
               if (badQty) msg += badQty === 1 ? ', במוצר אחד הכמות לא נכונה' : ', ב-' + badQty + ' מוצרים הכמות לא נכונה';
-              if (wrong) msg += wrong === 1 ? ', ומוצר אחד לא היה ברשימה' : ', ו-' + wrong + ' מוצרים לא היו ברשימה';
+              if (wrong) msg += nCrossed ? (wrong === 1 ? ', ומוצר אחד לא היה צריך לקנות' : ', ו-' + wrong + ' מוצרים לא היה צריך לקנות')
+                : wrong === 1 ? ', ומוצר אחד לא היה ברשימה' : ', ו-' + wrong + ' מוצרים לא היו ברשימה';
             }
             ctx.setStatus(ok ? 'מצוין! זכרתם את כל הרשימה' : 'זכרתם ' + hits + ' מתוך ' + listLen + (wrong ? ' · ' + (wrong === 1 ? 'טעות אחת' : wrong + ' טעויות') : ''));
             var legend = el('p', { class: 'sl2-legend' }, [
               el('span', null, [el('i', { class: 'sl2-sw g', 'aria-hidden': 'true' }), 'נכון']),
               hits < listLen ? el('span', null, [el('i', { class: 'sl2-sw m', 'aria-hidden': 'true' }), 'נשכח']) : null,
-              wrong ? el('span', null, [el('i', { class: 'sl2-sw w', 'aria-hidden': 'true' }), 'לא ברשימה']) : null
+              wrong ? el('span', null, [el('i', { class: 'sl2-sw w', 'aria-hidden': 'true' }), nCrossed ? 'לא לקנות' : 'לא ברשימה']) : null
             ]);
             root.insertBefore(legend, actions);
             ctx.feedback(ok, msg).then(function () {

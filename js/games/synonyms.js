@@ -226,18 +226,30 @@
   });
   var ALL = GROUPS.map(function (g) { return BY_ID[g[0]]; });
 
-  /* Difficulty by level (index = level - 1). */
-  var MAX_T = [1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3];
+  /* Difficulty by level (index = level - 1), 50 levels. */
+  function upTo50(list) { while (list.length < 50) list.push(list[list.length - 1]); return list; }
+  var MAX_T = upTo50([1, 1, 1, 2, 2, 2, 2, 2, 2, 3]);
   // Chance a round must include at least a tier-2 word / a tier-3 word.
-  var P2 = [0, 0, 0, 0.25, 0.5, 0.7, 0.85, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-  var P3 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0.15, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+  var P2 = upTo50([0, 0, 0, 0.25, 0.5, 0.7, 0.85, 1]);
+  var P3 = upTo50([0, 0, 0, 0, 0, 0, 0, 0, 0, 0.15, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1]);
   // Antonym rounds per session.
-  var ANT = [0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 6];
+  var ANT = upTo50([0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 6]);
   // Chance of a "trap" choice (the opposite in a synonym round, a synonym in an antonym round).
-  var TRAP = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.25, 0.35, 0.45, 0.55, 0.7, 0.7, 0.8, 0.8, 0.9, 0.95, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+  var TRAP = upTo50([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.25, 0.35, 0.45, 0.55, 0.7, 0.7, 0.8, 0.8, 0.9, 0.95, 1]);
   // Levels 21–30: chance of a SECOND trap word (two choices from the opposite meaning), and from 25
   // the other wrong choices are only rarer words, so no choice stands out as plain.
-  var TRAP2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.2, 0.35, 0.5, 0.6, 0.7, 0.8, 0.9, 1];
+  var TRAP2 = upTo50([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.2, 0.35, 0.5, 0.6, 0.7, 0.8, 0.9, 1]);
+  // Levels 31–50. BOTH: chance that the prompt AND the answer are both richer words (tier 2–3), so
+  // neither one is an easy everyday word · CHOICES: from 36 six choices instead of four ·
+  // TRAP3: chance of a THIRD trap word from the opposite meaning (with six choices) ·
+  // from 41 there is no "שימו לב!" warning when the question turns from similar to opposite.
+  var BOTH = upTo50([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0.2, 0.3, 0.4, 0.5, 0.6, 0.4, 0.5, 0.6, 0.7, 0.8, 0.8, 0.85, 0.9, 0.95, 1, 1, 1, 1, 1, 1]);
+  var CHOICES = upTo50([4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 6]);
+  var TRAP3 = upTo50([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1]);
+  var WARN_UNTIL = 40;
 
   var CSS = [
     '.sy-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:1.1rem}',
@@ -261,12 +273,12 @@
     benefit: 'אוצר מילים, שליפת מילים וגמישות לשונית',
     instructions: [
       'קראו את המילה הגדולה שבמרכז.',
-      'בחרו מבין ארבע האפשרויות את המילה שדומה לה במשמעות.',
+      'בחרו מבין האפשרויות את המילה שדומה לה במשמעות.',
       'בשלבים מתקדמים תתבקשו לפעמים לבחור דווקא מילה הפוכה. קראו את השאלה בכל שלב.'
     ],
     css: CSS,
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
+      var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level) || 1)));
       var maxT = MAX_T[level - 1];
       var round = 0;
       var correct = 0;
@@ -296,12 +308,16 @@
 
       function pickQuestion(kind) {
         var need = Math.random() < P3[level - 1] ? 3 : (Math.random() < P2[level - 1] ? 2 : 1);
+        var both = Math.random() < BOTH[level - 1];
         for (; need >= 1; need--) {
           var cands = [];
           ALL.forEach(function (g) {
             if (usedGroups[g.id] || (g.opp && usedGroups[g.opp])) return;
-            pairs(g, kind).forEach(function (pr) { if (pr.t >= need) cands.push({ g: g, pr: pr }); });
+            pairs(g, kind).forEach(function (pr) {
+              if (pr.t >= need && (!both || Math.min(pr.p.t, pr.a.t) >= 2)) cands.push({ g: g, pr: pr });
+            });
           });
+          if (!cands.length && both) { both = false; need++; continue; }
           if (cands.length) {
             var c = ctx.pick(cands);
             usedGroups[c.g.id] = true;
@@ -314,6 +330,7 @@
       /* Three wrong choices of the same part of speech, never from the same,
          opposite or near-meaning groups. */
       function pickDistractors(g, ans, kind) {
+        var nWrong = CHOICES[level - 1] - 1;
         var block = {};
         block[g.id] = true;
         if (g.opp) block[g.opp] = true;
@@ -341,16 +358,22 @@
             if (kind === 'ant') tw = tw.filter(function (w) { return w.w !== currentPrompt; });
             if (tw.length) { trap = ctx.pick(tw).w; out.push(trap); }
             var tw2 = tw.filter(function (w) { return w.w !== trap; });
-            if (trap && tw2.length && Math.random() < TRAP2[level - 1]) out.push(ctx.pick(tw2).w);
+            if (trap && tw2.length && Math.random() < TRAP2[level - 1]) {
+              var trap2 = ctx.pick(tw2).w;
+              out.push(trap2);
+              var tw3 = tw2.filter(function (w) { return w.w !== trap2; });
+              if (nWrong > 3 && tw3.length && Math.random() < TRAP3[level - 1]) out.push(ctx.pick(tw3).w);
+            }
           }
         }
-        for (var i = 0; i < ranked.length && out.length < 3; i++) {
+        var traps = out.slice();
+        for (var i = 0; i < ranked.length && out.length < nWrong; i++) {
           var r = ranked[i];
           if (usedG[r.gid] || out.indexOf(r.w) !== -1 || r.w === ans.w) continue;
           usedG[r.gid] = true;
           out.push(r.w);
         }
-        return { list: out, trap: trap };
+        return { list: out, traps: traps };
       }
 
       var currentPrompt = '';
@@ -370,7 +393,7 @@
         if (!q) { usedGroups = {}; q = pickQuestion(kind); }
         var isAnt = kind === 'ant';
         if (isAnt) antTotal++;
-        var changed = level >= 8 && kind !== prevKind;
+        var changed = level >= 8 && level <= WARN_UNTIL && kind !== prevKind;
         prevKind = kind;
 
         var g = q.g;
@@ -413,7 +436,7 @@
           var reason = isAnt
             ? '"' + ans.w + '" הפוכה ל"' + prompt + '".'
             : '"' + ans.w + '" ו"' + prompt + '" דומות במשמעות.';
-          if (!ok && w === dis.trap) {
+          if (!ok && dis.traps.indexOf(w) !== -1) {
             reason += isAnt
               ? ' "' + w + '" דווקא דומה ל"' + prompt + '".'
               : ' "' + w + '" היא דווקא ההפך.';

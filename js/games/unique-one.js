@@ -47,7 +47,32 @@
     { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near2', cluster: true },       // 27
     { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near3', cluster: true },       // 28
     { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near3', cluster: true },       // 29
-    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near4', cluster: true }        // 30
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near4', cluster: true },       // 30
+    // 31–50 are built around the single picture(s) (build: true), so the look-alikes are guaranteed:
+    // 31–40: the single picture differs by one feature from five, six, then all seven of the groups.
+    // 41–50 (two: true): TWO pictures appear only once; find both (each is one feature away from 3–4
+    // groups). twin: the two singles differ in just one feature, so at a glance they look like a pair.
+    // tight: every group is at most two features away from the singles.
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near5', build: true },       // 31
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near5', build: true },       // 32
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near5', build: true, tight: true }, // 33
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near6', build: true },       // 34
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near6', build: true },       // 35
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near6', build: true, tight: true }, // 36
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near7', build: true },       // 37
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near7', build: true },       // 38
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near7', build: true, tight: true }, // 39
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near7', build: true, tight: true }, // 40
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near3', build: true, two: true },               // 41
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near3', build: true, two: true },               // 42
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near4', build: true, two: true },               // 43
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near4', build: true, two: true, tight: true },  // 44
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near3', build: true, two: true, twin: true },   // 45
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near3', build: true, two: true, twin: true },   // 46
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near4', build: true, two: true, twin: true },   // 47
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near4', build: true, two: true, twin: true },   // 48
+    { n: 16, cols: 4, f: 'all', v: 4, gs: 2, sim: 'near4', build: true, two: true, twin: true, tight: true }, // 49
+    { n: 16, cols: 4, f: 'all', v: 3, gs: 2, sim: 'near4', build: true, two: true, twin: true, tight: true }  // 50
   ];
 
   function valuesOf(feature, v) {
@@ -94,12 +119,15 @@
     });
 
     // group sizes: as many groups of `gs` as fit into n - 1, leftovers spread over groups
-    var rest = spec.n - 1;
+    var singles = spec.two ? 2 : 1;
+    var rest = spec.n - singles;
     var gCount = Math.max(1, Math.floor(rest / spec.gs));
-    gCount = Math.min(gCount, combos.length - 1);
+    gCount = Math.min(gCount, combos.length - singles);
     var sizes = [];
     for (var g = 0; g < gCount; g++) sizes.push(Math.floor(rest / gCount));
     for (var r = 0; r < rest % gCount; r++) sizes[r]++;
+
+    if (spec.build) return buildRound();
 
     for (var attempt = 0; attempt < 400; attempt++) {
       var pool = shuffle(combos);
@@ -126,7 +154,7 @@
         scored.sort(function (a, b) { return b.minD - a.minD || b.sumD - a.sumD; });
         unique = scored[0] && scored[0].c;
       } else if (/^near\d?$/.test(spec.sim)) {
-        var need = Number(spec.sim.slice(4)) || 1; // 'near' = 1, 'near2'…'near4'
+        var need = Number(spec.sim.slice(4)) || 1; // 'near' = 1, 'near2'…'near7'
         var ok = scored.filter(function (s) { return s.near >= need; });
         if (!ok.length) continue;
         unique = any(ok).c;
@@ -144,6 +172,50 @@
       return { items: shuffle(items), feats: feats };
     }
     return null;
+
+    /* Levels 31–50: pick the single(s) first, then take `need` groups among each single's one-feature
+       neighbours, and fill up with groups close to the singles. Always succeeds within a few tries. */
+    function buildRound() {
+      var need = Number(spec.sim.slice(4)) || 1;
+      for (var tryNo = 0; tryNo < 400; tryNo++) {
+        var pool = shuffle(combos);
+        var u1 = pool[0];
+        var singlesList = [u1];
+        if (spec.two) {
+          var c2 = pool.filter(function (c) { return c !== u1 && (spec.twin ? diff(c, u1, feats) === 1 : diff(c, u1, feats) >= 2); });
+          if (!c2.length) continue;
+          singlesList.push(c2[0]);
+        }
+        var others = pool.filter(function (c) { return singlesList.indexOf(c) === -1; });
+        var groups = [];
+        singlesList.forEach(function (u) {
+          var have = groups.filter(function (g) { return diff(g, u, feats) === 1; }).length;
+          others.forEach(function (c) {
+            if (have < need && groups.indexOf(c) === -1 && diff(c, u, feats) === 1) { groups.push(c); have++; }
+          });
+        });
+        if (groups.length > gCount) continue;
+        var near = function (c) {
+          return Math.min.apply(null, singlesList.map(function (u) { return diff(c, u, feats); }));
+        };
+        var fill = others.filter(function (c) { return groups.indexOf(c) === -1; })
+          .sort(function (a, b) { return spec.tight ? near(a) - near(b) : 0; });
+        if (spec.tight) fill = fill.filter(function (c) { return near(c) <= 2; });
+        for (var f = 0; groups.length < gCount && f < fill.length; f++) groups.push(fill[f]);
+        if (groups.length < gCount) continue;
+        var good = singlesList.every(function (u) {
+          return groups.filter(function (g) { return diff(g, u, feats) === 1; }).length >= need;
+        });
+        if (!good) continue;
+        var items = [];
+        groups.forEach(function (gr, i) {
+          for (var k = 0; k < sizes[i]; k++) items.push({ shape: gr.shape, color: gr.color, fill: gr.fill, count: gr.count, unique: false });
+        });
+        singlesList.forEach(function (u) { items.push({ shape: u.shape, color: u.color, fill: u.fill, count: u.count, unique: true }); });
+        return { items: shuffle(items), feats: feats };
+      }
+      return null;
+    }
   }
 
   function shapeSvg(shape, color, fill, cx, cy, s) {
@@ -210,14 +282,15 @@
       'על הלוח יש ציורים. כמעט כל ציור מופיע לפחות פעמיים.',
       'רק ציור אחד מופיע פעם אחת בלבד.',
       'שימו לב לצורה, לצבע, למילוי ולמספר הצורות.',
-      'לחצו על הציור היחיד מסוגו. אין שעון.'
+      'לחצו על הציור היחיד מסוגו. אין שעון.',
+      'ברמות הגבוהות יש שני ציורים שמופיעים פעם אחת בלבד: מצאו את שניהם.'
     ],
     css: css,
     _makeRound: makeRound,   // exposed for tests
     _levels: LEVELS,
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var round = 0;
       var score = 0;
@@ -227,20 +300,22 @@
           ctx.finish({
             correct: score,
             total: ROUNDS,
-            note: 'מצאתם את היחיד מסוגו ב-' + score + ' מתוך ' + ROUNDS + ' לוחות של ' + spec.n + ' ציורים'
+            note: (spec.two ? 'מצאתם את שני היחידים מסוגם ב-' : 'מצאתם את היחיד מסוגו ב-') + score + ' מתוך ' + ROUNDS + ' לוחות של ' + spec.n + ' ציורים'
           });
           return;
         }
         round++;
         ctx.setProgress(round, ROUNDS);
-        play(makeRound(spec));
+        play(makeRound(spec) || makeRound(LEVELS[29]));
       }
 
       function play(data) {
         root.innerHTML = '';
-        ctx.setStatus('איזה ציור מופיע רק פעם אחת?');
+        var two = !!spec.two;
+        ctx.setStatus(two ? 'שני ציורים מופיעים רק פעם אחת. מצאו את שניהם' : 'איזה ציור מופיע רק פעם אחת?');
         var items = data.items;
         var accepting = true;
+        var foundOne = -1;
         var tiles = items.map(function (it, i) {
           return el('button', {
             class: 'g-tile', type: 'button', html: itemSvg(it),
@@ -252,12 +327,19 @@
         root.appendChild(grid);
 
         function tap(i) {
-          if (!accepting) return;
+          if (!accepting || i === foundOne) return;
+          if (two && foundOne === -1 && items[i].unique) {
+            // the first of two singles: mark it and keep looking
+            foundOne = i;
+            tiles[i].classList.add('is-correct');
+            tiles[i].disabled = true;
+            ctx.sound('tap');
+            ctx.setStatus('מצאתם אחד! יש עוד ציור אחד שמופיע רק פעם אחת');
+            return;
+          }
           accepting = false;
           tiles.forEach(function (t) { t.disabled = true; });
-          var uIdx = 0;
-          items.forEach(function (it, k) { if (it.unique) uIdx = k; });
-          tiles[uIdx].classList.add('is-correct');
+          items.forEach(function (it, k) { if (it.unique) tiles[k].classList.add('is-correct'); });
           if (items[i].unique) {
             score++;
             ctx.setStatus('מצאתם!');
@@ -267,7 +349,7 @@
           tiles[i].classList.add('is-wrong');
           var k0 = key(items[i]);
           items.forEach(function (it, k) { if (k !== i && key(it) === k0) tiles[k].classList.add('uo-twin'); });
-          ctx.setStatus('היחיד מסוגו בירוק, הזוג במסגרת מקווקוות');
+          ctx.setStatus(two ? 'היחידים מסוגם בירוק, הזוג במסגרת מקווקוות' : 'היחיד מסוגו בירוק, הזוג במסגרת מקווקוות');
           var btn = el('button', {
             class: 'btn btn-primary btn-lg', type: 'button',
             onclick: function () { btn.disabled = true; next(); }

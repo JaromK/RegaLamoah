@@ -12,11 +12,13 @@
   var COLOR_WORDS = [['אדום', 'אדומים'], ['ירוק', 'ירוקים'], ['סגול', 'סגולים']];
   var FILL_WORDS = [['מלא', 'מלאים'], ['ריק', 'ריקים'], ['בהיר', 'בהירים']];
 
-  /* Per level (1–30): f = features in play (2: shape + colour, 3: + count, 4: + fill), n = cards,
+  /* Per level (1–50): f = features in play (2: shape + colour, 3: + count, 4: + fill), n = cards,
      give = one card of a trio is already chosen, uniq = the board has exactly one trio,
      find = trios to find on one board, exact = the board has exactly that many,
-     hard = every trio on the board differs in at least three features (fewer easy "same" clues).
-     Boards have 6, 9 or 12 cards in three columns, so the cards stay big. */
+     hard = every trio on the board differs in at least three features (fewer easy "same" clues),
+     diff = at least that many trios differ in ALL four features (the hardest kind to see),
+     quiet = a wrong pick is not explained (from 49), noRule = the rule line is not shown (50).
+     Boards have 6, 9, 12 or (from 33) 15 cards in three columns, so the cards stay big. */
   var LEVELS = [
     { f: 2, n: 6, give: true },                         // 1
     { f: 2, n: 6 },                                     // 2
@@ -47,10 +49,30 @@
     { f: 4, n: 12, find: 5 },                           // 27
     { f: 4, n: 12, find: 5, exact: true },              // 28
     { f: 4, n: 12, find: 5, exact: true, hard: true },  // 29
-    { f: 4, n: 12, find: 6, exact: true }               // 30
+    { f: 4, n: 12, find: 6, exact: true },              // 30
+    { f: 4, n: 12, find: 6, exact: true, hard: true, diff: 2 }, // 31
+    { f: 4, n: 12, find: 6, exact: true, hard: true, diff: 3 }, // 32
+    { f: 4, n: 15, find: 5, exact: true, hard: true },          // 33
+    { f: 4, n: 15, find: 6, exact: true, hard: true },          // 34
+    { f: 4, n: 15, find: 6, exact: true, hard: true, diff: 2 }, // 35
+    { f: 4, n: 15, find: 6, exact: true, hard: true, diff: 3 }, // 36
+    { f: 4, n: 15, find: 6, exact: true, hard: true, diff: 4 }, // 37
+    { f: 4, n: 15, find: 7, exact: true, hard: true, diff: 2 }, // 38
+    { f: 4, n: 15, find: 7, exact: true, hard: true, diff: 3 }, // 39
+    { f: 4, n: 15, find: 7, exact: true, hard: true, diff: 4 }, // 40
+    { f: 4, n: 15, find: 8, exact: true, hard: true },          // 41
+    { f: 4, n: 15, find: 8, exact: true, hard: true, diff: 2 }, // 42
+    { f: 4, n: 15, find: 8, exact: true, hard: true, diff: 3 }, // 43
+    { f: 4, n: 15, find: 8, exact: true, hard: true, diff: 4 }, // 44
+    { f: 4, n: 15, find: 9, exact: true, hard: true },          // 45
+    { f: 4, n: 15, find: 9, exact: true, hard: true, diff: 2 }, // 46
+    { f: 4, n: 15, find: 9, exact: true, hard: true, diff: 3 }, // 47
+    { f: 4, n: 15, find: 9, exact: true, hard: true, diff: 4 }, // 48
+    { f: 4, n: 15, find: 9, exact: true, hard: true, diff: 4, quiet: true }, // 49
+    { f: 4, n: 15, find: 9, exact: true, hard: true, diff: 4, quiet: true, noRule: true } // 50
   ];
   // Boards per session, so a session stays about the same length.
-  var BOARDS = { 1: 7, 2: 5, 3: 4, 4: 3, 5: 3, 6: 2 };
+  var BOARDS = { 1: 7, 2: 5, 3: 4, 4: 3, 5: 3, 6: 2, 7: 2, 8: 2, 9: 2 };
 
   /* ---------- pure model: a card is [shape, color, count, fill], each 0–2 ---------- */
   function isTrio(a, b, c, f) {
@@ -87,18 +109,23 @@
     return out;
   }
 
-  /* A board that satisfies the level's rules (falls back to "at least `find` trios"). */
+  /* A board that satisfies the level's rules (falls back to the closest board found: the right number of
+     trios with the "hard" rule, then the right number, then "at least `find` trios"). */
   function makeBoard(spec, shuffle) {
     var f = spec.f, need = spec.find || 1;
     var all = deck(f);
-    var best = null;
-    for (var attempt = 0; attempt < 6000; attempt++) {
+    var best = null, bestRank = -1;
+    var tries = spec.diff || spec.n > 12 ? 40000 : 6000;
+    for (var attempt = 0; attempt < tries; attempt++) {
       var cards = shuffle(all).slice(0, spec.n);
       var trios = allTrios(cards, f);
       if (trios.length < need) continue;
-      if (!best) best = { cards: cards, trios: trios };
-      if ((spec.uniq || spec.exact) && trios.length !== need) continue;
-      if (spec.hard && trios.some(function (t) { return sameCount(cards[t[0]], cards[t[1]], cards[t[2]], f) > 1; })) continue;
+      var exactOk = !(spec.uniq || spec.exact) || trios.length === need;
+      var hardOk = exactOk && !(spec.hard && trios.some(function (t) { return sameCount(cards[t[0]], cards[t[1]], cards[t[2]], f) > 1; }));
+      var rank = hardOk ? 2 : exactOk ? 1 : 0;
+      if (rank > bestRank) { best = { cards: cards, trios: trios }; bestRank = rank; }
+      if (!hardOk) continue;
+      if (spec.diff && trios.filter(function (t) { return sameCount(cards[t[0]], cards[t[1]], cards[t[2]], f) === 0; }).length < spec.diff) continue;
       return { cards: cards, trios: trios };
     }
     return best;
@@ -169,14 +196,15 @@
       'על הלוח יש קלפים עם צורות. לכל קלף צורה, צבע, ובהמשך גם מספר ומילוי.',
       'מצאו שלושה קלפים שבכל תכונה הם או כולם זהים, או כולם שונים.',
       'למשל: שלושה עיגולים בשלושה צבעים שונים. שני אדומים ואחד ירוק, לא מתאים.',
-      'לחצו על שלושת הקלפים. אין שעון. ברמות הגבוהות מוצאים כמה שלישיות בכל לוח.'
+      'לחצו על שלושת הקלפים. אין שעון. ברמות הגבוהות מוצאים כמה שלישיות בכל לוח.',
+      'ברמות הגבוהות ביותר יש 15 קלפים, ורבות מהשלישיות שונות בכל ארבע התכונות.'
     ],
     css: css,
     _levels: LEVELS,
     _model: { isTrio: isTrio, allTrios: allTrios, makeBoard: makeBoard, sameCount: sameCount },
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var f = spec.f, need = spec.find || 1;
       var boards = BOARDS[need] || 3;
@@ -213,7 +241,7 @@
           });
         });
         var countLine = el('p', { class: 'tr-count', 'aria-live': 'polite' });
-        root.appendChild(el('p', { class: 'tr-rule' }, ruleText));
+        if (!spec.noRule) root.appendChild(el('p', { class: 'tr-rule' }, ruleText));
         root.appendChild(el('div', { class: 'tr-board' }, buttons));
         root.appendChild(countLine);
 
@@ -271,7 +299,7 @@
           }
           wrongTries++;
           trio.forEach(function (i) { buttons[i].classList.add('is-wrong'); });
-          var why = whyNot(a, b, c, f);
+          var why = spec.quiet ? 'השלושה לא מתאימים לכלל' : whyNot(a, b, c, f);
           if (wrongTries >= 2) {
             // show one trio that is still missing, then go on
             var show = remaining()[0];

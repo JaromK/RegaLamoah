@@ -29,13 +29,32 @@
     c1: BOX + '<circle cx="33" cy="33" r="12"/>',
     c2: BOX + '<circle cx="67" cy="33" r="12"/>',
     c3: BOX + '<circle cx="33" cy="67" r="12"/>',
-    c4: BOX + '<circle cx="67" cy="67" r="12"/>'
+    c4: BOX + '<circle cx="67" cy="67" r="12"/>',
+    // levels 31–50: a quarter of the circle filled, and an outlined square with dots in two corners
+    q1: RING + '<path d="M50 50 L50 12 A38 38 0 0 1 88 50 Z"/>',
+    q2: RING + '<path d="M50 50 L88 50 A38 38 0 0 1 50 88 Z"/>',
+    q3: RING + '<path d="M50 50 L50 88 A38 38 0 0 1 12 50 Z"/>',
+    q4: RING + '<path d="M50 50 L12 50 A38 38 0 0 1 50 12 Z"/>',
+    e1: BOX + '<circle cx="33" cy="33" r="12"/><circle cx="67" cy="33" r="12"/>',
+    e2: BOX + '<circle cx="33" cy="67" r="12"/><circle cx="67" cy="67" r="12"/>',
+    e3: BOX + '<circle cx="33" cy="33" r="12"/><circle cx="33" cy="67" r="12"/>',
+    e4: BOX + '<circle cx="67" cy="33" r="12"/><circle cx="67" cy="67" r="12"/>',
+    e5: BOX + '<circle cx="33" cy="33" r="12"/><circle cx="67" cy="67" r="12"/>',
+    e6: BOX + '<circle cx="67" cy="33" r="12"/><circle cx="33" cy="67" r="12"/>'
   };
 
   var EASY = ['circle', 'square', 'ring', 'star', 'plus', 'diamond', 'heart'];
   var SHAPE_FAMILIES = [['hl', 'hr', 'ht', 'hb'], ['tu', 'td', 'tl', 'tr'], ['c1', 'c2', 'c3', 'c4']];
   var LETTER_FAMILIES = [['ב', 'כ', 'פ'], ['ה', 'ח', 'ת'], ['ד', 'ר', 'ך'], ['ו', 'ז', 'ן'], ['ס', 'ם', 'ט']];
   var LETTER_TWINS = [['ה', 'ח'], ['ד', 'ר'], ['ב', 'כ'], ['ו', 'ז'], ['ם', 'ס'], ['ח', 'ת']];
+  // Levels 31–50: finer look-alike families. Each fine shape family comes with a related family whose
+  // members also look close (quarters next to halves, two dots next to one dot).
+  var FINE_FAMILIES = [
+    { fam: ['q1', 'q2', 'q3', 'q4'], near: ['hl', 'hr', 'ht', 'hb'] },
+    { fam: ['e1', 'e2', 'e3', 'e4', 'e5', 'e6'], near: ['c1', 'c2', 'c3', 'c4'] }
+  ];
+  var BIG_LETTERS = [['ה', 'ח', 'ת', 'ק', 'ד'], ['ב', 'כ', 'פ', 'נ', 'ג'], ['ו', 'ז', 'ן', 'י', 'ך'],
+    ['ס', 'ם', 'ט', 'מ', 'ש'], ['ד', 'ר', 'ך', 'ו', 'ן']];
 
   // Per level: grid, number of targets, distractor similarity.
   //  sim0: plain shapes, all different · sim1: shape family target, few look-alikes · sim2: half look-alikes
@@ -75,7 +94,32 @@
     { cols: 4, rows: 5, t: [7, 9], sim: 8 }, // 27
     { cols: 4, rows: 5, t: [6, 8], sim: 9 }, // 28
     { cols: 4, rows: 5, t: [7, 9], sim: 9 }, // 29
-    { cols: 4, rows: 5, t: [7, 10], sim: 8 } // 30
+    { cols: 4, rows: 5, t: [7, 10], sim: 8 }, // 30
+    // 31–50: still 4 × 5. Finer look-alikes and up to THREE symbols to find at once:
+    // sim 10: three letters from three look-alike families · 11: two shapes from a fine family (quarters /
+    // two dots), with the related family as extra look-alikes · 12: two letters from a family of five
+    // look-alike letters · 13: three shapes from one fine family · 14: three letters from a family of five
+    // · 15: three symbols from three different look-alike families (a fine shape, a shape, a letter).
+    { cols: 4, rows: 5, t: [7, 10], sim: 9 },  // 31
+    { cols: 4, rows: 5, t: [6, 9], sim: 10 },  // 32
+    { cols: 4, rows: 5, t: [7, 10], sim: 10 }, // 33
+    { cols: 4, rows: 5, t: [6, 9], sim: 11 },  // 34
+    { cols: 4, rows: 5, t: [7, 10], sim: 11 }, // 35
+    { cols: 4, rows: 5, t: [6, 9], sim: 12 },  // 36
+    { cols: 4, rows: 5, t: [7, 10], sim: 12 }, // 37
+    { cols: 4, rows: 5, t: [6, 9], sim: 13 },  // 38
+    { cols: 4, rows: 5, t: [7, 10], sim: 13 }, // 39
+    { cols: 4, rows: 5, t: [7, 11], sim: 13 }, // 40
+    { cols: 4, rows: 5, t: [6, 9], sim: 14 },  // 41
+    { cols: 4, rows: 5, t: [7, 10], sim: 14 }, // 42
+    { cols: 4, rows: 5, t: [7, 11], sim: 14 }, // 43
+    { cols: 4, rows: 5, t: [6, 9], sim: 15 },  // 44
+    { cols: 4, rows: 5, t: [7, 10], sim: 15 }, // 45
+    { cols: 4, rows: 5, t: [7, 11], sim: 15 }, // 46
+    { cols: 4, rows: 5, t: [8, 11], sim: 14 }, // 47
+    { cols: 4, rows: 5, t: [8, 11], sim: 15 }, // 48
+    { cols: 4, rows: 5, t: [8, 12], sim: 14 }, // 49
+    { cols: 4, rows: 5, t: [8, 12], sim: 15 }  // 50
   ];
 
   var css = [
@@ -85,6 +129,11 @@
     '.ss-target .ss-svg{width:66%;}',
     '.ss-target .ss-letter{font-size:2.8rem;}',
     '.ss-targets{display:flex;gap:.5rem;flex:none;}',
+    '.ss-targets.is-three{gap:.35rem;}',
+    '.ss-targets.is-three .ss-target{width:3.5rem;height:3.5rem;}',
+    '.ss-top:has(.is-three){gap:.6rem;}',
+    '.ss-top:has(.is-three) .ss-count{white-space:pre;}',
+    '.ss-targets.is-three .ss-letter{font-size:2.4rem;}',
     '.ss-svg{display:block;width:60%;height:auto;fill:currentColor;}',
     '.ss-letter{font-family:var(--font-body);font-weight:800;line-height:1;font-size:clamp(1.5rem,7vw,2.3rem);}',
     '.ss-grid{max-width:15.5rem;}',
@@ -120,12 +169,14 @@
       'למעלה מופיע סמל אחד. בלוח שמתחת יש כמה סמלים זהים לו.',
       'מצאו וסמנו את כל הסמלים הזהים: לחצו על כל אחד מהם. לחיצה נוספת מבטלת סימון.',
       'שימו לב לסמלים שדומים אבל לא זהים, ואל תסמנו אותם.',
+      'ברמות הגבוהות מחפשים שניים או שלושה סמלים בבת אחת.',
       'כשתסיימו לחצו "סיימתי". אין שעון — קחו את הזמן.'
     ],
     css: css,
+    _levels: LEVELS,
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var cols = spec.cols, rows = spec.rows;
       var tRange = Array.isArray(spec.t) ? spec.t : [spec.t, spec.t];
@@ -140,6 +191,7 @@
       function makeSet() {
         var sim = spec.sim;
         var target, siblings, easy;
+        if (sim >= 10) return makeFine(sim);
         if (sim >= 6) {
           // two targets: from two different families (6, 7) or from the same family (8, 9)
           var fams = sim === 6 || sim === 9 ? SHAPE_FAMILIES : LETTER_FAMILIES;
@@ -170,6 +222,30 @@
         target = sim === 4 ? ctx.pick(lf) : lf[0];
         siblings = lf.filter(function (s) { return s !== target; });
         return { target: target, pool: siblings, siblings: siblings, share: 1 };
+      }
+
+      // Levels 31–50 (sim 10–15): two or three symbols to find, all with close look-alikes around them.
+      function makeFine(sim) {
+        function without(list, tg) { return list.filter(function (s) { return tg.indexOf(s) === -1; }); }
+        var tg, sib;
+        if (sim === 10) {
+          var three = ctx.shuffle(LETTER_FAMILIES.slice()).slice(0, 3);
+          tg = three.map(function (f) { return ctx.pick(f); });
+          sib = without(three[0].concat(three[1], three[2]), tg);
+        } else if (sim === 11 || sim === 13) {
+          var ff = ctx.pick(FINE_FAMILIES);
+          tg = ctx.shuffle(ff.fam.slice()).slice(0, sim === 11 ? 2 : 3);
+          sib = without(ff.fam, tg).concat(ff.near);
+        } else if (sim === 12 || sim === 14) {
+          var big = ctx.pick(BIG_LETTERS);
+          tg = ctx.shuffle(big.slice()).slice(0, sim === 12 ? 2 : 3);
+          sib = without(big, tg);
+        } else {
+          var f1 = ctx.pick(FINE_FAMILIES), f2 = ctx.pick(SHAPE_FAMILIES), f3 = ctx.pick(LETTER_FAMILIES);
+          tg = [ctx.pick(f1.fam), ctx.pick(f2), ctx.pick(f3)];
+          sib = without(f1.fam.concat(f2, f3), tg);
+        }
+        return { target: tg[0], targets: tg, pool: sib, siblings: sib, share: 1 };
       }
 
       function nextRound() {
@@ -228,10 +304,11 @@
         var doneBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: check }, 'סיימתי');
         var actions = el('div', { class: 'g-actions' }, doneBtn);
 
-        ctx.setStatus(targets.length > 1 ? 'מצאו וסמנו את כל הסמלים משני הסוגים' : 'מצאו וסמנו את כל הסמלים הזהים');
+        ctx.setStatus(targets.length > 2 ? 'מצאו וסמנו את כל הסמלים משלושת הסוגים'
+          : targets.length > 1 ? 'מצאו וסמנו את כל הסמלים משני הסוגים' : 'מצאו וסמנו את כל הסמלים הזהים');
         // The target, the running count and (early levels) the hint share one compact row above the board.
         root.appendChild(el('div', { class: 'ss-top' }, [
-          el('div', { class: 'ss-targets' }, targets.map(function (t) {
+          el('div', { class: 'ss-targets' + (targets.length > 2 ? ' is-three' : '') }, targets.map(function (t) {
             return el('div', { class: 'ss-target', role: 'img', 'aria-label': 'סמל לחיפוש' }, glyph(el, t));
           })),
           el('div', { class: 'ss-side' }, [
@@ -290,7 +367,10 @@
           var parts = ['מצאתם ' + hits + ' מתוך ' + count];
           if (missed) parts.push('● פספסתם ' + missed);
           if (wrong) parts.push('✗ שגויות: ' + wrong);
-          countLine.textContent = parts.join(String.fromCharCode(10));
+          // three symbols leave a narrow column beside them: a short two-line summary (the marks match the tiles)
+          countLine.textContent = targets.length > 2
+            ? hits + ' מתוך ' + count + (missed || wrong ? String.fromCharCode(10) + '‏' + [missed ? '● ' + missed : '', wrong ? '✗ ' + wrong : ''].join('  ').trim() : '')
+            : parts.join(String.fromCharCode(10));
           ctx.setStatus(ok ? 'מצוין! מצאתם את כולם' : 'הנה התוצאה');
           ctx.feedback(ok, ok ? undefined : parts.join(' · ')).then(function () {
             if (ok) return ctx.wait(900).then(nextRound);
