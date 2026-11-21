@@ -4,9 +4,11 @@
 
   var ROUNDS = 6;
 
-  // Per level (1–30): fish in the pond, how many to follow, swim time (ms),
+  // Per level (1–50): fish in the pond, how many to follow, swim time (ms),
   // speed (share of the pond width per second) and gentle wandering from level 11.
   // At most 8 big fish; past that, swim time and wandering grow instead. Speed barely moves.
+  // 31–50 keep the speed too: from 36 a fish now and then turns right round (uturn = chance per
+  // second), and from 41 the water clouds over for a second (murk times, fish dimmed to `dim`).
   var LEVELS = [
     { n: 4, k: 1, ms: 4000, speed: 0.14, wander: 0 }, // 1
     { n: 5, k: 1, ms: 4000, speed: 0.14, wander: 0 }, // 2
@@ -38,7 +40,28 @@
     { n: 8, k: 5, ms: 10000, speed: 0.22, wander: 1.2 }, // 27
     { n: 8, k: 5, ms: 10500, speed: 0.22, wander: 1.3 }, // 28
     { n: 8, k: 5, ms: 11000, speed: 0.22, wander: 1.4 }, // 29
-    { n: 8, k: 5, ms: 12000, speed: 0.22, wander: 1.4 }  // 30
+    { n: 8, k: 5, ms: 12000, speed: 0.22, wander: 1.4 }, // 30
+    // 31–50: same 8 fish, 5 to follow, same speed; longer and twistier swims, sudden turns, murky water
+    { n: 8, k: 5, ms: 12000, speed: 0.22, wander: 1.5 }, // 31
+    { n: 8, k: 5, ms: 12500, speed: 0.22, wander: 1.5 }, // 32
+    { n: 8, k: 5, ms: 12500, speed: 0.22, wander: 1.6 }, // 33
+    { n: 8, k: 5, ms: 13000, speed: 0.22, wander: 1.6 }, // 34
+    { n: 8, k: 5, ms: 13000, speed: 0.22, wander: 1.7 }, // 35
+    { n: 8, k: 5, ms: 12000, speed: 0.22, wander: 1.6, uturn: 0.05 }, // 36
+    { n: 8, k: 5, ms: 12500, speed: 0.22, wander: 1.6, uturn: 0.06 }, // 37
+    { n: 8, k: 5, ms: 13000, speed: 0.22, wander: 1.7, uturn: 0.07 }, // 38
+    { n: 8, k: 5, ms: 13000, speed: 0.22, wander: 1.7, uturn: 0.08 }, // 39
+    { n: 8, k: 5, ms: 13500, speed: 0.22, wander: 1.8, uturn: 0.08 }, // 40
+    { n: 8, k: 5, ms: 12000, speed: 0.22, wander: 1.6, uturn: 0.06, murk: 1, dim: 0.35 }, // 41
+    { n: 8, k: 5, ms: 12500, speed: 0.22, wander: 1.7, uturn: 0.07, murk: 1, dim: 0.35 }, // 42
+    { n: 8, k: 5, ms: 13000, speed: 0.22, wander: 1.7, uturn: 0.08, murk: 1, dim: 0.3 }, // 43
+    { n: 8, k: 5, ms: 13000, speed: 0.22, wander: 1.8, uturn: 0.08, murk: 1, dim: 0.3 }, // 44
+    { n: 8, k: 5, ms: 13500, speed: 0.22, wander: 1.8, uturn: 0.08, murk: 1, dim: 0.25 }, // 45
+    { n: 8, k: 5, ms: 13000, speed: 0.22, wander: 1.8, uturn: 0.08, murk: 2, dim: 0.3 }, // 46
+    { n: 8, k: 5, ms: 13500, speed: 0.22, wander: 1.8, uturn: 0.09, murk: 2, dim: 0.3 }, // 47
+    { n: 8, k: 5, ms: 14000, speed: 0.22, wander: 1.9, uturn: 0.09, murk: 2, dim: 0.25 }, // 48
+    { n: 8, k: 5, ms: 14000, speed: 0.22, wander: 1.9, uturn: 0.1, murk: 2, dim: 0.2 }, // 49
+    { n: 8, k: 5, ms: 15000, speed: 0.22, wander: 2.0, uturn: 0.1, murk: 2, dim: 0.2 } // 50
   ];
 
   var STEP_MS = 550; // reduced motion: show a new position only this often
@@ -68,6 +91,9 @@
     'border:2px solid currentColor;pointer-events:none;}',
     '.ff-fish.is-correct .ff-mark{color:var(--good);}',
     '.ff-fish.is-wrong .ff-mark{color:var(--bad);}',
+    '.ff-body{transition:opacity .35s;}',
+    '.ff-pond.ff-murky{background:var(--surface-2);}',
+    '.ff-pond.ff-murky .ff-body{opacity:var(--ff-dim,.3);}',
     '.ff-count{font-size:1.2rem;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;}'
   ].join('');
 
@@ -82,12 +108,13 @@
       'כמה דגים יסומנו בצהוב. זכרו אותם ולחצו "מוכנים".',
       'כל הדגים ייראו אותו דבר וישחו לאט בבריכה. עקבו בעיניים אחרי הדגים שלכם.',
       'כשהדגים יעצרו, לחצו על הדגים שעקבתם אחריהם.',
-      'אין מגבלת זמן לבחירה. קחו את הזמן.'
+      'אין מגבלת זמן לבחירה. קחו את הזמן.',
+      'ברמות הגבוהות דג מסתובב לפעמים פתאום, והמים נעשים עכורים לרגע. המשיכו לעקוב בעיניים.'
     ],
     css: css,
     start: function (root, ctx) {
       var el = ctx.el;
-      var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
+      var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var N = spec.n, K = spec.k;
       var calm = reducedMotion();
@@ -188,6 +215,8 @@
               f.vy = f.vx * s + f.vy * c;
               f.vx = vx;
             }
+            // 36+: now and then a fish turns right round (same speed, new direction)
+            if (spec.uturn && Math.random() < spec.uturn * dt) { f.vx = -f.vx; f.vy = -f.vy; f.turn = 0; }
             f.x += f.vx * dt;
             f.y += f.vy * dt;
             if (f.x < r) { f.x = r; f.vx = Math.abs(f.vx); }
@@ -221,6 +250,18 @@
           });
         }
 
+        // 41+: the water clouds over for a second, once or twice, while the fish keep swimming
+        var murk = [];
+        for (var mi = 0; mi < (spec.murk || 0); mi++) murk.push(spec.ms * (spec.murk === 1 ? 0.5 : mi === 0 ? 0.35 : 0.7));
+        if (spec.dim) pond.style.setProperty('--ff-dim', String(spec.dim));
+        var murky = false;
+        function setMurky(on) {
+          if (on === murky) return;
+          murky = on;
+          pond.classList.toggle('ff-murky', on);
+          countLine.textContent = on ? 'המים עכורים לרגע. המשיכו לעקוב' : 'הדגים שוחים…';
+        }
+
         function swim() {
           var elapsed = 0, last = null, sinceDraw = 0;
           function frame(t) {
@@ -234,7 +275,8 @@
             for (var s = 0; s < steps; s++) physics(dtMs / 1000 / steps);
             sinceDraw += dtMs;
             if (!calm || sinceDraw >= STEP_MS) { sinceDraw = 0; render(); }
-            if (elapsed >= spec.ms) { render(); stopSwim(); return; }
+            if (murk.length) setMurky(murk.some(function (m0) { return elapsed >= m0 && elapsed < m0 + 1000; }));
+            if (elapsed >= spec.ms) { setMurky(false); render(); stopSwim(); return; }
             rafId = window.requestAnimationFrame(frame);
           }
           rafId = window.requestAnimationFrame(frame);
