@@ -154,7 +154,7 @@
   // two short lines, so the label fits a narrow square when 8 squares share one row
   var BONUS_TEXT = { L2: 'אות\n×2', L3: 'אות\n×3', W2: 'מילה\n×2' };
 
-  /* Per level (1–30): tiles in the rack (= squares on the row), and the goal:
+  /* Per level (1–50): tiles in the rack (= squares on the row), and the goal:
      len = a word of at least that many letters (bonuses shown but not needed),
      pts = at least that share of the best possible score with these tiles (1 = the best word). */
   var LEVELS = [
@@ -163,8 +163,27 @@
     { r: 7, pts: 0.45 }, { r: 7, pts: 0.5 }, { r: 7, pts: 0.55 }, { r: 7, pts: 0.6 }, { r: 7, pts: 0.65 }, // 11–15
     { r: 8, pts: 0.6 }, { r: 8, pts: 0.65 }, { r: 8, pts: 0.7 }, { r: 8, pts: 0.72 }, { r: 8, pts: 0.75 }, // 16–20
     { r: 8, pts: 0.78 }, { r: 8, pts: 0.8 }, { r: 8, pts: 0.83 }, { r: 8, pts: 0.85 }, { r: 8, pts: 0.88 }, // 21–25
-    { r: 8, pts: 0.9 }, { r: 8, pts: 0.93 }, { r: 8, pts: 0.95 }, { r: 8, pts: 0.97 }, { r: 8, pts: 1 }      // 26–30
+    { r: 8, pts: 0.9 }, { r: 8, pts: 0.93 }, { r: 8, pts: 0.95 }, { r: 8, pts: 0.97 }, { r: 8, pts: 1 },     // 26–30
+    // 31–50: hard = the extra tiles are rarer letters; must = tiles marked ⭐ that the word has to use;
+    // move = the bonus squares change places every round
+    { r: 8, pts: 0.95, hard: true }, { r: 8, pts: 0.97, hard: true }, { r: 8, pts: 1, hard: true },        // 31–33
+    { r: 8, pts: 1, hard: true }, { r: 8, pts: 1, hard: true },                                             // 34–35
+    { r: 8, pts: 0.9, must: 1 }, { r: 8, pts: 0.95, must: 1 }, { r: 8, pts: 1, must: 1 },                   // 36–38
+    { r: 8, pts: 1, must: 1, hard: true }, { r: 8, pts: 1, must: 1, hard: true },                           // 39–40
+    { r: 8, pts: 0.95, must: 1, move: true }, { r: 8, pts: 1, must: 1, move: true },                        // 41–42
+    { r: 8, pts: 1, must: 1, move: true, hard: true }, { r: 8, pts: 1, must: 1, move: true, hard: true },   // 43–44
+    { r: 8, pts: 1, must: 1, move: true, hard: true },                                                      // 45
+    { r: 8, pts: 0.95, must: 2, move: true }, { r: 8, pts: 1, must: 2, move: true },                        // 46–47
+    { r: 8, pts: 1, must: 2, move: true, hard: true }, { r: 8, pts: 1, must: 2, move: true, hard: true },   // 48–49
+    { r: 8, pts: 1, must: 2, move: true, hard: true }                                                       // 50
   ];
+  var HARD_FILL = 'בדכעקסגזחטפצבדכעקסגזחטפצאהוילמנרשת';
+
+  // does the word use all the ⭐ letters (as many times as they are marked)?
+  function usesMust(w, mustLetters) {
+    var left = w.split('');
+    return (mustLetters || []).every(function (l) { var k = left.indexOf(l); if (k === -1) return false; left.splice(k, 1); return true; });
+  }
 
   function score(word, bonus) {
     var sum = 0, wm = 1;
@@ -196,19 +215,27 @@
   /* A rack built around a real word, so there is always a good answer. */
   function makeRack(spec, pick, shuffle) {
     var bonus = BONUS[spec.r];
+    if (spec.move) bonus = shuffle(bonus.slice());
     for (var t = 0; t < 200; t++) {
       var minL = spec.len || 3;
       var pool = LIST.filter(function (w) { return w.length >= minL && w.length <= spec.r; });
       var seed = pick(pool);
       var rack = seed.split('');
-      while (rack.length < spec.r) rack.push(pick(FILL.split('')));
+      var fill = (spec.hard ? HARD_FILL : FILL).split('');
+      while (rack.length < spec.r) rack.push(pick(fill));
       rack = shuffle(rack);
-      var opts = options(rack, bonus);
+      // ⭐ tiles: letters of the seed word, so a word using them always exists
+      var mustLetters = spec.must ? shuffle(seed.split('')).slice(0, spec.must) : [];
+      var must = [];
+      mustLetters.forEach(function (l) {
+        for (var k = 0; k < rack.length; k++) if (rack[k] === l && must.indexOf(k) === -1) { must.push(k); break; }
+      });
+      var opts = options(rack, bonus).filter(function (o) { return usesMust(o.w, mustLetters); });
       var ok = spec.len ? opts.filter(function (o) { return o.w.length >= spec.len; }) : opts;
       if (!ok.length) continue;
       var best = opts[0].s;
       var goal = spec.len ? 0 : Math.max(2, Math.ceil(best * spec.pts));
-      return { rack: rack, bonus: bonus, opts: opts, best: best, goal: goal };
+      return { rack: rack, bonus: bonus, opts: opts, best: best, goal: goal, must: must, mustLetters: mustLetters };
     }
     return null;
   }
@@ -234,6 +261,7 @@
     '.wpt-tile{position:relative;height:3.6rem;padding:0;border-radius:var(--radius-sm);border:2px solid var(--sun);background:var(--sun-soft);',
     'box-shadow:var(--shadow);font-family:var(--font-display);font-weight:900;font-size:2rem;color:var(--ink);cursor:pointer;line-height:1;}',
     '.wpt-tile.is-used{visibility:hidden;}',
+    '.wpt-star{position:absolute;top:-.45rem;right:-.35rem;font-size:1rem;line-height:1;}',
     '.wpt-v,.wpt-sq .wpt-v{position:absolute;bottom:3px;left:5px;font-family:var(--font-body);font-size:.8rem;font-weight:800;color:var(--ink-soft);}',
     '.wpt-sq .wpt-v{font-size:min(.8rem,3vw);bottom:1px;left:3px;}',
     '.wpt-score{margin:0;font-size:1.15rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;min-height:1.5rem;}',
@@ -254,10 +282,10 @@
       'למטה יש אותיות, ולכל אות מספר נקודות (בפינה).',
       'לחצו על אותיות כדי לבנות מילה בשורה, מימין לשמאל. משבצות צבעוניות מכפילות נקודות.',
       'לחיצה על אות בשורה מחזירה אותה. כשהמילה מוכנה לחצו "זו המילה".',
-      'בהתחלה צריך מילה באורך מסוים, ובהמשך מספר נקודות. אין שעון.'
+      'בהתחלה צריך מילה באורך מסוים, ובהמשך מספר נקודות. ברמות הגבוהות מאוד חובה להשתמש באותיות המסומנות ⭐. אין שעון.'
     ],
     css: css,
-    _model: { LIST: LIST, score: score, options: options, makeRack: makeRack, LEVELS: LEVELS },
+    _model: { LIST: LIST, score: score, options: options, makeRack: makeRack, LEVELS: LEVELS, usesMust: usesMust },
     start: function (root, ctx) {
       var el = ctx.el;
       var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
@@ -292,7 +320,8 @@
         var used = R.rack.map(function () { return false; });
         var answered = false, hinted = false, misses = 0;
 
-        var goalText = spec.len ? 'בנו מילה של ' + spec.len + ' אותיות או יותר' : 'השיגו לפחות ' + R.goal + ' נקודות';
+        var goalText = (spec.len ? 'בנו מילה של ' + spec.len + ' אותיות או יותר' : 'השיגו לפחות ' + R.goal + ' נקודות') +
+          (R.must.length ? (R.must.length === 1 ? ', עם האות ⭐' : ', עם שתי האותיות ⭐') : '');
         var goal = el('p', { class: 'wpt-goal' }, goalText);
         var squares = R.bonus.map(function (b, j) {
           return el('button', { class: 'wpt-sq' + (b ? ' b-' + b : ''), type: 'button', onclick: function () { onSquare(j); } });
@@ -301,7 +330,8 @@
         var row = el('div', { class: 'wpt-row', style: { '--n': R.bonus.length }, 'aria-label': 'שורת המילה' }, squares);
         var tiles = R.rack.map(function (l, ti) {
           return el('button', { class: 'wpt-tile', type: 'button', 'aria-label': 'האות ' + l + ', ' + VALUE[l] + ' נקודות', onclick: function () { onTile(ti); } },
-            [l, el('span', { class: 'wpt-v', 'aria-hidden': 'true' }, String(VALUE[l]))]);
+            [l, el('span', { class: 'wpt-v', 'aria-hidden': 'true' }, String(VALUE[l])),
+              R.must.indexOf(ti) !== -1 ? el('span', { class: 'wpt-star', 'aria-hidden': 'true' }, '⭐') : null]);
         });
         var rack = el('div', { class: 'wpt-rack', 'aria-label': 'האותיות שלכם' }, tiles);
         var scoreLine = el('p', { class: 'wpt-score', 'aria-live': 'polite' });
@@ -365,7 +395,7 @@
         }
 
         function goodEnough(w) {
-          return spec.len ? w.length >= spec.len : score(w, R.bonus) >= R.goal;
+          return usesMust(w, R.mustLetters) && (spec.len ? w.length >= spec.len : score(w, R.bonus) >= R.goal);
         }
 
         function bestFitting() {
@@ -379,6 +409,13 @@
             explain.className = 'wpt-explain is-bad';
             explain.textContent = '"' + withFinal(w) + '" לא במילון של המשחק. נסו מילה אחרת.';
             ctx.feedback(false, 'נסו מילה אחרת');
+            return;
+          }
+          if (!usesMust(w, R.mustLetters)) {
+            misses++;
+            explain.className = 'wpt-explain is-bad';
+            explain.textContent = '"' + WORDS[w] + '" היא מילה, אבל צריך להשתמש ' + (R.must.length === 1 ? 'באות המסומנת ⭐' : 'בשתי האותיות המסומנות ⭐') + '.';
+            ctx.feedback(false, 'חסרה אות ⭐');
             return;
           }
           if (!goodEnough(w)) {
