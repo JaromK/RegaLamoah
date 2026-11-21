@@ -65,7 +65,29 @@
     { n: 8, d: 6, rev: true, cats: 3 }, // 27
     { n: 8, d: 6, cats: 2 },            // 28
     { n: 8, d: 6, rev: true, cats: 2 }, // 29
-    { n: 8, d: 6, rev: true, cats: 2, flipAll: true } // 30: every question asks from the second word
+    { n: 8, d: 6, rev: true, cats: 2, flipAll: true }, // 30: every question asks from the second word
+    // 31–50: yn = share of "were these two a pair?" questions (the wrong ones mix words of two pairs),
+    // pause = short sums between the study screen and the questions (not scored), so the pairs must be held longer.
+    { n: 8, d: 6, rev: true, cats: 3, yn: 0.3 },                       // 31
+    { n: 8, d: 6, rev: true, cats: 2, yn: 0.3 },                       // 32
+    { n: 8, d: 6, rev: true, cats: 2, yn: 0.4 },                       // 33
+    { n: 8, d: 6, rev: true, cats: 3, yn: 0.3, pause: 1 },             // 34
+    { n: 8, d: 6, rev: true, cats: 2, yn: 0.4, pause: 1 },             // 35
+    { n: 8, d: 6, rev: true, cats: 2, yn: 0.5, pause: 1 },             // 36
+    { n: 8, d: 6, rev: true, cats: 2, yn: 0.4, pause: 2 },             // 37
+    { n: 8, d: 6, cats: 2, flipAll: true, yn: 0.4, pause: 2 },         // 38
+    { n: 8, d: 6, cats: 2, flipAll: true, yn: 0.5, pause: 2 },         // 39
+    { n: 8, d: 6, cats: 2, flipAll: true, yn: 0.5, pause: 2 },         // 40
+    { n: 8, d: 6, rev: true, cats: 2, yn: 0.5, pause: 3 },             // 41
+    { n: 8, d: 6, rev: true, cats: 2, yn: 0.6, pause: 3 },             // 42
+    { n: 8, d: 6, cats: 2, flipAll: true, yn: 0.5, pause: 3 },         // 43
+    { n: 8, d: 6, cats: 2, flipAll: true, yn: 0.6, pause: 3 },         // 44
+    { n: 8, d: 6, cats: 2, flipAll: true, yn: 0.6, pause: 3 },         // 45
+    { n: 8, d: 6, rev: true, cats: 2, yn: 0.6, pause: 4 },             // 46
+    { n: 8, d: 6, cats: 2, flipAll: true, yn: 0.6, pause: 4 },         // 47
+    { n: 8, d: 6, cats: 2, flipAll: true, yn: 0.7, pause: 4 },         // 48
+    { n: 8, d: 6, cats: 2, flipAll: true, yn: 0.7, pause: 4 },         // 49
+    { n: 8, d: 6, cats: 2, flipAll: true, yn: 0.7, pause: 5 }          // 50
   ];
 
   var css = [
@@ -96,7 +118,8 @@
       'יופיעו כמה צמדים של מילים. זכרו אילו שתי מילים באו יחד.',
       'טיפ: דמיינו תמונה מצחיקה שמחברת את שתי המילים.',
       'כשתהיו מוכנים לחצו "זכרתי, הלאה".',
-      'לכל מילה בחרו את המילה שהייתה איתה בצמד.'
+      'לכל מילה בחרו את המילה שהייתה איתה בצמד.',
+      'ברמות הגבוהות שואלים גם "האם אלה היו צמד?", ויש הפסקה קצרה של חשבון לפני השאלות.'
     ],
     css: css,
     start: function (root, ctx) {
@@ -201,7 +224,7 @@
             if (done) return;
             done = true;
             if (cancelTimer) cancelTimer();
-            test(pairs);
+            if (spec.pause) pauseSums(spec.pause, function () { test(pairs); }); else test(pairs);
           }
         }, 'זכרתי, הלאה');
         root.appendChild(list);
@@ -209,11 +232,41 @@
         var cancelTimer = ctx.studyTimer(readyBtn, studyMs);
       }
 
+      // a few easy sums between studying and answering (not scored): the pairs must be held a bit longer
+      function pauseSums(k, then) {
+        var left = k;
+        function one() {
+          if (left-- <= 0) { then(); return; }
+          var a = ctx.randInt(2, 9), b = ctx.randInt(2, 9), ans = a + b;
+          var opts = ctx.shuffle([ans, ans + 1, ans - 1, ans + 2]);
+          root.innerHTML = '';
+          ctx.setStatus('רגע של חשבון, ואז השאלות על הצמדים');
+          var bs = opts.map(function (v) {
+            return el('button', { class: 'g-choice', type: 'button', onclick: function () {
+              bs.forEach(function (x) { x.disabled = true; if (Number(x.textContent) === ans) x.classList.add('is-correct'); });
+              if (v !== ans) this.classList.add('is-wrong');
+              ctx.sound(v === ans ? 'good' : 'tap');
+              ctx.wait(600).then(one);
+            } }, String(v));
+          });
+          root.appendChild(el('p', { class: 'wp-count' }, 'חשבון ' + (k - left) + ' מתוך ' + k));
+          root.appendChild(el('div', { class: 'wp-cue', dir: 'ltr' }, a + ' + ' + b));
+          root.appendChild(el('div', { class: 'g-choices wp-choices' }, bs));
+        }
+        one();
+      }
+
       function test(pairs) {
         var shownWords = [];
         pairs.forEach(function (p) { shownWords.push(p[0], p[1]); });
-        var questions = ctx.shuffle(pairs.map(function (p) {
+        var questions = ctx.shuffle(pairs.map(function (p, i) {
           var flip = spec.flipAll || (spec.rev && Math.random() < 0.5);
+          if (spec.yn && Math.random() < spec.yn) {
+            // yes/no: either the real pair, or this word with a word from another pair
+            var real = Math.random() < 0.5;
+            var other = pairs[(i + 1 + ctx.randInt(0, pairs.length - 2)) % pairs.length];
+            return { yn: true, a: p[0], b: real ? p[1] : other[1], real: real, pair: p, other: other };
+          }
           return flip ? { cue: p[1], answer: p[0], pair: p } : { cue: p[0], answer: p[1], pair: p };
         }));
         var qi = 0;
@@ -226,6 +279,7 @@
           var q = questions[qi];
           qi++;
           root.innerHTML = '';
+          if (q.yn) { askYesNo(q); return; }
           ctx.setStatus('איזו מילה הייתה בצמד עם המילה הזאת?');
           var answered = false;
           var buttons = [];
@@ -251,6 +305,29 @@
             });
             if (!ok) btn.classList.add('is-wrong');
             ctx.feedback(ok, ok ? undefined : 'הצמד היה: ' + q.pair[0] + ' — ' + q.pair[1])
+              .then(function () { return ctx.wait(400); })
+              .then(ask);
+          }
+        }
+
+        function askYesNo(q) {
+          ctx.setStatus('האם שתי המילים האלה היו צמד?');
+          var answered = false;
+          var yes = el('button', { class: 'g-choice', type: 'button', onclick: function () { choose(true, yes); } }, 'כן, היו יחד');
+          var no = el('button', { class: 'g-choice', type: 'button', onclick: function () { choose(false, no); } }, 'לא');
+          root.appendChild(el('p', { class: 'wp-count' }, 'מילה ' + qi + ' מתוך ' + questions.length));
+          root.appendChild(el('div', { class: 'wp-cue' }, q.a + ' — ' + q.b));
+          root.appendChild(el('div', { class: 'g-choices wp-choices' }, [yes, no]));
+          function choose(said, btn) {
+            if (answered) return;
+            answered = true;
+            var ok = said === q.real;
+            total++;
+            if (ok) correct++;
+            yes.disabled = no.disabled = true;
+            (q.real ? yes : no).classList.add('is-correct');
+            if (!ok) btn.classList.add('is-wrong');
+            ctx.feedback(ok, ok ? undefined : q.real ? 'כן, הם היו צמד' : 'לא. הצמדים היו: ' + q.pair[0] + ' — ' + q.pair[1] + ', ' + q.other[0] + ' — ' + q.other[1])
               .then(function () { return ctx.wait(400); })
               .then(ask);
           }
