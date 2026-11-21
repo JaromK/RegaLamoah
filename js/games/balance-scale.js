@@ -12,7 +12,7 @@
     { e: '🍊', n: 'תפוז' }, { e: '🍇', n: 'ענבים' }, { e: '🍓', n: 'תות' }
   ];
 
-  /* Per level (1–30).
+  /* Per level (1–50).
      kind 'one'   – one relation 🍎 = k × 🍐 (multi: chance of "a 🍎 = b 🍐" with both sides > 1)
      kind 'chain' – 🍎 = k1 🍐, 🍐 = k2 🍌  → 🍎 in 🍌
      kind 'combo' – 🍎🍐 = c 🍌, 🍐 = d 🍌 (three: chance of a third relation in the chain;
@@ -49,7 +49,30 @@
     { kind: 'combo', k: [3, 6], n: [2, 4], mix: 0.75, three: 1, k3: [2, 5], mixMax: 3 }, // 27
     { kind: 'combo', k: [3, 6], n: [2, 5], mix: 0.8, three: 1, k3: [2, 5], mixMax: 3 },  // 28
     { kind: 'combo', k: [3, 7], n: [2, 5], mix: 0.85, three: 1, k3: [3, 5], mixMax: 3 }, // 29
-    { kind: 'combo', k: [3, 7], n: [2, 5], mix: 0.9, three: 1, k3: [3, 5], mixMax: 3 }   // 30
+    { kind: 'combo', k: [3, 7], n: [2, 5], mix: 0.9, three: 1, k3: [3, 5], mixMax: 3 },  // 30
+    // 31–40 'diff': 🍎🍎🍐 = c1 🍌 and 🍎🍐 = c2 🍌, so 🍎 is the difference (three: a third scale 🍇 = j 🍐 asked about)
+    { kind: 'diff', k: [2, 5], n: [1, 3], mix: 0.4, three: 0.3 },             // 31
+    { kind: 'diff', k: [2, 6], n: [1, 3], mix: 0.5, three: 0.4 },             // 32
+    { kind: 'diff', k: [2, 6], n: [2, 3], mix: 0.5, three: 0.5 },             // 33
+    { kind: 'diff', k: [3, 6], n: [2, 3], mix: 0.6, three: 0.6 },             // 34
+    { kind: 'diff', k: [3, 6], n: [2, 3], mix: 0.6, three: 0.8 },             // 35
+    { kind: 'diff', k: [3, 7], n: [2, 3], mix: 0.7, three: 0.9 },             // 36
+    { kind: 'diff', k: [3, 7], n: [2, 3], mix: 0.75, three: 1 },              // 37
+    { kind: 'diff', k: [3, 7], n: [2, 4], mix: 0.8, three: 1, mixMax: 3 },    // 38
+    { kind: 'diff', k: [3, 8], n: [2, 4], mix: 0.85, three: 1, mixMax: 3 },   // 39
+    { kind: 'diff', k: [3, 8], n: [2, 4], mix: 0.9, three: 1, mixMax: 3 },    // 40
+    // 41–45 'share': 🍎 = j 🍐 and 🍎🍐 = c 🍌 — put the 🍐 in place of the 🍎 and divide (extra: 🍎🍐🍐 on the second scale)
+    { kind: 'share', j: [2, 3], k: [2, 5], n: [1, 3], mix: 0.4, three: 0.4 },                         // 41
+    { kind: 'share', j: [2, 3], k: [2, 5], n: [1, 3], mix: 0.5, extra: 0.3, three: 0.5 },             // 42
+    { kind: 'share', j: [2, 3], k: [2, 5], n: [2, 3], mix: 0.6, extra: 0.5, three: 0.7 },             // 43
+    { kind: 'share', j: [2, 4], k: [2, 6], n: [2, 3], mix: 0.7, extra: 0.6, three: 0.8 },             // 44
+    { kind: 'share', j: [2, 4], k: [2, 6], n: [2, 3], mix: 0.8, extra: 0.7, three: 1 },               // 45
+    // 46–50: each puzzle may be any of the three-step kinds, so first work out which way to think
+    { kinds: ['combo', 'diff', 'share'], j: [2, 4], k: [3, 6], n: [1, 3], mix: 0.7, extra: 0.6, three: 1, k3: [3, 5], mixMax: 2 }, // 46
+    { kinds: ['combo', 'diff', 'share'], j: [2, 4], k: [3, 7], n: [2, 3], mix: 0.8, extra: 0.7, three: 1, k3: [3, 5], mixMax: 3 }, // 47
+    { kinds: ['diff', 'share'], j: [2, 4], k: [3, 7], n: [2, 4], mix: 0.85, extra: 0.8, three: 1, mixMax: 3 },                    // 48
+    { kinds: ['diff', 'share'], j: [3, 4], k: [3, 8], n: [2, 4], mix: 0.9, extra: 0.9, three: 1, mixMax: 3 },                     // 49
+    { kinds: ['diff', 'share'], j: [3, 4], k: [3, 8], n: [2, 4], mix: 1, extra: 1, three: 1, mixMax: 3 }                          // 50
   ];
 
   /* ---------- text helpers ---------- */
@@ -213,10 +236,81 @@
     return { rels: rels, q: q, t: unitFruit, ans: ans, w: w, why: why.trim(), traps: traps };
   }
 
+  /* Levels 31+: a question part that is the same for the new kinds: the question pan, the answer,
+     the "therefore…" sentence and likely wrong answers (wrong fruit's weight, one step missing). */
+  function finishQ(p, q, U, alt) {
+    var ans = weightOf(q, p.w);
+    var parts = q.map(function (g) { return qty(g[1], g[0]) + ' ' + eq(g[1]) + ' ' + qty(g[1] * p.w[g[0].e], U); });
+    p.q = q; p.t = U; p.ans = ans;
+    p.why = (p.why + ' לכן ' + parts.join(', ') + (q.length > 1 ? ', וביחד ' + qty(ans, U) : '') + '.').trim();
+    p.traps = [weightOf(q, alt), ans + 1, ans - 1].concat(p.traps);
+    return p;
+  }
+
+  // 🍎🍎🍐 = c1 🍌 and 🍎🍐 = c2 🍌: the two scales differ by one 🍎, so 🍎 = c1 − c2 (then 🍐 = c2 − 🍎)
+  function makeDiff(spec, ctx, F) {
+    var X = F[0], Y = F[1], U = F[2], C = F[3];
+    var x = ctx.randInt(spec.k[0], spec.k[1]), y = ctx.randInt(spec.k[0], spec.k[1]);
+    if (x === y) return null;
+    var c1 = 2 * x + y, c2 = x + y;
+    var w = {}; w[X.e] = x; w[Y.e] = y; w[U.e] = 1;
+    var rels = [{ l: [[X, 2], [Y, 1]], r: [[U, c1]] }, { l: [[X, 1], [Y, 1]], r: [[U, c2]] }];
+    var why = 'במאזניים הראשונים יש ' + X.e + ' אחד יותר, ולכן ' + X.e + ' שווה ' + c1 + '−' + c2 + ' = ' + qty(x, U) +
+      '. אז ' + Y.e + ' שווה ' + c2 + '−' + x + ' = ' + qty(y, U) + '.';
+    var alt = {}; alt[X.e] = y; alt[Y.e] = x; alt[U.e] = 1;
+    var q, n = ctx.randInt(spec.n[0], spec.n[1]);
+    var p = { rels: rels, w: w, why: why, traps: [n * x, n * c2, c1 - c2, n * (c1 - c2) + 1] };
+    if (Math.random() < (spec.three || 0)) {
+      // a third scale: 🍇 = j 🍐, and the question is about 🍇
+      var j = ctx.randInt(2, 3);
+      w[C.e] = j * y; alt[C.e] = j * x;
+      rels.push({ l: [[C, 1]], r: [[Y, j]] });
+      p.why += ' ' + C.e + ' שווה ' + j + '×' + y + ' = ' + qty(j * y, U) + '.';
+      q = [[C, ctx.randInt(1, 2)]];
+      p.traps.push(j * x, j + y);
+    } else {
+      q = [[Y, n]];
+    }
+    if (Math.random() < (spec.mix || 0)) q.push([X, ctx.randInt(1, spec.mixMax || 2)]);
+    return finishQ(p, q, U, alt);
+  }
+
+  // 🍎 = j 🍐 and 🍎🍐 = c 🍌: put j 🍐 in place of the 🍎, so (j+1) 🍐 = c 🍌 and 🍐 = c ÷ (j+1)
+  function makeShare(spec, ctx, F) {
+    var X = F[0], Y = F[1], U = F[2], C = F[3];
+    var j = ctx.randInt(spec.j[0], spec.j[1]), y = ctx.randInt(spec.k[0], spec.k[1]);
+    var two = Math.random() < (spec.extra || 0) ? 2 : 1;     // 🍎🍐🍐 on the second scale
+    var parts = j + two, c = parts * y;
+    var w = {}; w[X.e] = j * y; w[Y.e] = y; w[U.e] = 1;
+    var rels = [{ l: [[X, 1]], r: [[Y, j]] }, { l: [[X, 1], [Y, two]], r: [[U, c]] }];
+    var why = X.e + ' שווה ' + qty(j, Y) + ', אז בכף ' + (two === 2 ? X.e + Y.e + Y.e : X.e + Y.e) + ' יש כמו ' + qty(parts, Y) +
+      '. הם שווים ' + qty(c, U) + ', אז ' + Y.e + ' שווה ' + c + '÷' + parts + ' = ' + qty(y, U) + ', ו־' + X.e + ' שווה ' +
+      j + '×' + y + ' = ' + qty(j * y, U) + '.';
+    var alt = {}; alt[X.e] = c - y; alt[Y.e] = y; alt[U.e] = 1;   // the slip "🍎 = c − 🍐"
+    var q, n = ctx.randInt(spec.n[0], spec.n[1]);
+    var p = { rels: rels, w: w, why: why, traps: [n * c, n * j, c - y, n * (j + 1)] };
+    if (Math.random() < (spec.three || 0)) {
+      var m = ctx.randInt(2, 3);
+      w[C.e] = m * y; alt[C.e] = m * (c - y);
+      rels.push({ l: [[C, 1]], r: [[Y, m]] });
+      p.why += ' ' + C.e + ' שווה ' + m + '×' + y + ' = ' + qty(m * y, U) + '.';
+      q = [[C, ctx.randInt(1, 2)]];
+      p.traps.push(m * j, m + c);
+      if (Math.random() < (spec.mix || 0)) q.push([X, 1]);
+    } else {
+      q = [[Math.random() < 0.5 ? X : Y, n]];
+      if (Math.random() < (spec.mix || 0)) q.push([q[0][0] === X ? Y : X, ctx.randInt(1, spec.mixMax || 2)]);
+    }
+    return finishQ(p, q, U, alt);
+  }
+
   function generate(spec, ctx) {
     var F = ctx.shuffle(FRUITS);
-    if (spec.kind === 'chain') return makeChain(spec, ctx, F);
-    if (spec.kind === 'combo') return makeCombo(spec, ctx, F);
+    var kind = spec.kinds ? ctx.pick(spec.kinds) : spec.kind;
+    if (kind === 'diff') return makeDiff(spec, ctx, F);
+    if (kind === 'share') return makeShare(spec, ctx, F);
+    if (kind === 'chain') return makeChain(spec, ctx, F);
+    if (kind === 'combo') return makeCombo(spec, ctx, F);
     return makeOne(spec, ctx, F);
   }
 
@@ -298,9 +392,11 @@
       'הסתכלו על המאזניים המאוזנים: מה שבצד אחד שווה למה שבצד השני.',
       'בשאלה מופיעים מאזניים שעוד לא מאוזנים.',
       'חשבו כמה פירות צריך לשים בצד הריק כדי לאזן, ובחרו את המספר.',
+      'ברמות הגבוהות כדאי להשוות בין שני מאזניים, או לשים במקום פרי את הפירות ששווים לו.',
       'אין מה למהר. אם תטעו, נסביר את הדרך.'
     ],
     css: css,
+    _model: { LEVELS: LEVELS, generate: generate, verify: verify, makeChoices: makeChoices, puzzleKey: puzzleKey },
     start: function (root, ctx) {
       var el = ctx.el;
       var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
