@@ -9,7 +9,7 @@
   function clampLevel(l) {
     l = Math.round(Number(l));
     if (!isFinite(l)) l = 3;
-    return Math.max(1, Math.min(30, l));
+    return Math.max(1, Math.min(50, l));
   }
 
   /* [rows, cols] per level (index = level). */
@@ -19,7 +19,9 @@
     [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
     [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
     [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
-    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4]];
+    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
+    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],   // 31–40
+    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4]];  // 41–50
   /* Capped at 4 × 4 so both pictures fit one phone screen with big, well-spaced tiles; from
      level 6 the difficulty keeps rising through ever more similar changes (see kindsFor). */
 
@@ -36,7 +38,25 @@
     // 21–30: two pictures trade places ('swap'), or one is only slightly tilted ('tilt')
     if (L <= 22) return ['subtle', 'mirror', 'rot90', 'swap'];
     if (L <= 25) return ['subtle', 'swap', 'mirror', 'tilt'];
-    return ['subtle', 'swap', 'tilt'];
+    if (L <= 30) return ['subtle', 'swap', 'tilt'];
+    // 31–50: one picture slightly smaller ('size'); two near-identical pictures trade places ('swapsub');
+    // from 46 the grid holds only two near-identical pictures ('subtle2'). Tilt and size get subtler.
+    if (L <= 35) return ['subtle', 'swap', 'tilt', 'size'];
+    if (L <= 45) return ['subtle', 'swapsub', 'tilt', 'size'];
+    return ['subtle2', 'swapsub', 'tilt', 'size'];
+  }
+  function tiltDeg(L) { return L >= 46 ? 12 : L >= 41 ? 14 : L >= 31 ? 16 : L >= 28 ? 20 : 30; }
+  function sizeScale(L) { return L >= 46 ? 0.85 : L >= 41 ? 0.83 : 0.8; }
+
+  // a neighbour of `target` with a different picture, or -1
+  function swapNeighbour(cells, target, cols, n, R) {
+    var nbs = [];
+    if (target % cols > 0) nbs.push(target - 1);
+    if (target % cols < cols - 1) nbs.push(target + 1);
+    if (target >= cols) nbs.push(target - cols);
+    if (target + cols < n) nbs.push(target + cols);
+    nbs = nbs.filter(function (k) { return cells[k] !== cells[target]; });
+    return nbs.length ? R.pick(nbs) : -1;
   }
 
   var FAMILIES = [
@@ -143,6 +163,26 @@
       if (target2 < 0) { target2 = target === 0 ? 1 : target - 1; cellsA[target2] = swapPool[0] === cellsA[target] ? swapPool[1] : swapPool[0]; }
       from = cellsA[target]; to = cellsA[target2];
       explain = from + ' ו־' + to + ' החליפו מקומות';
+    } else if (kind === 'swapsub') {
+      // two neighbouring near-identical pictures trade places
+      var sg = R.pick(SUBTLE), st = R.randInt(0, sg.length - 3);
+      var subPool = sg.slice(st, st + 3);
+      for (var sw2 = 0; sw2 < 50; sw2++) {
+        cellsA = fillRepeat(subPool, n, R);
+        target2 = swapNeighbour(cellsA, target, cols, n, R);
+        if (target2 >= 0) break;
+      }
+      if (target2 < 0) { target2 = target === 0 ? 1 : target - 1; cellsA[target2] = subPool[0] === cellsA[target] ? subPool[1] : subPool[0]; }
+      from = cellsA[target]; to = cellsA[target2];
+      explain = from + ' ו־' + to + ' החליפו מקומות';
+    } else if (kind === 'subtle2') {
+      // only two near-identical pictures on the whole grid; one cell shows the other one
+      var g2 = R.pick(SUBTLE), i2 = R.randInt(0, g2.length - 2);
+      var two = R.shuffle([g2[i2], g2[i2 + 1]]);
+      cellsA = fillRepeat(two, n, R);
+      from = cellsA[target];
+      to = from === two[0] ? two[1] : two[0];
+      explain = from + ' הוחלף ב־' + to + ' שנראה כמעט אותו דבר';
     } else if (kind === 'subtle') {
       var grp = R.pick(SUBTLE);
       cellsA = fillRepeat(grp, n, R);
@@ -155,14 +195,15 @@
       explain = from + ' הוחלף ב־' + to + ' שנראה כמעט אותו דבר';
     } else {
       var src = kind === 'mirror' ? DIRECTIONAL : ROTATABLE;
-      var distinct = L >= 16 ? R.randInt(4, 6) : L >= 14 ? R.randInt(7, 10) : n;
+      var distinct = L >= 41 ? R.randInt(3, 4) : L >= 16 ? R.randInt(4, 6) : L >= 14 ? R.randInt(7, 10) : n;
       var some = R.shuffle(src).slice(0, Math.min(distinct, src.length));
       cellsA = L >= 14 ? fillRepeat(some, n, R) : fillDistinct(some, n, R);
       from = to = cellsA[target];
       if (kind === 'mirror') { transform = 'scaleX(-1)'; explain = from + ' הפוך, כמו בראי'; }
       else if (kind === 'rot180') { transform = 'rotate(180deg)'; explain = from + ' עומד על הראש (הפוך)'; }
+      else if (kind === 'size') { transform = 'scale(' + sizeScale(L) + ')'; explain = from + ' קטן יותר משאר התמונות'; }
       else if (kind === 'tilt') {
-        var deg = L >= 28 ? 20 : 30;
+        var deg = tiltDeg(L);
         transform = 'rotate(' + (R.randInt(0, 1) ? deg : -deg) + 'deg)'; explain = from + ' מוטה קצת הצידה';
       }
       else { transform = R.randInt(0, 1) ? 'rotate(90deg)' : 'rotate(-90deg)'; explain = from + ' שוכב על הצד'; }
@@ -186,7 +227,7 @@
     benefit: 'קשב לפרטים וסריקה חזותית מסודרת',
     instructions: [
       'השוו בין תמונה א לתמונה ב, משבצת אחרי משבצת.',
-      'בכל סיבוב יש הבדל אחד בלבד: פרט שהוחלף, הפוך, מסובב, או שני פרטים שהחליפו מקומות.',
+      'בכל סיבוב יש הבדל אחד בלבד: פרט שהוחלף, הפוך, מסובב, קטן יותר, או שני פרטים שהחליפו מקומות.',
       'לחצו על המשבצת השונה בתמונה ב (התחתונה).',
       'אין שעון. סרקו בנחת, שורה אחרי שורה.'
     ],

@@ -16,7 +16,7 @@
     { hue: 'black',  label: '6', shape: '♥', name: 'לב',     freq: 784 }
   ];
 
-  // Per level (1–30): sequence length + number of pads.
+  // Per level (1–50): sequence length + number of pads.
   // Each length is played on 4, then 5, then 6 pads, so every level-up is a small step.
   var LEVELS = [
     { len: 3, pads: 4 }, { len: 3, pads: 5 }, { len: 3, pads: 6 },   // 1–3
@@ -30,8 +30,33 @@
     { len: 10, pads: 5 }, { len: 10, pads: 6 }, { len: 11, pads: 5 }, // 21–23
     { len: 11, pads: 6 }, { len: 12, pads: 6 },                      // 24–25
     { len: 7, pads: 6, rev: true }, { len: 8, pads: 5, rev: true }, { len: 8, pads: 6, rev: true }, // 26–28
-    { len: 9, pads: 5, rev: true }, { len: 9, pads: 6, rev: true }   // 29–30
+    { len: 9, pads: 5, rev: true }, { len: 9, pads: 6, rev: true },  // 29–30
+    // 31–40: longer backwards sequences, and 'mix': the order (same / backwards) is told only after the lights
+    { len: 10, pads: 5, rev: true }, { len: 10, pads: 6, rev: true }, { len: 10, pads: 6, mix: 2 }, // 31–33
+    { len: 11, pads: 5, rev: true }, { len: 11, pads: 6, rev: true }, { len: 11, pads: 6, mix: 2 }, // 34–36
+    { len: 12, pads: 5, rev: true }, { len: 12, pads: 6, rev: true },                               // 37–38
+    { len: 12, pads: 5, mix: 2 }, { len: 12, pads: 6, mix: 2 },                                      // 39–40
+    // 41–50: a third order joins the mix: by the numbers, smallest first; from 46 also biggest first
+    { len: 10, pads: 6, mix: 3 }, { len: 11, pads: 5, mix: 3 }, { len: 11, pads: 6, mix: 3 },       // 41–43
+    { len: 12, pads: 5, mix: 3 }, { len: 12, pads: 6, mix: 3 }, { len: 12, pads: 6, mix: 4 },       // 44–46
+    { len: 13, pads: 5, mix: 4 }, { len: 13, pads: 6, mix: 4 }, { len: 14, pads: 5, mix: 4 },       // 47–49
+    { len: 14, pads: 6, mix: 4 }                                                                     // 50
   ];
+
+  /* Orders the player may be asked for. 'fwd' = as shown, 'rev' = last light first,
+     'up' = by the numbers from the smallest (every light, repeats too), 'down' = from the biggest. */
+  var ORDERS = ['fwd', 'rev', 'up', 'down'];
+  var ORDER_STATUS = { fwd: 'עכשיו תורכם: באותו סדר', rev: 'עכשיו תורכם: מהסוף להתחלה',
+    up: 'עכשיו תורכם: לפי המספרים, מהקטן לגדול', down: 'עכשיו תורכם: לפי המספרים, מהגדול לקטן' };
+  var ORDER_HINT = { fwd: 'לחצו על הכפתורים באותו סדר שנדלקו', rev: 'לחצו בסדר הפוך: קודם האחרון שנדלק',
+    up: 'כל אור שנדלק, לפי המספר: קודם כל ה־1, אחר כך כל ה־2...', down: 'כל אור שנדלק, לפי המספר: קודם המספר הגדול ביותר' };
+  var ORDER_NOTE = { fwd: 'באותו סדר: ', rev: 'מהסוף להתחלה: ', up: 'מהקטן לגדול: ', down: 'מהגדול לקטן: ' };
+  function expectedFor(seq, order) {
+    if (order === 'rev') return seq.slice().reverse();
+    if (order === 'up') return seq.slice().sort(function (a, b) { return a - b; });
+    if (order === 'down') return seq.slice().sort(function (a, b) { return b - a; });
+    return seq.slice();
+  }
 
   var css = [
     '.sl-pads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;width:100%;max-width:22rem;}',
@@ -69,15 +94,24 @@
       'צפו: הכפתורים יידלקו אחד אחרי השני, לאט.',
       'זכרו את הסדר. לכל כפתור יש מספר וצורה משלו.',
       'כשכתוב "עכשיו תורכם" — לחצו על הכפתורים באותו סדר.',
-      'שכחתם? לחצו "הראו לי שוב" פעם אחת בכל שלב. ברמות הגבוהות חוזרים על הרצף מהסוף להתחלה.'
+      'שכחתם? לחצו "הראו לי שוב" פעם אחת בכל שלב. ברמות הגבוהות חוזרים על הרצף מהסוף להתחלה.',
+      'ברמות הגבוהות ביותר רק אחרי הרצף כתוב באיזה סדר ללחוץ: באותו סדר, מהסוף להתחלה, או לפי המספרים (מהקטן לגדול או מהגדול לקטן).'
     ],
     css: css,
+    _model: { LEVELS: LEVELS, expectedFor: expectedFor, ORDERS: ORDERS },
     start: function (root, ctx) {
       var el = ctx.el;
       var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var length = LEVELS[level - 1].len;
       var padCount = Math.max(2, Math.min(PADS.length, LEVELS[level - 1].pads));
       var backwards = !!LEVELS[level - 1].rev;
+      var mix = LEVELS[level - 1].mix || 0;       // how many orders are mixed (told after the lights)
+      var orderPlan = [];
+      if (mix) {
+        for (var k = 0; k < ROUNDS; k++) orderPlan.push(ORDERS[k % mix]);
+        orderPlan = ctx.shuffle(orderPlan);
+      }
+      var order = backwards ? 'rev' : 'fwd';
       var expected = [];  // the order to tap: the sequence, or (backwards) the sequence reversed
       var pads = PADS.slice(0, padCount);
 
@@ -143,7 +177,7 @@
         ctx.setStatus(round === 1 && !replayUsed && padCount > 4
           ? 'שימו לב: הפעם יש ' + padCount + ' כפתורים. צפו ברצף…'
           : 'צפו ברצף…');
-        hint.textContent = 'ברצף יש ' + seq.length + ' אורות';
+        hint.textContent = 'ברצף יש ' + seq.length + ' אורות' + (mix ? '. הסדר ייכתב אחרי הרצף' : '');
         var chain = ctx.wait(1000);
         seq.forEach(function (idx) {
           chain = chain.then(function () {
@@ -156,8 +190,13 @@
           });
         });
         return chain.then(function () {
-          ctx.setStatus(backwards ? 'עכשיו תורכם: מהסוף להתחלה' : 'עכשיו תורכם');
-          hint.textContent = backwards ? 'לחצו בסדר הפוך: קודם האחרון שנדלק' : 'לחצו על הכפתורים באותו סדר';
+          if (mix) {
+            ctx.setStatus(ORDER_STATUS[order]);
+            hint.textContent = ORDER_HINT[order];
+          } else {
+            ctx.setStatus(backwards ? 'עכשיו תורכם: מהסוף להתחלה' : 'עכשיו תורכם');
+            hint.textContent = backwards ? 'לחצו בסדר הפוך: קודם האחרון שנדלק' : 'לחצו על הכפתורים באותו סדר';
+          }
           setPads(true);
           replayBtn.disabled = replayUsed;
           accepting = true;
@@ -195,7 +234,7 @@
         setPads(false);
         replayBtn.disabled = true;
         if (ok) score++;
-        var msg = ok ? null : (backwards ? 'מהסוף להתחלה: ' : 'הרצף היה: ') + expected.map(function (i) { return pads[i].label; }).join(' ← ');
+        var msg = ok ? null : (mix ? ORDER_NOTE[order] : backwards ? 'מהסוף להתחלה: ' : 'הרצף היה: ') + expected.map(function (i) { return pads[i].label; }).join(' ← ');
         ctx.wait(400).then(function () {
           return ctx.feedback(ok, msg || undefined);
         }).then(function () {
@@ -208,7 +247,7 @@
           ctx.finish({
             correct: score,
             total: ROUNDS,
-            note: 'חזרתם נכון על ' + score + ' מתוך ' + ROUNDS + ' רצפים של ' + length + ' אורות' + (backwards ? ' (בסדר הפוך)' : '')
+            note: 'חזרתם נכון על ' + score + ' מתוך ' + ROUNDS + ' רצפים של ' + length + ' אורות' + (backwards ? ' (בסדר הפוך)' : mix ? ' (בסדרים מתחלפים)' : '')
           });
           return;
         }
@@ -216,7 +255,8 @@
         ctx.setProgress(round, ROUNDS);
         replayUsed = false;
         seq = makeSequence();
-        expected = backwards ? seq.slice().reverse() : seq;
+        if (mix) order = orderPlan[round - 1];
+        expected = expectedFor(seq, order);
         playSequence();
       }
 

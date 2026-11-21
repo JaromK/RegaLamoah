@@ -41,7 +41,7 @@
   }
   function moneyText(ag) { return ltr(money(ag)); }
 
-  var MAX_L = 30;
+  var MAX_L = 50;
 
   /* Per level: item count [min,max], price type, most expensive item allowed, cap on the total (agorot),
      chance of paying with a bigger note than needed, special offer, and how the player pays. */
@@ -77,8 +77,34 @@
     27: { count: [4, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.3, special: 'both', pay: 'multi' },
     28: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, special: 'any', pay: 'any' },
     29: { count: [4, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, special: 'both', pay: 'any' },
-    30: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, special: 'both', pay: 'any' }
+    30: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, special: 'both', pay: 'any' },
+    // 31–40: new offers: sold by weight ('weight': "₪8 לק״ג", 1.5 ק״ג) and "the second at half price" ('half');
+    // offers: how many offer lines [min, max], picked from pool; coupon: chance of a "₪10 off" line on the receipt
+    31: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, offers: [2, 2], pool: ['deal', 'discount', 'weight'], pay: 'any' },
+    32: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, offers: [2, 2], pool: ['deal', 'discount', 'weight', 'half'], pay: 'any' },
+    33: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, offers: [2, 2], pool: ['deal', 'discount', 'weight', 'half'], pay: 'multi' },
+    34: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, offers: [2, 2], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.3, pay: 'any' },
+    35: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, offers: [2, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.3, pay: 'any' },
+    36: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, offers: [3, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.3, pay: 'any' },
+    37: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, offers: [3, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.4, pay: 'multi' },
+    38: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, offers: [3, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.5, pay: 'any' },
+    39: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.5, offers: [3, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.5, pay: 'any' },
+    40: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.5, offers: [3, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.6, pay: 'any' },
+    // 41–50: no hint in the status line any more (the tags on the receipt must be read), and up to four offers
+    41: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, offers: [3, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.5, pay: 'any', noHint: true },
+    42: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.4, offers: [3, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.5, pay: 'multi', noHint: true },
+    43: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.5, offers: [3, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.6, pay: 'any', noHint: true },
+    44: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.5, offers: [3, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.7, pay: 'any', noHint: true },
+    45: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.5, offers: [3, 3], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.7, pay: 'multi', noHint: true },
+    46: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.5, offers: [3, 4], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.7, pay: 'any', noHint: true },
+    47: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.5, offers: [3, 4], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.8, pay: 'any', noHint: true },
+    48: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.5, offers: [3, 4], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.8, pay: 'multi', noHint: true },
+    49: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.5, offers: [4, 4], pool: ['deal', 'discount', 'weight', 'half'], coupon: 0.9, pay: 'any', noHint: true },
+    50: { count: [5, 5], price: 'odd', maxPrice: 99, cap: 19000, up: 0.5, offers: [4, 4], pool: ['deal', 'discount', 'weight', 'half'], coupon: 1, pay: 'any', noHint: true }
   };
+
+  // items sold by weight (price per kilo)
+  var BY_WEIGHT = ['עגבניות', 'תפוחים', 'בננות', 'מלפפונים'];
 
   var TWO_NOTES = [[2000, 2000], [5000, 2000], [5000, 5000], [10000, 2000], [10000, 5000], [20000, 5000], [20000, 10000]];
 
@@ -165,6 +191,52 @@
     };
   }
 
+  /* sold by weight: "₪8 לק״ג", 1.5 ק״ג */
+  function weightLine(it, R) {
+    var perKg = R.randInt(it[1], it[2]);
+    var w = R.pick([0.5, 1.5, 2, 2.5]);
+    var wText = w === 0.5 ? 'חצי' : ltr(String(w));
+    var paid = Math.round(perKg * w * 100);
+    return {
+      name: it[0] + ', ' + wText + ' ק״ג',
+      tag: moneyText(perKg * 100) + ' לק״ג',
+      price: paid,
+      priceText: null,
+      explain: it[0] + ': ' + (w === 0.5 ? 'חצי ק״ג' : ltr(String(w)) + ' ק״ג') + ' כפול ' + moneyText(perKg * 100) + ' = ' + moneyText(paid),
+      hint: 'מחיר לפי משקל: כופלים את המחיר לק״ג במשקל.',
+      wrongPrices: [perKg * 100, Math.floor(w) ? Math.floor(w) * perKg * 100 : null, Math.ceil(w) * perKg * 100]
+    };
+  }
+
+  /* two units, "the second at half price" */
+  function halfLine(it, R) {
+    var unit = R.randInt(it[1], it[2]) * 100;
+    var paid = unit * 3 / 2;
+    return {
+      name: it[0] + ', 2 יח׳ ב־' + moneyText(unit),
+      tag: 'השני בחצי מחיר',
+      price: paid,
+      priceText: null,
+      explain: it[0] + ': ' + moneyText(unit) + ' ועוד חצי, ' + moneyText(unit / 2) + ' = ' + moneyText(paid),
+      hint: 'השני בחצי מחיר: משלמים על יחידה אחת וחצי.',
+      wrongPrices: [unit * 2, unit, unit / 2]
+    };
+  }
+
+  /* a coupon on the whole purchase: "קופון הנחה −₪10" */
+  function couponLine(R) {
+    var v = R.pick([500, 1000, 1000, 1500, 2000]);
+    return {
+      name: 'קופון: מורידים ' + moneyText(v),
+      coupon: true,
+      price: -v,
+      priceText: '',
+      explain: 'קופון: מורידים ' + moneyText(v),
+      hint: 'יש קופון: מורידים אותו מהסכום.',
+      wrongPrices: [0, v]
+    };
+  }
+
   function coinsFor(ag) {
     var out = [];
     [500, 200, 100, 50].forEach(function (c) { while (ag >= c) { out.push(c); ag -= c; } });
@@ -209,21 +281,29 @@
     var count = itemCount(L, cfg, kind, R);
     var special = cfg.special === 'any' ? R.pick(['deal', 'discount', null]) : (cfg.special || null);
     var kindsOf = special === 'both' ? ['deal', 'discount'] : special ? [special] : [];
+    if (cfg.offers) kindsOf = R.shuffle(cfg.pool.slice()).slice(0, R.randInt(cfg.offers[0], cfg.offers[1]));
+    var withCoupon = !!cfg.coupon && R.randInt(1, 100) <= cfg.coupon * 100;
     var lines, total, specs, tries = 0;
     do {
       specs = [];
       var plain = R.shuffle(pool);
       kindsOf.forEach(function (sk) {
         var sItem = R.pick(ITEMS.filter(function (it) {
-          return (sk === 'deal' ? it[2] <= 12 : it[2] >= 10) && plain.indexOf(it) !== -1;
+          var fit = sk === 'deal' ? it[2] <= 12 : sk === 'weight' ? BY_WEIGHT.indexOf(it[0]) !== -1
+            : sk === 'half' ? it[2] <= 25 : it[2] >= 10;
+          return fit && plain.indexOf(it) !== -1;
         }));
         plain = plain.filter(function (it) { return it !== sItem; });
-        specs.push(sk === 'deal' ? dealLine(sItem, R) : discountLine(sItem, R));
+        specs.push(sk === 'deal' ? dealLine(sItem, R) : sk === 'weight' ? weightLine(sItem, R)
+          : sk === 'half' ? halfLine(sItem, R) : discountLine(sItem, R));
       });
-      lines = plain.slice(0, Math.max(1, count - specs.length)).map(function (it) { return { name: it[0], price: price(it, cfg.price, R) }; });
+      // never more than five lines on the receipt (the coupon line counts too)
+      var nPlain = Math.max(cfg.offers ? 0 : 1, count - specs.length - (withCoupon ? 1 : 0));
+      lines = plain.slice(0, nPlain).map(function (it) { return { name: it[0], price: price(it, cfg.price, R) }; });
       specs.forEach(function (sp) { lines.splice(R.randInt(0, lines.length), 0, sp); });
+      if (withCoupon) { var cp = couponLine(R); specs.push(cp); lines.push(cp); }
       total = lines.reduce(function (s, x) { return s + x.price; }, 0);
-    } while (total > cfg.cap && tries++ < 40);
+    } while ((total > cfg.cap || (withCoupon && total < 1000)) && tries++ < 40);
 
     var pay = choosePay(total, cfg, R);
     var note = pay.reduce(function (s, x) { return s + x; }, 0);
@@ -242,10 +322,14 @@
     });
     var hints = [];
     // one offer: explain it in the status line; two offers: the tags on the receipt lines say enough
-    if (specs.length === 1) hints.push(specs[0].hint);
-    else if (specs.length > 1) hints.push('יש 2 מבצעים.');
+    if (cfg.noHint) { /* 41–50: the receipt says it all */ }
+    else if (specs.length === 1) hints.push(specs[0].hint);
+    else if (specs.length > 1) {
+      var nOffers = specs.filter(function (sp) { return !sp.coupon; }).length;
+      hints.push('יש ' + nOffers + ' מבצעים' + (nOffers < specs.length ? ' וקופון.' : '.'));
+    }
     // one hint at most, so the status stays one line on a phone (the payment row says "משלמים בשטרות")
-    if (kind === 'change' && pay.length > 1 && !hints.length) hints.push('חברו את השטרות.');
+    if (kind === 'change' && pay.length > 1 && !hints.length && !cfg.noHint) hints.push('חברו את השטרות.');
     return {
       kind: kind,
       lines: lines,
@@ -255,7 +339,8 @@
       change: change,
       answer: ans,
       hint: hints.length ? hints.join(' ') : null,
-      special: specs.length ? specs.map(function (sp) { return sp.explain; }).join(' · ') : null,
+      // with three offers or more the receipt itself shows each paid price; the line below gives only the sum
+      special: specs.length && specs.length <= 2 ? specs.map(function (sp) { return sp.explain; }).join(' · ') : null,
       choices: R.shuffle([ans].concat(makeDistractors(ans, frac, upper, R, extras)))
     };
   }
@@ -272,7 +357,8 @@
       'קראו את רשימת הקניות ואת המחירים.',
       'שימו לב באיזה שטר משלמים.',
       'ענו על השאלה: כמה עולה הכול יחד, או כמה עודף תקבלו.',
-      'בחרו את התשובה הנכונה, ולחצו "לשאלה הבאה" כשתהיו מוכנים.'
+      'בחרו את התשובה הנכונה, ולחצו "לשאלה הבאה" כשתהיו מוכנים.',
+      'ברמות הגבוהות יש מבצעים: כמה יחידות במחיר אחד, הנחה באחוזים, מחיר לפי ק״ג, "השני בחצי מחיר" וקופון שמורידים מהסכום.'
     ],
     css: [
       '.sc-scene{display:flex;flex-direction:column;align-items:center;gap:.45rem;width:100%}',
@@ -330,13 +416,13 @@
 
         root.innerHTML = '';
         var sumPrice = ctx.el('span', { class: 'sc-price', dir: 'ltr' }, '?');
-        var specPrice = null, specLine = null;
+        var specRows = [];
         var receipt = ctx.el('div', { class: 'sc-receipt', role: 'group', 'aria-label': 'קבלה' }, q.lines.map(function (x) {
           var nameEl = x.tag
             ? ctx.el('span', { class: 'sc-name' }, [x.name, ctx.el('span', { class: 'sc-tag' }, x.tag)])
             : ctx.el('span', null, x.name);
-          var priceEl = ctx.el('span', { class: 'sc-price', dir: 'ltr' }, x.tag && !x.priceText ? '' : (x.priceText || money(x.price)));
-          if (x.tag) { specPrice = priceEl; specLine = x; }
+          var priceEl = ctx.el('span', { class: 'sc-price', dir: 'ltr' }, x.coupon || (x.tag && !x.priceText) ? '' : (x.priceText || money(x.price)));
+          if (x.tag) specRows.push({ el: priceEl, line: x });
           return ctx.el('div', { class: 'sc-row' }, [nameEl, priceEl]);
         }).concat([ctx.el('div', { class: 'sc-row sc-sum' }, [ctx.el('span', null, 'סך הכול'), sumPrice])]));
         var notes = 0;
@@ -380,11 +466,11 @@
             else if (o.btn !== btn) o.btn.style.display = 'none';
           });
           sumPrice.textContent = money(q.total);
-          if (specPrice) {
-            specPrice.textContent = '';
-            if (specLine.priceText) specPrice.appendChild(ctx.el('span', { class: 'sc-was' }, specLine.priceText));
-            specPrice.appendChild(document.createTextNode(money(specLine.price)));
-          }
+          specRows.forEach(function (sr) {
+            sr.el.textContent = '';
+            if (sr.line.priceText) sr.el.appendChild(ctx.el('span', { class: 'sc-was' }, sr.line.priceText));
+            sr.el.appendChild(document.createTextNode(money(sr.line.price)));
+          });
           var ok = val === q.answer;
           if (ok) correct++;
           else btn.classList.add('is-wrong');

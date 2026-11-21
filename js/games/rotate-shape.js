@@ -4,10 +4,13 @@
 
   var ROUNDS = 7;
 
-  // Per level (1–30): cells in the shape, box (shape fits box × box), options shown,
+  // Per level (1–50): cells in the shape, box (shape fits box × box), options shown,
   // turn270 (allow 90°/270° quarter turns both ways; otherwise only 90° and 180°),
   // mirrors (how many mirror-image distractors), near (the "different shape" is the
   // original with one cell moved — a subtle near miss).
+  // From 31: sym = the shape is almost symmetric: its mirror image differs from it by at most this many
+  // cells, so mirror images look almost like the answer; odd = rounds (of 7) that ask the other way:
+  // three options are the shape turned, one is its mirror image — which one is NOT the same shape?
   var LEVELS = [
     { cells: 4, box: 3, options: 3, turn270: false, mirrors: 1, near: false }, // 1
     { cells: 4, box: 3, options: 3, turn270: false, mirrors: 1, near: false }, // 2
@@ -39,7 +42,29 @@
     { cells: 10, box: 4, options: 4, turn270: true,  mirrors: 2, near: true, nearAll: true }, // 27
     { cells: 11, box: 5, options: 4, turn270: true,  mirrors: 1, near: true, nearAll: true }, // 28
     { cells: 11, box: 5, options: 4, turn270: true,  mirrors: 2, near: true, nearAll: true }, // 29
-    { cells: 12, box: 5, options: 4, turn270: true,  mirrors: 2, near: true, nearAll: true }  // 30
+    { cells: 12, box: 5, options: 4, turn270: true,  mirrors: 2, near: true, nearAll: true }, // 30
+    // 31–40: almost symmetric shapes, so the mirror images look nearly the same as the answer
+    { cells: 12, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 3 }, // 31
+    { cells: 12, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 3 }, // 32
+    { cells: 13, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 3 }, // 33
+    { cells: 12, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 2 }, // 34
+    { cells: 13, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 2 }, // 35
+    { cells: 12, box: 5, options: 4, turn270: true, mirrors: 3, near: true, nearAll: true, sym: 2 }, // 36
+    { cells: 13, box: 5, options: 4, turn270: true, mirrors: 3, near: true, nearAll: true, sym: 2 }, // 37
+    { cells: 12, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 1 }, // 38
+    { cells: 13, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 1 }, // 39
+    { cells: 13, box: 5, options: 4, turn270: true, mirrors: 3, near: true, nearAll: true, sym: 1 }, // 40
+    // 41–50: mixed with "which one is NOT the same shape?" rounds
+    { cells: 12, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 2, odd: 2 }, // 41
+    { cells: 13, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 2, odd: 2 }, // 42
+    { cells: 12, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 1, odd: 2 }, // 43
+    { cells: 13, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 1, odd: 3 }, // 44
+    { cells: 13, box: 5, options: 4, turn270: true, mirrors: 3, near: true, nearAll: true, sym: 1, odd: 3 }, // 45
+    { cells: 12, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 1, odd: 3, oddNear: true }, // 46
+    { cells: 13, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 1, odd: 3, oddNear: true }, // 47
+    { cells: 13, box: 5, options: 4, turn270: true, mirrors: 3, near: true, nearAll: true, sym: 1, odd: 4, oddNear: true }, // 48
+    { cells: 14, box: 5, options: 4, turn270: true, mirrors: 2, near: true, nearAll: true, sym: 1, odd: 4, oddNear: true }, // 49
+    { cells: 14, box: 5, options: 4, turn270: true, mirrors: 3, near: true, nearAll: true, sym: 1, odd: 4, oddNear: true }  // 50
   ];
 
   var css = [
@@ -142,6 +167,50 @@
 
   function randomTurn(s, ctx) { return rotate(s, ctx.randInt(0, 3)); }
 
+  // How many cells of the mirror image cannot be laid over the shape (best turn and shift): 0 = symmetric.
+  function mirrorDiff(s) {
+    var best = 0, m = reflect(s);
+    for (var q = 0; q < 4; q++) {
+      var t = rotate(m, q);
+      for (var dr = -5; dr <= 5; dr++) for (var dc = -5; dc <= 5; dc++) {
+        var over = 0;
+        t.forEach(function (p) { if (has(s, p[0] + dr, p[1] + dc)) over++; });
+        if (over > best) best = over;
+      }
+    }
+    return s.length - best;
+  }
+
+  /* "Which one is NOT the same shape?": three different turns of the shape and one mirror image
+     (or, with oddNear, sometimes a near miss). */
+  function buildOddRound(spec, ctx) {
+    for (var attempt = 0; attempt < 400; attempt++) {
+      var shape = growShape(spec.cells, spec.box, ctx);
+      if (!shape) continue;
+      var rot = rotationKeys(shape);
+      if (Object.keys(rot).length < 4) continue;            // every turn must look different
+      var mirror = reflect(shape);
+      if (rot[keyOf(mirror)]) continue;
+      if (spec.sym && mirrorDiff(shape) > spec.sym) continue;
+      var options = [1, 2, 3].map(function (q) { return { s: rotate(shape, q), kind: 'answer' }; });
+      var odd = null;
+      if (spec.oddNear && ctx.randInt(0, 1)) {
+        var nm = nearMiss(shape, spec.box, ctx);
+        if (nm) {
+          var banned = allKeys(shape), clash = false;
+          Object.keys(allKeys(nm)).forEach(function (k) { if (banned[k]) clash = true; });
+          if (!clash) odd = { s: randomTurn(nm, ctx), kind: 'other' };
+        }
+      }
+      if (!odd) odd = { s: rotate(mirror, ctx.randInt(0, 3)), kind: 'mirror' };
+      options.push(odd);
+      var box = spec.box;
+      options.forEach(function (o) { var e = extent(o.s); box = Math.max(box, e.h, e.w); });
+      return { shape: shape, options: ctx.shuffle(options), box: box, odd: true };
+    }
+    return null;
+  }
+
   function buildRound(spec, ctx) {
     var turns = spec.turn270 ? [1, 2, 3] : [1, 2];
     for (var attempt = 0; attempt < 300; attempt++) {
@@ -151,6 +220,7 @@
       var mirror = reflect(shape);
       // chiral check: the mirror image must not be reachable by rotation
       if (origRot[keyOf(mirror)]) continue;
+      if (spec.sym && attempt < 290 && mirrorDiff(shape) > spec.sym) continue;
 
       var origKey = keyOf(shape);
       // the answer should look different from the original (a real turn)
@@ -205,15 +275,22 @@
       'למעלה תופיע צורה צבעונית.',
       'דמיינו שאתם מסובבים אותה על השולחן, בלי להפוך אותה.',
       'לחצו על הצורה שהיא אותה צורה בדיוק, רק מסובבת.',
-      'שימו לב: צורה הפוכה כמו במראה היא לא אותה צורה.'
+      'שימו לב: צורה הפוכה כמו במראה היא לא אותה צורה.',
+      'בשלבים הגבוהים יש גם שאלה הפוכה: שלוש צורות הן אותה צורה מסובבת, ואחת שונה. לחצו על השונה.'
     ],
     css: css,
+    _model: { LEVELS: LEVELS, buildRound: buildRound, buildOddRound: buildOddRound, mirrorDiff: mirrorDiff,
+      allKeys: allKeys, rotationKeys: rotationKeys, keyOf: keyOf, connected: connected },
     start: function (root, ctx) {
       var el = ctx.el;
       var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var round = 0;
       var score = 0;
+      // which rounds ask "which one is NOT the same?" (never the first one)
+      var oddPlan = [];
+      for (var k = 1; k < ROUNDS; k++) oddPlan.push(k <= (spec.odd || 0));
+      oddPlan = [false].concat(ctx.shuffle(oddPlan));
 
       function gridNode(s, box) {
         var e = extent(s);
@@ -243,10 +320,11 @@
 
       function playRound() {
         root.innerHTML = '';
-        var data = buildRound(spec, ctx);
+        var data = (oddPlan[round - 1] && buildOddRound(spec, ctx)) || buildRound(spec, ctx);
         if (!data) { nextRound(); return; } // practically unreachable
+        var isOdd = !!data.odd;
 
-        ctx.setStatus('איזו צורה היא אותה צורה, רק מסובבת?');
+        ctx.setStatus(isOdd ? 'שאלה הפוכה: איזו צורה שונה?' : 'איזו צורה היא אותה צורה, רק מסובבת?');
 
         var target = el('div', { class: 'rs-target' }, [
           el('span', { class: 'rs-cap' }, 'הצורה'),
@@ -266,7 +344,7 @@
         var opts = el('div', { class: 'rs-opts' }, buttons);
 
         root.appendChild(target);
-        root.appendChild(el('p', { class: 'g-hint rs-hint' }, 'מותר לסובב, אסור להפוך.'));
+        root.appendChild(el('p', { class: 'g-hint rs-hint' }, isOdd ? 'שלוש מסובבות, אחת שונה.' : 'מותר לסובב, אסור להפוך.'));
         root.appendChild(opts);
 
         function choose(i) {
@@ -275,22 +353,31 @@
           ctx.sound('tap');
           buttons.forEach(function (b) { b.disabled = true; });
           var chosen = data.options[i];
-          var ok = chosen.kind === 'answer';
+          var ok = isOdd ? chosen.kind !== 'answer' : chosen.kind === 'answer';
           if (ok) score++;
-          data.options.forEach(function (opt, j) {
-            if (opt.kind === 'answer') { buttons[j].classList.add('is-correct'); buttons[j]._mark.textContent = '✓ מסובבת'; }
-          });
-          if (!ok) {
-            buttons[i].classList.add('is-wrong');
-            buttons[i]._mark.textContent = chosen.kind === 'mirror' ? '✗ הפוכה' : '✗ אחרת';
-          }
           var msg;
-          if (!ok) {
-            msg = chosen.kind === 'mirror'
-              ? 'זו תמונת מראה: הצורה הפוכה, לא מסובבת. התשובה מסומנת בירוק'
-              : 'זו צורה אחרת. התשובה מסומנת בירוק';
+          if (isOdd) {
+            data.options.forEach(function (opt, j) {
+              if (opt.kind !== 'answer') { buttons[j].classList.add('is-correct'); buttons[j]._mark.textContent = opt.kind === 'mirror' ? '✓ הפוכה' : '✓ אחרת'; }
+            });
+            if (!ok) {
+              buttons[i].classList.add('is-wrong');
+              buttons[i]._mark.textContent = '✗ מסובבת';
+              msg = 'זו אותה צורה, רק מסובבת. השונה מסומנת בירוק';
+            }
+          } else {
+            data.options.forEach(function (opt, j) {
+              if (opt.kind === 'answer') { buttons[j].classList.add('is-correct'); buttons[j]._mark.textContent = '✓ מסובבת'; }
+            });
+            if (!ok) {
+              buttons[i].classList.add('is-wrong');
+              buttons[i]._mark.textContent = chosen.kind === 'mirror' ? '✗ הפוכה' : '✗ אחרת';
+              msg = chosen.kind === 'mirror'
+                ? 'זו תמונת מראה: הצורה הפוכה, לא מסובבת. התשובה מסומנת בירוק'
+                : 'זו צורה אחרת. התשובה מסומנת בירוק';
+            }
           }
-          ctx.setStatus(ok ? 'מצוין, זו אותה צורה!' : 'הנה הצורה המסובבת');
+          ctx.setStatus(ok ? (isOdd ? 'מצוין, זו הצורה השונה!' : 'מצוין, זו אותה צורה!') : (isOdd ? 'הנה הצורה השונה' : 'הנה הצורה המסובבת'));
           ctx.feedback(ok, msg).then(function () {
             return ctx.wait(ok ? 600 : 1400);
           }).then(nextRound);

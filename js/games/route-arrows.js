@@ -9,7 +9,7 @@
   function clampLevel(l) {
     l = Math.round(Number(l));
     if (!isFinite(l)) l = 3;
-    return Math.max(1, Math.min(30, l));
+    return Math.max(1, Math.min(50, l));
   }
 
   var LANDMARKS = [
@@ -25,7 +25,12 @@
   var FACE_NAME = ['למעלה', 'ימינה', 'למטה', 'שמאלה'];
 
   var STEPS = [0, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 4, 5, 5, 6, 7,
-    5, 5, 6, 6, 6, 7, 7, 7, 8, 8];
+    5, 5, 6, 6, 6, 7, 7, 7, 8, 8,
+    8, 8, 8, 9, 9, 9, 9, 9, 10, 10,      // 31–40
+    9, 9, 9, 10, 10, 10, 10, 10, 10, 10]; // 41–50
+  // 31–50: chance that a step is "turn around" (a U-turn), which reverses the way the walker faces.
+  var BACK = [0.15, 0.15, 0.2, 0.2, 0.2, 0.25, 0.25, 0.25, 0.3, 0.3,
+    0.25, 0.25, 0.3, 0.3, 0.3, 0.3, 0.35, 0.35, 0.35, 0.35];
 
   function params(L) {
     return {
@@ -35,7 +40,10 @@
       relative: L >= 16,
       extra: L <= 2 ? 0 : L <= 5 ? 1 : L <= 11 ? 2 : L <= 15 ? 3 : L <= 20 ? 4 : 5,
       // 21–30: read the steps, press "זכרתי, הלאה", and follow them on the map from memory
-      hide: L >= 21
+      hide: L >= 21,
+      // 31–50: some steps are "turn around"; from 41 the starting direction is hidden too after "זכרתי, הלאה"
+      back: L >= 31 ? BACK[L - 31] : 0,
+      hideFacing: L >= 41
     };
   }
 
@@ -65,10 +73,15 @@
       for (var s = 0; s < P.steps; s++) {
         var options = [];
         var turns = P.relative ? (s === 0 ? ['none', 'right', 'left'] : ['right', 'left']) : [null];
+        var wantBack = P.relative && s > 0 && P.back && R.randInt(1, 100) <= P.back * 100;
         var dirs = P.relative ? [] : [0, 1, 2, 3].filter(function (d) { return prev < 0 || (d !== prev && d !== (prev + 2) % 4); });
         if (P.relative) {
+          if (wantBack) {
+            var bd = (facing + 2) % 4;
+            if (inside(N, r + DR[bd], c + DC[bd])) turns = ['back'];
+          }
           turns.forEach(function (t) {
-            var d = t === 'none' ? facing : t === 'right' ? (facing + 1) % 4 : (facing + 3) % 4;
+            var d = t === 'none' ? facing : t === 'right' ? (facing + 1) % 4 : t === 'back' ? (facing + 2) % 4 : (facing + 3) % 4;
             dirs.push(d);
           });
         }
@@ -136,7 +149,7 @@
 
     return {
       level: L, N: N, start: route.start, startK: startK, end: route.end, endK: endK,
-      relative: P.relative, hide: P.hide, facing: route.facing0, moves: mv, path: route.path,
+      relative: P.relative, hide: P.hide, hideFacing: P.hideFacing, facing: route.facing0, moves: mv, path: route.path,
       cells: cells, answer: lms[0],
       choices: R.shuffle([lms[0], lms[1], lms[2], lms[3]])
     };
@@ -148,7 +161,9 @@
       '<path d="M12 20V5M5.5 11.5 12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
   function turnSvg(turn) {
-    var d = turn === 'right' ? 'M7 21v-8a4 4 0 0 1 4-4h9M15 4l5 5-5 5' : 'M17 21v-8a4 4 0 0 0-4-4H4M9 4 4 9l5 5';
+    var d = turn === 'right' ? 'M7 21v-8a4 4 0 0 1 4-4h9M15 4l5 5-5 5'
+      : turn === 'back' ? 'M16 21V9a4.5 4.5 0 0 0-9 0v6M3.5 11.5 7 15l3.5-3.5'
+      : 'M17 21v-8a4 4 0 0 0-4-4H4M9 4 4 9l5 5';
     return '<svg class="ra-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="' + d +
       '" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
@@ -157,6 +172,7 @@
   function stepParts(m, relative) {
     if (!relative) return { icon: arrowSvg(m.dir), text: DIR_NAME[m.dir] + ' ', count: cellsWord(m.n) };
     if (m.turn === 'none') return { icon: arrowSvg(0), text: 'ישר קדימה ', count: cellsWord(m.n) };
+    if (m.turn === 'back') return { icon: turnSvg('back'), text: 'הסתובבו לאחור והתקדמו ', count: cellsWord(m.n) };
     return { icon: turnSvg(m.turn), text: (m.turn === 'right' ? 'פנו ימינה' : 'פנו שמאלה') + ' והתקדמו ', count: cellsWord(m.n) };
   }
 
@@ -170,7 +186,8 @@
       'מצאו במפה את ההולך 🚶. משם מתחילים.',
       'עקבו אחרי הצעדים לפי הסדר. החץ מראה לאן לזוז במסך, והמספר לידו מראה כמה משבצות.',
       'בחרו לאיזה מקום הגעתם בסוף.',
-      'ברמות הגבוהות הצעדים נעלמים אחרי "זכרתי, הלאה", וממשיכים מהזיכרון.'
+      'ברמות הגבוהות הצעדים נעלמים אחרי "זכרתי, הלאה", וממשיכים מהזיכרון.',
+      'ברמות הגבוהות ביותר יש גם צעד "הסתובבו לאחור" (חץ בצורת פרסה), ובסוף גם הכיוון שההולך מסתכל אליו נעלם. זכרו גם אותו.'
     ],
     css: [
       '.ra-steps[hidden]{display:none}',
@@ -235,6 +252,7 @@
           if (i === q.startK) {
             kids.push(ctx.el('span', { 'aria-hidden': 'true' }, '🚶'));
             if (q.relative) kids.push(ctx.el('span', { class: 'ra-badge', html: arrowSvg(q.facing) }));
+          if (q.relative) var badgeEl = kids[kids.length - 1];
             label += ', נקודת ההתחלה';
           } else if (q.cells[i]) {
             kids.push(ctx.el('span', { 'aria-hidden': 'true' }, q.cells[i].e));
@@ -246,8 +264,10 @@
         }
         root.appendChild(map);
 
+        var facingEl = null;
         if (q.relative) {
-          root.appendChild(ctx.el('div', { class: 'ra-facing', html: '<span>ההולך מסתכל ' + FACE_NAME[q.facing] + '</span>' + arrowSvg(q.facing) }));
+          facingEl = ctx.el('div', { class: 'ra-facing', html: '<span>ההולך מסתכל ' + FACE_NAME[q.facing] + '</span>' + arrowSvg(q.facing) });
+          root.appendChild(facingEl);
         }
         var list = ctx.el('ol', { class: 'ra-steps' });
         q.moves.forEach(function (m, idx) {
@@ -263,13 +283,14 @@
         var grid = ctx.el('div', { class: 'g-choices ra-choices' });
         if (q.hide) {
           // Memorise phase: only the map and the steps; the answers come after "זכרתי, הלאה".
-          ctx.setStatus('זכרו את הצעדים ואת הכיוון');
+          ctx.setStatus(q.hideFacing ? 'זכרו את הצעדים ולאן ההולך מסתכל' : 'זכרו את הצעדים ואת הכיוון');
           grid.hidden = true;
           var readyBtn = ctx.el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () {
             readyBtn.disabled = true;
             readyRow.remove();
             list.hidden = true;
             grid.hidden = false;
+            if (q.hideFacing && facingEl) { facingEl.style.visibility = 'hidden'; if (badgeEl) badgeEl.style.visibility = 'hidden'; }
             ctx.setStatus('לאן הגעתם? דמיינו את הדרך');
           } }, 'זכרתי, הלאה');
           var readyRow = ctx.el('div', { class: 'g-actions' }, readyBtn);
@@ -317,8 +338,12 @@
           // The answer buttons make way for one short line + the next button, so the round stays on one screen.
           grid.style.display = 'none';
           list.hidden = false; // show the steps again next to the drawn route
+          if (facingEl) facingEl.style.visibility = '';
+          if (badgeEl) badgeEl.style.visibility = '';
           var msg = ok ? 'נכון! הדרך מסומנת במפה.' : 'התשובה: ' + q.answer.e + ' ' + q.answer.n;
-          after.appendChild(ctx.el('p', { class: 'ra-explain' }, msg));
+          // long routes (9–10 steps, levels 34+): the line goes to the status bar so the round still fits
+          if (q.moves.length > 8) ctx.setStatus(msg);
+          else after.appendChild(ctx.el('p', { class: 'ra-explain' }, msg));
           var nextBtn = ctx.el('button', {
             class: 'btn btn-primary btn-lg', type: 'button',
             onclick: function () { nextBtn.disabled = true; nextRound(); }

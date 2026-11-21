@@ -79,16 +79,83 @@
       words: ['מטר', 'סנטימטר', 'קילומטר', 'מילימטר', 'גרם', 'קילוגרם', 'טון', 'ליטר', 'מיליליטר'] }
   ];
 
+  /* Levels 31–50: "fine" rounds. Every word on the screen comes from the same wide field (fruit, music,
+     countries...), but the odd word belongs to a sister group inside it: all are citrus fruits except
+     one stone fruit, all are string instruments except one wind instrument.
+     g: the field (the odd word always comes from another group of the same field). Words never repeat
+     between sister groups, so every round has exactly one odd word. */
+  var FINE = [
+    { id: 'citrus', g: 'fruit', label: 'פירות הדר', words: ['תפוז', 'לימון', 'אשכולית', 'קלמנטינה', 'פומלה', 'ליים', 'מנדרינה'] },
+    { id: 'stone', g: 'fruit', label: 'פירות עם גלעין', words: ['אפרסק', 'שזיף', 'דובדבן', 'משמש', 'נקטרינה', 'זית', 'תמר'] },
+    { id: 'berries', g: 'fruit', label: 'פירות יער', words: ['תות', 'פטל', 'אוכמניות', 'דומדמניות', 'חמוציות'] },
+    { id: 'root', g: 'veg', label: 'ירקות שגדלים מתחת לאדמה', words: ['גזר', 'סלק', 'צנון', 'תפוח אדמה', 'בטטה', 'לפת', 'שום'] },
+    { id: 'leafy', g: 'veg', label: 'ירקות עלים', words: ['חסה', 'כרוב', 'תרד', 'מנגולד', 'עולש', 'רוקט', 'כרוב סיני'] },
+    { id: 'farm', g: 'animals', f: true, label: 'חיות משק', words: ['פרה', 'כבש', 'עז', 'חמור', 'תרנגולת', 'אווז', 'תרנגול הודו', 'שור'] },
+    { id: 'wild', g: 'animals', f: true, label: 'חיות בר', words: ['אריה', 'נמר', 'זאב', 'שועל', 'צבי', 'דוב', 'צבוע', "ג'ירפה", 'זברה'] },
+    { id: 'strings', g: 'music', label: 'כלי מיתר', words: ['גיטרה', 'כינור', "צ'לו", 'נבל', 'קונטרבס', 'ויולה', 'מנדולינה'] },
+    { id: 'winds', g: 'music', label: 'כלי נשיפה', words: ['חליל', 'חצוצרה', 'סקסופון', 'קלרינט', 'טרומבון', 'אבוב', 'בסון', 'שופר'] },
+    { id: 'drums', g: 'music', label: 'כלי הקשה', words: ['תוף', 'מצילתיים', 'קסילופון', 'דרבוקה', 'טמבורין'] },
+    { id: 'north', g: 'il', f: true, label: 'ערים בצפון הארץ', words: ['צפת', 'נהריה', 'עכו', 'טבריה', 'כרמיאל', 'קריית שמונה', 'עפולה', 'נצרת'] },
+    { id: 'south', g: 'il', f: true, label: 'ערים בדרום הארץ', words: ['באר שבע', 'אילת', 'דימונה', 'ערד', 'אופקים', 'שדרות', 'נתיבות', 'קריית גת'] },
+    { id: 'europe', g: 'countries', f: true, label: 'ארצות באירופה', words: ['צרפת', 'איטליה', 'ספרד', 'יוון', 'גרמניה', 'הולנד', 'פולין', 'שוודיה', 'פורטוגל', 'אוסטריה'] },
+    { id: 'asia', g: 'countries', f: true, label: 'ארצות באסיה', words: ['יפן', 'סין', 'הודו', 'תאילנד', 'וייטנאם', 'קוריאה', 'אינדונזיה', 'מונגוליה'] },
+    { id: 'america', g: 'countries', f: true, label: 'ארצות ביבשת אמריקה', words: ['ברזיל', 'קנדה', 'ארגנטינה', 'מקסיקו', "צ'ילה", 'פרו', 'קולומביה', 'קובה'] },
+    { id: 'africa', g: 'countries', f: true, label: 'ארצות באפריקה', words: ['מצרים', 'מרוקו', 'אתיופיה', 'קניה', 'ניגריה', 'טוניסיה', 'גאנה', 'דרום אפריקה'] },
+    { id: 'eat', g: 'kitchen', label: 'כלי אוכל והגשה', words: ['מזלג', 'כף', 'כפית', 'צלחת', 'כוס', 'ספל', 'צלוחית', 'קנקן'] },
+    { id: 'cook', g: 'kitchen', label: 'כלי בישול ואפייה', words: ['סיר', 'מחבת', 'מצקת', 'מטרפה', 'מערוך', 'פומפייה', 'מסננת', 'תבנית'] },
+    { id: 'shoes', g: 'wear', label: 'סוגי נעליים', words: ['מגפיים', 'סנדלים', 'כפכפים', 'נעלי בית', 'נעלי ספורט', 'נעלי עקב'] },
+    { id: 'hats', g: 'wear', label: 'כיסויי ראש', words: ['כובע', 'כומתה', 'כיפה', 'מטפחת', 'קסדה', 'כובע קש'] },
+    { id: 'ball', g: 'sport', label: 'ענפי ספורט עם כדור', words: ['כדורגל', 'כדורסל', 'טניס', 'כדורעף', 'גולף', 'כדוריד', 'באולינג', 'פינג פונג'] },
+    { id: 'noball', g: 'sport', label: 'ענפי ספורט בלי כדור', words: ['שחייה', 'ריצה', 'אגרוף', "ג'ודו", 'סקי', 'סיף', 'חתירה', 'הרמת משקולות'] },
+    { id: 'land', g: 'transport', label: 'כלי תחבורה ביבשה', words: ['מכונית', 'אוטובוס', 'רכבת', 'אופניים', 'אופנוע', 'משאית', 'מונית', 'טרקטור'] },
+    { id: 'sea', g: 'transport', label: 'כלי שיט', words: ['ספינה', 'סירה', 'מעבורת', 'צוללת', 'יאכטה', 'קאנו', 'רפסודה', 'אונייה'] },
+    { id: 'air', g: 'transport', label: 'כלי טיס', words: ['מטוס', 'מסוק', 'כדור פורח', 'רחפן', 'דאון'] },
+    { id: 'medical', g: 'jobs', label: 'אנשי רפואה', words: ['רופא', 'אחות', 'רוקח', 'רופא שיניים', 'פיזיותרפיסט', 'מיילדת', 'פרמדיק'] },
+    { id: 'crafts', g: 'jobs', label: 'בעלי מלאכה', words: ['נגר', 'חשמלאי', 'שרברב', 'מסגר', 'סנדלר', 'חייט', 'זגג'] },
+    { id: 'torah', g: 'holidays', label: 'חגים שכתובים בתורה', words: ['פסח', 'שבועות', 'סוכות', 'ראש השנה', 'יום כיפור', 'שמיני עצרת'] },
+    { id: 'later', g: 'holidays', label: 'חגים שלא כתובים בתורה', words: ['חנוכה', 'פורים', 'ט"ו בשבט', 'ל"ג בעומר', 'יום העצמאות', 'יום ירושלים'] },
+    { id: 'inner', g: 'body', label: 'איברים פנימיים', words: ['לב', 'ריאות', 'כבד', 'כליות', 'קיבה', 'טחול', 'מעיים'] },
+    { id: 'face', g: 'body', label: 'חלקי הפנים', words: ['אף', 'עין', 'פה', 'לחי', 'מצח', 'סנטר', 'גבה', 'שפתיים'] },
+    { id: 'limbs', g: 'body', label: 'חלקי הידיים והרגליים', words: ['מרפק', 'ברך', 'קרסול', 'כף רגל', 'ירך', 'עקב', 'אצבע', 'כף יד'] },
+    { id: 'length', g: 'units', f: true, label: 'יחידות אורך', words: ['מטר', 'סנטימטר', 'קילומטר', 'מילימטר', "אינץ'", 'מייל'] },
+    { id: 'weight', g: 'units', f: true, label: 'יחידות משקל', words: ['גרם', 'קילוגרם', 'טון', 'מיליגרם', 'ליברה', 'אונקיה'] },
+    { id: 'volume', g: 'units', f: true, label: 'יחידות נפח', words: ['ליטר', 'מיליליטר', 'סמ"ק', 'גלון', 'מטר מעוקב'] },
+    { id: 'goodfeel', g: 'feel', label: 'רגשות נעימים', words: ['שמחה', 'אהבה', 'תקווה', 'רוגע', 'הקלה', 'סיפוק', 'אושר'] },
+    { id: 'badfeel', g: 'feel', label: 'רגשות קשים', words: ['עצב', 'כעס', 'פחד', 'קנאה', 'בושה', 'ייאוש', 'בדידות', 'אכזבה', 'דאגה'] },
+    { id: 'goodtrait', g: 'trait', f: true, label: 'תכונות טובות', words: ['נדיבות', 'אומץ', 'סבלנות', 'יושר', 'ענווה', 'חריצות', 'נאמנות'] },
+    { id: 'badtrait', g: 'trait', f: true, label: 'תכונות רעות', words: ['קמצנות', 'עצלות', 'יהירות', 'אנוכיות', 'רמאות', 'פחדנות', 'גסות רוח'] }
+  ];
+  var FINE_BY_G = {};
+  FINE.forEach(function (c) { (FINE_BY_G[c.g] = FINE_BY_G[c.g] || []).push(c); });
+
+  /* One fine round (pure, also used by tests). R has pick/shuffle; used = ids already used as the base group. */
+  function pickFineRound(R, used) {
+    var pool = FINE.filter(function (c) { return used.indexOf(c.id) === -1; });
+    if (!pool.length) pool = FINE;
+    var base = R.pick(pool);
+    used.push(base.id);
+    var odd = R.pick(FINE_BY_G[base.g].filter(function (c) { return c.id !== base.id; }));
+    return { base: base, odd: odd, hard: true, words: R.shuffle(base.words).slice(0, 5), oddWord: R.pick(odd.words) };
+  }
+
   /* Difficulty by level (index = level - 1).
      Levels 1-15 spread the original 10-level curve in small steps; 16-20 add new challenges. */
-  var N_WORDS = [4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6];
+  var N_WORDS = [4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6];
   // Chance that the odd word comes from a closely related category.
-  var P_HARD = [0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+  var P_HARD = [0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
   // Rounds (out of 8) whose base group is an abstract category (feelings, traits, units...).
   // Levels 21–30 keep six words and fill more rounds with the harder kinds (abstract groups, letters).
-  var ABS_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 3, 3, 3, 4, 3, 4, 4, 4, 4, 4, 4];
+  var ABS_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 3, 3, 3, 4, 3, 4, 4, 4, 4, 4, 4,
+    3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 2, 2, 1, 1, 1, 0, 0, 1, 0, 0];
   // Rounds (out of 8) that use the second rule: "which word does not start with the same letter?".
-  var LETTER_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 3, 3, 3, 2, 3, 3, 3, 3, 3, 3, 3];
+  var LETTER_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 3, 3, 3, 2, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1];
+  // Levels 31–50: rounds (out of 8) with sister groups of one field (FINE), more and more of them.
+  // Up to level 40 the hint says that all the words share a field; from 41 only the plain hint is shown.
+  var FINE_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6];
   // From level 19 the odd word in letter rounds starts with a look-alike or sound-alike letter.
   var NEAR = {
     'ב': ['כ', 'פ'], 'כ': ['ב', 'ק'], 'ק': ['כ'], 'פ': ['ב'], 'ט': ['ת'], 'ת': ['ט', 'ח'], 'ס': ['ש'],
@@ -135,11 +202,14 @@
       'קראו את כל המילים שעל המסך.',
       'רוב המילים שייכות לאותה קבוצה, למשל פירות או רהיטים.',
       'לחצו על המילה היחידה שלא שייכת לקבוצה.',
-      'בשלבים מתקדמים הקבוצות קרובות יותר, ולפעמים השאלה משתנה. קראו את השאלה בכל שלב.'
+      'בשלבים מתקדמים הקבוצות קרובות יותר, ולפעמים השאלה משתנה. קראו את השאלה בכל שלב.',
+      'בשלבים הגבוהים ביותר כל המילים מאותו תחום, למשל כולן ארצות, ואחת מהן מקבוצה אחרת בתוכו: ארץ באסיה בין ארצות באירופה.'
     ],
     css: CSS,
+    _model: { FINE: FINE, CATS: CATS, pickFineRound: pickFineRound, FINE_ROUNDS: FINE_ROUNDS, N_WORDS: N_WORDS,
+      ABS_ROUNDS: ABS_ROUNDS, LETTER_ROUNDS: LETTER_ROUNDS, P_HARD: P_HARD },
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
+      var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level) || 1)));
       var nWords = N_WORDS[level - 1];
       var pHard = P_HARD[level - 1];
       var round = 0;
@@ -154,7 +224,11 @@
       var kinds = [];
       var nLetter = LETTER_ROUNDS[level - 1];
       var nAbs = ABS_ROUNDS[level - 1];
-      for (var k = 0; k < ROUNDS - 1; k++) kinds.push(k < nLetter ? 'letter' : (k < nLetter + nAbs ? 'abs' : 'cat'));
+      var nFine = FINE_ROUNDS[level - 1];
+      var usedFine = [];
+      for (var k = 0; k < ROUNDS - 1; k++) {
+        kinds.push(k < nLetter ? 'letter' : k < nLetter + nAbs ? 'abs' : k < nLetter + nAbs + nFine ? 'fine' : 'cat');
+      }
       kinds = ['cat'].concat(ctx.shuffle(kinds));
 
       function pickCats(hard, abs) {
@@ -222,6 +296,7 @@
 
         var kind = kinds[round - 1] || 'cat';
         var isLetter = kind === 'letter';
+        var isFine = kind === 'fine';
         var changed = level >= 18 && (isLetter ? 'letter' : 'cat') !== prevKind;
         prevKind = isLetter ? 'letter' : 'cat';
 
@@ -232,6 +307,14 @@
           oddWord = lr.oddWord;
           pickRes = { hard: false };
           ctx.setStatus((changed ? 'שימו לב, שאלה אחרת: ' : '') + 'איזו מילה לא מתחילה באותה אות?');
+        } else if (isFine) {
+          pickRes = pickFineRound(ctx, usedFine);
+          base = pickRes.base;
+          odd = pickRes.odd;
+          hardTotal++;
+          words = pickRes.words;
+          oddWord = pickRes.oddWord;
+          ctx.setStatus((changed ? 'שימו לב, חוזרים לשאלה: ' : '') + 'איזו מילה לא שייכת?');
         } else {
           pickRes = pickCats(Math.random() < pHard, kind === 'abs');
           base = pickRes.base;
@@ -263,6 +346,7 @@
         root.appendChild(ctx.el('div', { class: 'oo-wrap' }, [
           ctx.el('p', { class: 'g-hint', text: isLetter
             ? 'כל המילים חוץ מאחת מתחילות באותה אות. בדקו רק את האות הראשונה.'
+            : isFine && level <= 40 ? 'כל המילים מאותו תחום, אבל אחת מקבוצה אחרת בתוכו.'
             : 'כל המילים חוץ מאחת שייכות לאותה קבוצה.' }),
           choices,
           explain

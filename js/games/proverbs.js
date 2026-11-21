@@ -123,6 +123,36 @@
     { t: 'מכל מלמדיי ___', a: 'השכלתי', d: ['שמחתי', 'נהניתי', 'התעשרתי'], m: 'למדתי מכל אחד שלימד אותי משהו.' }
   ];
 
+  /* Tier 4 (levels 31–50): rarer sayings from the Bible (mostly Proverbs and Ecclesiastes) and the sages,
+     with wrong choices that fit the sentence almost as well as the right word. */
+  var T4 = [
+    { t: 'כל הפוסל, ב___ פוסל', a: 'מומו', d: ['כוחו', 'שמו', 'דינו'], m: 'מי שממהר למצוא פגמים באחרים, מוצא בהם את הפגמים של עצמו.' },
+    { t: 'אין הקומץ משביע את ה___', a: 'ארי', d: ['רעב', 'עני', 'דוב'], m: 'מעט מדי אינו מספיק למי שצריך הרבה.' },
+    { t: 'מתוך שלא לשמה בא ___', a: 'לשמה', d: ['לעולם', 'בשלום', 'לטובה'], m: 'מי שמתחיל לעשות דבר טוב מסיבה אחרת, יגיע בסוף לעשות אותו בלב שלם.' },
+    { t: 'קנאת סופרים תרבה ___', a: 'חכמה', d: ['שנאה', 'מחלוקת', 'ספרים'], m: 'תחרות בין חכמים ולומדים מגדילה את הידע של כולם.' },
+    { t: 'טובים השניים מן ה___', a: 'אחד', d: ['שלושה', 'רבים', 'אחרון'], m: 'שניים שעובדים יחד מצליחים יותר מאדם אחד לבדו.' },
+    { t: 'החוט המשולש לא במהרה ___', a: 'יינתק', d: ['ייקרע', 'יישבר', 'ייפול'], m: 'קשר בין כמה אנשים חזק ועמיד יותר.' },
+    { t: 'מוסיף דעת מוסיף ___', a: 'מכאוב', d: ['כבוד', 'שמחה', 'עושר'], m: 'ככל שיודעים יותר, כך מבינים יותר גם את הצער שבעולם.' },
+    { t: 'הבל הבלים, הכול ___', a: 'הבל', d: ['אבק', 'חלום', 'צל'], m: 'הכול חולף, ואין בדברי העולם הזה ממש.' },
+    { t: 'שומר ___ ה׳', a: 'פתאים', d: ['ישרים', 'עניים', 'צדיקים'], m: 'אנשים תמימים ניצלים מצרות, כאילו מישהו שומר עליהם.' },
+    { t: 'אל תען כסיל כ___', a: 'אולתו', d: ['דבריו', 'כעסו', 'חכמתו'], m: 'אל תענו לטיפש בטיפשות שלו, כדי שלא תהיו דומים לו.' },
+    { t: 'גם אוויל מחריש חכם ___', a: 'ייחשב', d: ['ייקרא', 'יהיה', 'ייראה'], m: 'גם טיפש נראה חכם כל עוד הוא שותק.' },
+    { t: 'לפני שבר ___', a: 'גאון', d: ['פחד', 'כעס', 'שקט'], m: 'גאווה ויהירות באות לפני נפילה.' },
+    { t: 'ברוב עם הדרת ___', a: 'מלך', d: ['שר', 'שופט', 'בית'], m: 'כשהרבה אנשים משתתפים, האירוע מכובד יותר.' },
+    { t: 'שונא מתנות ___', a: 'יחיה', d: ['ישמח', 'יצליח', 'יעשיר'], m: 'מי שאינו מקבל טובות הנאה שומר על חירותו ועל יושרו.' },
+    { t: 'אין סומכין על ה___', a: 'נס', d: ['מזל', 'גורל', 'חלום'], m: 'אל תסמכו על כך שמשהו נפלא יציל אתכם; פעלו בעצמכם.' },
+    { t: 'כבדהו ו___', a: 'חשדהו', d: ['אהבהו', 'שמעהו', 'שמרהו'], m: 'כבדו את האדם, אבל אל תסמכו עליו בעיניים עצומות.' },
+    { t: 'אדם מועד ___', a: 'לעולם', d: ['לטעות', 'לנפול', 'לחטוא'], m: 'אדם תמיד אחראי לנזק שגרם, גם כשלא התכוון.' },
+    { t: 'אין צדיק בארץ אשר יעשה טוב ולא ___', a: 'יחטא', d: ['יטעה', 'ייפול', 'יכעס'], m: 'אין אדם מושלם; כולם טועים לפעמים.' },
+    { t: 'שמע בני מוסר אביך ואל תיטוש תורת ___', a: 'אמך', d: ['רבך', 'אחיך', 'ביתך'], m: 'הקשיבו לעצות ולחינוך של שני ההורים.' },
+    { t: 'יגעת ומצאת, ___', a: 'תאמין', d: ['תשמח', 'תצליח', 'תזכה'], m: 'מי שמשקיע מאמץ אמיתי, מגיע לתוצאה.' },
+    { t: 'הכול צפוי והרשות ___', a: 'נתונה', d: ['פתוחה', 'ידועה', 'שמורה'], m: 'אף שהכול ידוע מראש, לאדם יש בחירה חופשית.' },
+    { t: 'עת לחשות ועת ל___', a: 'דבר', d: ['שמוע', 'שיר', 'שאול'], m: 'יש זמן לשתוק ויש זמן לדבר.' },
+    { t: 'טוב שם משמן ___', a: 'טוב', d: ['זית', 'זך', 'יקר'], m: 'שם טוב בין הבריות שווה יותר מכל דבר יקר.' },
+    { t: 'אל תאמין בעצמך עד יום ___', a: 'מותך', d: ['זקנתך', 'משפטך', 'חופתך'], m: 'אל תבטחו בעצמכם יותר מדי; כל אחד יכול לטעות, כל החיים.' },
+    { t: 'יפה שתיקה ל___', a: 'חכמים', d: ['זקנים', 'מלכים', 'צדיקים'], m: 'שתיקה מכבדת גם אדם חכם, ועל אחת כמה וכמה את מי שאינו חכם.' }
+  ];
+
   /* Idiom meaning rounds (level 16+): choose what the expression means. */
   var IDIOMS = [
     { i: 'לקנות חתול בשק', m: 'לקנות משהו בלי לבדוק אותו קודם' },
@@ -170,6 +200,34 @@
     { i: 'לא סוף העולם', m: 'זה לא אסון גדול, אפשר להתגבר' }
   ];
 
+  /* Levels 31–50: harder expressions. n is a "near miss": a wrong meaning that sounds right if the
+     expression is read word by word, or that mixes it up with a similar one. It is always one of the
+     wrong choices when the expression's meaning is asked. */
+  var HARD_IDIOMS = [
+    { i: 'עשה אוזן ערלה', m: 'התעלם בכוונה ממה שאמרו לו', n: 'לא שמע בגלל רעש חזק' },
+    { i: 'נתן כתף', m: 'עזר והשתתף במאמץ', n: 'התעלם ממישהו בכוונה' },
+    { i: 'עלה על שרטון', m: 'נתקע ונכשל באמצע הדרך', n: 'הצליח יותר ממה שציפו' },
+    { i: 'אחז את השור בקרניו', m: 'התמודד עם הבעיה ישירות ובאומץ', n: 'התעקש בלי שום סיבה' },
+    { i: 'השליך את הכפפה', m: 'קרא לאחר להתמודד איתו', n: 'ויתר והפסיק להיאבק' },
+    { i: 'הרים ידיים', m: 'התייאש ונכנע', n: 'התנדב לעזור' },
+    { i: 'שם את הקלפים על השולחן', m: 'גילה בגלוי את כוונותיו', n: 'הפסיק לשחק ופרש' },
+    { i: 'בלע את הצפרדע', m: 'קיבל בלית ברירה דבר לא נעים', n: 'אמר דבר מגעיל' },
+    { i: 'רוח גבית', m: 'תמיכה ועידוד שעוזרים להתקדם', n: 'ביקורת שאומרים מאחורי הגב' },
+    { i: 'עמד בפרץ', m: 'נאבק להגן כשאחרים לא עשו זאת', n: 'עמד בדרכם של אחרים והפריע' },
+    { i: 'לקח את הרגליים', m: 'ברח מהר', n: 'התחיל ללכת ברגל' },
+    { i: 'בשורה התחתונה', m: 'התוצאה הסופית, מה שחשוב באמת', n: 'בסוף התור' },
+    { i: 'נכנס לנעליו של', m: 'תפס את מקומו ואת תפקידו של מישהו', n: 'חיקה את סגנון הלבוש של מישהו' },
+    { i: 'הוריד את הכובע', m: 'הביע הערכה רבה', n: 'נכנע והודה בטעות' },
+    { i: 'דגי רקק', m: 'אנשים חסרי חשיבות, לא האשמים הגדולים', n: 'אנשים שמתחמקים מאחריות' },
+    { i: 'מתחת לאף', m: 'קרוב מאוד, ובכל זאת לא שמו לב', n: 'בסוד ובלחישה' },
+    { i: 'הכה על חטא', m: 'הודה בטעותו והצטער עליה', n: 'העניש מישהו אחר על טעות' },
+    { i: 'שפך את ליבו', m: 'סיפר בגלוי על רגשותיו ודאגותיו', n: 'התאהב במישהו' },
+    { i: 'ירה לעצמו ברגל', m: 'פגע בעצמו במעשה שלו', n: 'הבטיח הבטחה ולא קיים' },
+    { i: 'עשה סלט', m: 'בלבל וערבב הכול', n: 'עשה עבודה קלה' },
+    { i: 'מעל ומעבר', m: 'הרבה יותר ממה שנדרש', n: 'מחוץ לתחום הסמכות' },
+    { i: 'יצא בשן ועין', m: 'יצא ממצב קשה, אבל עם נזק', n: 'יצא בלי שום נזק' }
+  ];
+
   /* Chance of each tier per level (index = level - 1). */
   var W = [
     [1, 0, 0], [1, 0, 0], [1, 0, 0], [0.85, 0.15, 0], [0.7, 0.3, 0],
@@ -177,12 +235,47 @@
     [0.1, 0.6, 0.3], [0, 0.6, 0.4], [0, 0.5, 0.5], [0, 0.4, 0.6], [0, 0.3, 0.7],
     [0, 0.25, 0.75], [0, 0.2, 0.8], [0, 0.15, 0.85], [0, 0.1, 0.9], [0, 0, 1],
     [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1],
-    [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]
+    [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1],
+    // 31–50: more and more of the rare tier 4 (fourth number)
+    [0, 0, 0.75, 0.25], [0, 0, 0.7, 0.3], [0, 0, 0.6, 0.4], [0, 0, 0.55, 0.45], [0, 0, 0.5, 0.5],
+    [0, 0, 0.45, 0.55], [0, 0, 0.4, 0.6], [0, 0, 0.35, 0.65], [0, 0, 0.3, 0.7], [0, 0, 0.25, 0.75],
+    [0, 0, 0.2, 0.8], [0, 0, 0.2, 0.8], [0, 0, 0.15, 0.85], [0, 0, 0.15, 0.85], [0, 0, 0.1, 0.9],
+    [0, 0, 0.1, 0.9], [0, 0, 0.05, 0.95], [0, 0, 0.05, 0.95], [0, 0, 0, 1], [0, 0, 0, 1]
   ];
   // Idiom rounds per session, and (levels 21+) how many of them go the other way:
   // the meaning is shown and the player picks the matching expression.
-  var IDIOM_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 6, 7, 7];
-  var REV_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4];
+  var IDIOM_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 6, 7, 7,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 4, 4, 4, 4];
+  var REV_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4,
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
+  // 41–50: "which word is wrong?" rounds: the saying is shown with one word swapped for a look-alike choice.
+  var SWAP_ROUNDS = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3];
+  // 31–50: chance that an idiom round uses a hard expression (with its near-miss wrong meaning).
+  var P_HARD_IDIOM = [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8, 0.8, 0.85, 0.85, 0.9, 0.9, 0.95, 0.95, 1, 1, 1];
+
+  /* A "which word is wrong?" round (pure, also used by tests): the saying with its missing word replaced by
+     one of the wrong choices; the buttons are that word and three other words of the saying, in reading
+     order. Returns null if the saying is too short or a word would repeat. */
+  function swapRound(item, R) {
+    var parts = item.t.split(BLANK);
+    var ds = R.shuffle(item.d.slice());
+    for (var k = 0; k < ds.length; k++) {
+      var text = parts[0] + ds[k] + (parts[1] || '');
+      var words = text.split(' ');
+      var clean = function (w) { return w.replace(/[,?.!:;]/g, ''); };
+      // the swapped word is the one that contains the place of the blank
+      var pos = parts[0].split(' ').length - 1;
+      var wrongWord = clean(words[pos]);
+      var others = [];
+      words.forEach(function (w, i) { if (i !== pos) others.push({ w: clean(w), i: i }); });
+      var all = others.map(function (o) { return o.w; }).concat([wrongWord]);
+      if (words.length < 4 || all.some(function (w, i) { return !w || all.indexOf(w) !== i; })) continue;
+      var pick = R.shuffle(others).slice(0, 3).concat([{ w: wrongWord, i: pos }]).sort(function (a, b) { return a.i - b.i; });
+      return { text: text, wrong: wrongWord, choices: pick.map(function (o) { return o.w; }) };
+    }
+    return null;
+  }
 
   var CSS = [
     '.pv-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:1.1rem}',
@@ -212,14 +305,18 @@
       'קראו את הפתגם. מילה אחת בו חסרה.',
       'בחרו מבין ארבע האפשרויות את המילה החסרה.',
       'אחרי כל תשובה תראו את הפתגם המלא ואת פירושו. לחצו "המשך" כשתהיו מוכנים.',
-      'בשלבים מתקדמים תתבקשו לפעמים לבחור את הפירוש של ביטוי, או את הביטוי שמתאים לפירוש.'
+      'בשלבים מתקדמים תתבקשו לפעמים לבחור את הפירוש של ביטוי, או את הביטוי שמתאים לפירוש.',
+      'בשלבים הגבוהים ביותר יש פתגמים נדירים, ולפעמים הפתגם מופיע שלם אבל מילה אחת בו הוחלפה. מצאו אותה.'
     ],
     css: CSS,
+    _model: { T1: T1, T2: T2, T3: T3, T4: T4, IDIOMS: IDIOMS, HARD_IDIOMS: HARD_IDIOMS, W: W, IDIOM_ROUNDS: IDIOM_ROUNDS,
+      REV_ROUNDS: REV_ROUNDS, SWAP_ROUNDS: SWAP_ROUNDS, swapRound: swapRound },
     start: function (root, ctx) {
-      var level = Math.max(1, Math.min(30, Math.round(Number(ctx.level) || 1)));
-      var weights = W[level - 1];
-      var tiers = [T1, T2, T3];
-      var used = [{}, {}, {}];
+      var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level) || 1)));
+      var weights = W[level - 1].concat([0, 0, 0, 0]).slice(0, 4);
+      var tiers = [T1, T2, T3, T4];
+      var used = [{}, {}, {}, {}];
+      var pHardIdiom = level > 30 ? P_HARD_IDIOM[level - 31] : 0;
       var usedIdioms = {};
       var round = 0;
       var correct = 0;
@@ -228,21 +325,22 @@
 
       var nIdiom = IDIOM_ROUNDS[level - 1];
       var nRev = REV_ROUNDS[level - 1];
+      var nSwap = SWAP_ROUNDS[level - 1];
       var kinds = [];
-      for (var k = 0; k < ROUNDS - 1; k++) kinds.push(k < nRev ? 'rev' : k < nIdiom ? 'idiom' : 'fill');
+      for (var k = 0; k < ROUNDS - 1; k++) kinds.push(k < nRev ? 'rev' : k < nIdiom ? 'idiom' : k < nIdiom + nSwap ? 'swap' : 'fill');
       kinds = ['fill'].concat(ctx.shuffle(kinds));
 
       function pickTier() {
         var r = Math.random();
-        for (var t = 0; t < 3; t++) { r -= weights[t]; if (r < 0 && weights[t] > 0) return t; }
-        for (var u = 2; u >= 0; u--) if (weights[u] > 0) return u;
+        for (var t = 0; t < 4; t++) { r -= weights[t]; if (r < 0 && weights[t] > 0) return t; }
+        for (var u = 3; u >= 0; u--) if (weights[u] > 0) return u;
         return 0;
       }
 
       function pickItem() {
         var t = pickTier();
         // Fall back to the nearest tier if this one is used up.
-        var order = [t, t - 1, t + 1, t - 2, t + 2].filter(function (x) { return x >= 0 && x < 3; });
+        var order = [t, t - 1, t + 1, t - 2, t + 2, t - 3].filter(function (x) { return x >= 0 && x < 4; });
         for (var i = 0; i < order.length; i++) {
           var list = tiers[order[i]];
           var free = list.filter(function (_, idx) { return !used[order[i]][idx]; });
@@ -256,11 +354,15 @@
       }
 
       function pickIdiom() {
-        var free = IDIOMS.filter(function (o) { return !usedIdioms[o.i]; });
-        var item = ctx.pick(free.length ? free : IDIOMS);
+        var bank = Math.random() < pHardIdiom ? HARD_IDIOMS : IDIOMS;
+        var free = bank.filter(function (o) { return !usedIdioms[o.i]; });
+        var item = ctx.pick(free.length ? free : bank);
         usedIdioms[item.i] = true;
-        var others = ctx.shuffle(IDIOMS.filter(function (o) { return o !== item; })).slice(0, 3);
-        return { item: item, wrong: others.map(function (o) { return o.m; }) };
+        var all = IDIOMS.concat(level > 30 ? HARD_IDIOMS : []);
+        var others = ctx.shuffle(all.filter(function (o) { return o !== item; })).slice(0, item.n ? 2 : 3);
+        var wrong = others.map(function (o) { return o.m; });
+        if (item.n) wrong.push(item.n);   // the near miss is always among the wrong meanings
+        return { item: item, wrong: wrong, others: all.filter(function (o) { return o !== item; }) };
       }
 
       /* Renders a saying with the gap (or with the answer filled in). */
@@ -285,14 +387,19 @@
         ctx.setProgress(round, ROUNDS);
         var isRev = kinds[round - 1] === 'rev';
         var isIdiom = kinds[round - 1] === 'idiom' || isRev;
-        var card, choicesList, answerText, item, idiom;
+        var isSwap = kinds[round - 1] === 'swap';
+        var card, choicesList, answerText, item, idiom, sw;
+        if (isSwap) {
+          for (var tries = 0; tries < 12 && !sw; tries++) { item = pickItem(); sw = swapRound(item, ctx); }
+          if (!sw) isSwap = false;
+        }
 
         if (isRev) {
           idiomTotal++;
           idiom = pickIdiom();
           item = idiom.item;
           answerText = item.i;
-          var otherIdioms = ctx.shuffle(IDIOMS.filter(function (o) { return o !== item; })).slice(0, 3);
+          var otherIdioms = ctx.shuffle(idiom.others).slice(0, 3);
           choicesList = ctx.shuffle([item.i].concat(otherIdioms.map(function (o) { return o.i; })));
           ctx.setStatus('שימו לב, שאלה הפוכה: איזה ביטוי אומר את זה?');
           card = ctx.el('p', { class: 'pv-card pv-meaning', text: item.m });
@@ -304,6 +411,11 @@
           choicesList = ctx.shuffle([item.m].concat(idiom.wrong));
           ctx.setStatus('מה פירוש הביטוי?');
           card = ctx.el('p', { class: 'pv-card', text: '"' + item.i + '"' });
+        } else if (isSwap) {
+          answerText = sw.wrong;
+          choicesList = sw.choices;
+          ctx.setStatus('איזו מילה בפתגם לא נכונה?');
+          card = ctx.el('p', { class: 'pv-card', text: sw.text });
         } else {
           item = pickItem();
           answerText = item.a;
@@ -339,6 +451,8 @@
             if (o.c === answerText) o.btn.classList.add('is-correct');
           });
           if (!ok) btn.classList.add('is-wrong');
+          // keep only the right answer and the chosen one, so the explanation and the button fit the screen
+          buttons.forEach(function (o) { if (o.c !== answerText && o.btn !== btn) o.btn.style.display = 'none'; });
           if (ok) { correct++; if (isIdiom) idiomCorrect++; }
 
           explain.innerHTML = '';
@@ -349,11 +463,13 @@
           } else {
             card.innerHTML = '';
             sayingNode(item.t, item.a).forEach(function (n) { card.appendChild(typeof n === 'string' ? document.createTextNode(n) : n); });
-            explain.appendChild(ctx.el('strong', { text: ok ? 'נכון! הפירוש:' : 'המילה החסרה: ' + item.a + '. הפירוש:' }));
+            explain.appendChild(ctx.el('strong', { text: isSwap
+              ? (ok ? 'נכון! במקום "' + sw.wrong + '" צריך "' + item.a + '". הפירוש:' : 'במקום "' + sw.wrong + '" צריך "' + item.a + '". הפירוש:')
+              : ok ? 'נכון! הפירוש:' : 'המילה החסרה: ' + item.a + '. הפירוש:' }));
             explain.appendChild(document.createTextNode(item.m));
           }
           explain.hidden = false;
-          ctx.feedback(ok, ok ? null : (isIdiom ? 'לא הפעם' : 'המילה החסרה: ' + item.a))
+          ctx.feedback(ok, ok ? null : (isIdiom ? 'לא הפעם' : isSwap ? 'המילה שהוחלפה: ' + sw.wrong : 'המילה החסרה: ' + item.a))
             .then(function () { return ctx.wait(200); })
             .then(function () { nextBtn.hidden = false; nextBtn.focus(); });
         }
