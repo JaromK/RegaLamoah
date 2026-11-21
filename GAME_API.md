@@ -31,7 +31,7 @@ Each game lives in `js/games/<id>.js`, wraps itself in an IIFE and calls `BrainG
     benefit: 'זיכרון עבודה חזותי',  // optional, "מה זה מאמן"
     startLevel: 1,                 // optional, level for new players (default 3)
     maxLevel: 20,                  // optional, the game's top level (default 50, BrainGames.MAX_LEVEL)
-    isNew: true,                   // optional, listed in the "משחקים חדשים" home section instead of its skill group
+    isNew: true,                   // optional, the game card shows a "חדש" label and comes first in its skill group
     levelPicker: true,             // optional, the intro screen shows the level path so the player picks a level there
     instructions: ['...', '...', '...'],
     css: '.mp-card{...}',          // optional, injected once; prefix classes with a game-specific prefix

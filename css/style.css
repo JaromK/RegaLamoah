@@ -222,7 +222,8 @@ p { margin: 0; }
 .skill-group-title { display: flex; align-items: center; gap: .6rem; font-size: 1.25rem; font-family: var(--font-body); font-weight: 800; }
 .skill-group-title .skill-icon { width: 2.2rem; height: 2.2rem; }
 .skill-group-title .skill-icon svg { width: 1.3rem; height: 1.3rem; }
-.section-new { border: 3px solid var(--sun); }
+.game-card.is-new { border-color: var(--sun); box-shadow: inset 0 0 0 1px var(--sun); }
+.card-new { display: inline-block; margin-inline-start: .45rem; padding: 0 .5rem; border-radius: 999px; background: var(--sun); color: var(--c-on-yellow); font-size: .85rem; font-weight: 800; vertical-align: .15rem; }
 .new-badge { display: inline-block; margin-inline-start: .5rem; padding: .05rem .6rem; border-radius: 999px; background: var(--sun); color: var(--c-on-yellow); font-size: .9rem; font-weight: 800; vertical-align: .15rem; }
 .intro-levels { width: 100%; display: flex; flex-direction: column; gap: .6rem; }
 .intro-levels-title { font-size: 1.15rem; font-weight: 800; }

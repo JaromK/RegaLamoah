@@ -344,9 +344,10 @@
   /* One card in the "all games" list (also used by the search results). */
   function gameCard(g) {
     var lv = getLevel(g.id);
-    return el('li', null, el('button', { class: 'game-card', type: 'button', onclick: function () { renderIntro(g, false); } }, [
+    return el('li', null, el('button', { class: 'game-card' + (g.isNew ? ' is-new' : ''), type: 'button', onclick: function () { renderIntro(g, false); } }, [
       el('span', { class: 'game-card-name' }, [
         g.name,
+        g.isNew ? el('span', { class: 'card-new' }, 'חדש') : null,
         trophyKind(g.id) ? el('span', {
           class: 'card-trophy' + trophyClass(trophyKind(g.id)),
           title: 'זכיתם בגביע ה' + trophyInfo(trophyKind(g.id)).label, html: TROPHY_SVG
@@ -482,7 +483,9 @@
       el('h2', { class: 'section-title' }, 'כל המשחקים'),
       el('p', { class: 'section-lead' }, 'רוצים לשחק עוד? בחרו כל משחק שתרצו. בכל משחק יש ' + BG.MAX_LEVEL + ' רמות או יותר.'),
       el('div', { class: 'skill-groups' }, Object.keys(BG.SKILLS).map(function (skill) {
-        var games = BG.all().filter(function (g) { return g.skill === skill && !g.isNew; });
+        // every game in its own skill group; new games (isNew) come first there and carry a "חדש" label
+        var games = BG.all().filter(function (g) { return g.skill === skill; });
+        games = games.filter(function (g) { return g.isNew; }).concat(games.filter(function (g) { return !g.isNew; }));
         if (!games.length) return null;
         return el('div', { class: 'skill-group' }, [
           el('h3', { class: 'skill-group-title' }, [skillIcon(skill), BG.SKILLS[skill].label]),
@@ -530,22 +533,6 @@
           ]);
         })),
         atTop ? el('p', { class: 'trophy-call' }, 'רוצים עוד רמות? התקשרו לירון.') : null
-      ]));
-    }
-    // games marked isNew get their own section above the others
-    var fresh = BG.all().filter(function (g) { return g.isNew; });
-    if (fresh.length) {
-      app.appendChild(el('section', { class: 'section section-new' }, [
-        el('h2', { class: 'section-title' }, ['משחקים חדשים', el('span', { class: 'new-badge' }, fresh.length + ' משחקים')]),
-        el('p', { class: 'section-lead' }, 'תפזורת, קאקורו, תשבץ, פאזל ועוד. נסו אותם!'),
-        el('div', { class: 'skill-groups' }, Object.keys(BG.SKILLS).map(function (skill) {
-          var games = fresh.filter(function (g) { return g.skill === skill; });
-          if (!games.length) return null;
-          return el('div', { class: 'skill-group' }, [
-            el('h3', { class: 'skill-group-title' }, [skillIcon(skill), BG.SKILLS[skill].label]),
-            el('ul', { class: 'game-grid' }, games.map(gameCard))
-          ]);
-        }))
       ]));
     }
     app.appendChild(allSection);
