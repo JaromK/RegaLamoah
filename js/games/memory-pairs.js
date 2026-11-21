@@ -42,10 +42,19 @@
     ]
   ];
 
-  // Per level (1–30): number of pairs + how alike the pictures are.
+  // Faces with short names, for the hardest picture + name levels (31+): the names differ in one word.
+  var FACES = [
+    { e: '😀', n: 'מחייך' }, { e: '😃', n: 'עיניים גדולות' }, { e: '😄', n: 'צוחק' }, { e: '😁', n: 'שיניים' },
+    { e: '😆', n: 'עיניים עצומות' }, { e: '😊', n: 'נבוך' }, { e: '🙂', n: 'חיוך קטן' }, { e: '😉', n: 'קורץ' },
+    { e: '😍', n: 'מאוהב' }, { e: '😎', n: 'משקפי שמש' }, { e: '😮', n: 'מופתע' }, { e: '😢', n: 'בוכה' }
+  ];
+
+  // Per level (1–50): number of pairs + how alike the pictures are.
   // mix: 0 = mixed families, 1 = two families, 2 = one family, 3 = look-alikes, 'word' = picture + its name;
   // 'word2' / 'word1' = picture + name from two families / one family, 'wordLook' = coloured circles and
-  // squares with their names ("עיגול ירוק").
+  // squares with their names ("עיגול ירוק"); 'wordLook2' = the same, always six colours as both a circle
+  // and a square; 'wordFace' = smiling faces and their names. swap (38+) = after every `swap` misses two
+  // face-down cards trade places, and both are marked so the player can follow.
   var LEVELS = [
     { pairs: 3, mix: 0 },  // 1
     { pairs: 3, mix: 2 },  // 2
@@ -77,7 +86,28 @@
     { pairs: 12, mix: 'word1' },  // 27
     { pairs: 12, mix: 'wordLook' }, // 28
     { pairs: 12, mix: 'wordLook' }, // 29
-    { pairs: 12, mix: 'wordLook' }  // 30
+    { pairs: 12, mix: 'wordLook' }, // 30
+    // 31–50: still 12 pairs; look-alike colours, then faces, then two cards trade places now and then
+    { pairs: 12, mix: 'wordLook2' }, // 31
+    { pairs: 12, mix: 'wordLook2' }, // 32
+    { pairs: 12, mix: 'wordLook2' }, // 33
+    { pairs: 12, mix: 'wordFace' }, // 34
+    { pairs: 12, mix: 'wordFace' }, // 35
+    { pairs: 12, mix: 'wordFace' }, // 36
+    { pairs: 12, mix: 'wordFace' }, // 37
+    { pairs: 12, mix: 'wordLook2', swap: 4 }, // 38
+    { pairs: 12, mix: 'wordLook2', swap: 4 }, // 39
+    { pairs: 12, mix: 'wordLook2', swap: 4 }, // 40
+    { pairs: 12, mix: 'wordLook2', swap: 3 }, // 41
+    { pairs: 12, mix: 'wordFace', swap: 4 }, // 42
+    { pairs: 12, mix: 'wordFace', swap: 4 }, // 43
+    { pairs: 12, mix: 'wordFace', swap: 4 }, // 44
+    { pairs: 12, mix: 'wordFace', swap: 3 }, // 45
+    { pairs: 12, mix: 'wordFace', swap: 3 }, // 46
+    { pairs: 12, mix: 'wordFace', swap: 3 }, // 47
+    { pairs: 12, mix: 'wordFace', swap: 3 }, // 48
+    { pairs: 12, mix: 'wordFace', swap: 2 }, // 49
+    { pairs: 12, mix: 'wordFace', swap: 2 } // 50
   ];
 
   var MIN_TAP = 56; // px, smallest card we allow
@@ -97,6 +127,7 @@
     '.mp-face.mp-word{font-size:clamp(.85rem,3.6vw,1.15rem);font-weight:800;color:var(--ink);line-height:1.15;padding:.2rem;text-align:center;overflow-wrap:anywhere;}',
     '.mp-card.is-match .mp-face{background:var(--good-soft);border-color:var(--good);border-width:3px;}',
     '.mp-card.is-miss .mp-face{background:var(--bad-soft);border-color:var(--bad);border-width:3px;}',
+    '.mp-card.mp-swapped .mp-back{background:var(--c-purple-soft);border:4px solid var(--c-purple);color:var(--c-purple);}',
     '@media (prefers-reduced-motion: reduce){.mp-inner{transition:none;}}'
   ].join('');
 
@@ -137,6 +168,17 @@
     var list;
     var oneWord = function (p) { return p.n.indexOf(' ') === -1; };
     if (mix === 'wordLook') return ctx.shuffle(LOOKALIKE[1]).slice(0, pairs);
+    if (mix === 'wordFace') return ctx.shuffle(FACES).slice(0, pairs);
+    if (mix === 'wordLook2') {
+      // circles and squares of the same colours: k colours twice, the rest once
+      var cl = LOOKALIKE[1].slice(0, 8), sq = LOOKALIKE[1].slice(8);
+      var colours = ctx.shuffle([0, 1, 2, 3, 4, 5, 6, 7]);
+      var both = Math.min(8, Math.floor(pairs / 2));
+      var out = [];
+      colours.slice(0, both).forEach(function (c) { out.push(cl[c], sq[c]); });
+      colours.slice(both).forEach(function (c, k) { if (out.length < pairs) out.push(k % 2 ? cl[c] : sq[c]); });
+      return ctx.shuffle(out.slice(0, pairs));
+    }
     if (mix === 'word1') {
       // one family: pick the family with enough one-word names
       var f1 = fams.filter(function (f) { return FAMILIES[f].filter(oneWord).length >= pairs; })[0] || fams[0];
@@ -181,7 +223,8 @@
       'כל הקלפים הפוכים. לחצו על קלף כדי להפוך אותו.',
       'הפכו שני קלפים. אם התמונות זהות — הן נשארות פתוחות.',
       'אם הן שונות — זכרו איפה הן, והן יתהפכו בחזרה.',
-      'מצאו את כל הזוגות. אין שעון, קחו את הזמן.'
+      'מצאו את כל הזוגות. אין שעון, קחו את הזמן.',
+      'ברמות הגבוהות, אחרי כמה טעויות שני קלפים הפוכים מחליפים מקום. הם יסומנו בסגול ⇄, אז עדכנו את הזיכרון.'
     ],
     css: css,
     start: function (root, ctx) {
@@ -220,7 +263,7 @@
           el('span', { class: 'mp-side mp-back' }, '?'),
           el('span', { class: 'mp-side mp-face' + (item.word ? ' mp-word' : '') }, item.word ? item.pic.n : item.pic.e)
         ]));
-        var card = { btn: btn, pic: item.pic, word: item.word, index: i, up: false, done: false };
+        var card = { btn: btn, pic: item.pic, word: item.word, index: i, up: false, done: false, seen: false };
         grid.appendChild(btn);
         return card;
       });
@@ -244,6 +287,7 @@
         if (locked || card.up || card.done) return;
         ctx.sound('tap');
         show(card, true);
+        card.seen = true;
         open.push(card);
         if (open.length < 2) return;
 
@@ -278,9 +322,38 @@
             a.btn.classList.remove('is-miss'); b.btn.classList.remove('is-miss');
             show(a, false); show(b, false);
             ctx.setStatus(baseStatus);
-            locked = false;
-          });
+            if (spec.swap && mistakes % spec.swap === 0) return ctx.wait(500).then(swapTwo);
+          }).then(function () { locked = false; });
         }
+      }
+
+      // 38+: two face-down cards trade places (cards the player has already seen when possible).
+      // Both get a purple frame and ⇄ for a while, so the change can be followed.
+      function swapTwo() {
+        var free = cards.filter(function (c) { return !c.done && !c.up; });
+        if (free.length < 4) return null;
+        var seen = ctx.shuffle(free.filter(function (c) { return c.seen; }));
+        var a = seen[0] || ctx.pick(free);
+        var b = ctx.shuffle(free.filter(function (c) { return c !== a && c.pic !== a.pic && (c.seen || seen.length < 2); }))[0];
+        if (!b) return null;
+        var pa = a.pic, wa = a.word;
+        a.pic = b.pic; a.word = b.word; b.pic = pa; b.word = wa;
+        [a, b].forEach(function (c) {
+          var face = c.btn.querySelector('.mp-face');
+          face.textContent = c.word ? c.pic.n : c.pic.e;
+          face.classList.toggle('mp-word', c.word);
+          c.btn.classList.add('mp-swapped');
+          c.btn.querySelector('.mp-back').textContent = '⇄';
+        });
+        ctx.sound('tap');
+        ctx.setStatus('שימו לב: שני הקלפים הסגולים החליפו מקום');
+        return ctx.wait(2200).then(function () {
+          [a, b].forEach(function (c) {
+            c.btn.classList.remove('mp-swapped');
+            c.btn.querySelector('.mp-back').textContent = '?';
+          });
+          ctx.setStatus(baseStatus);
+        });
       }
 
       function end() {
