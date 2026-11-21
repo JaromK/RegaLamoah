@@ -9,7 +9,7 @@
   function clampLevel(l) {
     l = Math.round(Number(l));
     if (!isFinite(l)) l = 3;
-    return Math.max(1, Math.min(30, l));
+    return Math.max(1, Math.min(50, l));
   }
 
   /* Isolate a time / math snippet as LTR inside Hebrew text (LRI ... PDI). */
@@ -29,7 +29,32 @@
     25: ['overnight', 'laterRead', 'earlierRead', 'later24'], 26: ['laterRead', 'overnight', 'earlier24'],
     27: ['earlierRead', 'overnight', 'later24', 'elapsed24'], 28: ['laterRead', 'earlierRead', 'overnight', 'earlier24'],
     29: ['laterRead', 'earlierRead', 'overnight', 'elapsed24', 'earlier24'],
-    30: ['laterRead', 'earlierRead', 'overnight', 'earlier24', 'later24']
+    30: ['laterRead', 'earlierRead', 'overnight', 'earlier24', 'later24'],
+    // 31–35: read the clock (with "morning / afternoon / evening") and answer in 24-hour time;
+    // the clock shows any minute; time between two clocks with no times written under them
+    31: ['laterRead', 'earlierRead', 'overnight', 'earlier24', 'later24Read'],
+    32: ['later24Read', 'earlierRead', 'overnight', 'earlier24'],
+    33: ['later24Read', 'earlier24Read', 'laterRead', 'overnight'],
+    34: ['later24Read', 'earlier24Read', 'elapsedAny', 'overnight'],
+    35: ['later24Read', 'earlier24Read', 'elapsedAny', 'earlierRead', 'overnightAny'],
+    // 36–40: two steps in one story (walk there, then shop; or work back from when you must arrive)
+    36: ['chain', 'later24Read', 'elapsedAny', 'overnightAny'],
+    37: ['chain', 'earlier24Read', 'elapsedAny', 'overnightAny'],
+    38: ['chain', 'later24Read', 'earlier24Read', 'elapsedAny', 'overnightAny'],
+    39: ['chain', 'chainBack', 'later24Read', 'elapsedAny', 'overnightAny'],
+    40: ['chain', 'chainBack', 'earlier24Read', 'elapsedAny', 'overnightAny'],
+    // 41–45: how long between a morning clock and an afternoon clock (read both, cross noon)
+    41: ['chain', 'chainBack', 'elapsed24Read', 'later24Read', 'overnightAny'],
+    42: ['chainBack', 'elapsed24Read', 'earlier24Read', 'elapsedAny', 'chain'],
+    43: ['chain', 'chainBack', 'elapsed24Read', 'overnightAny', 'earlier24Read'],
+    44: ['chain', 'chainBack', 'elapsed24Read', 'elapsedAny', 'later24Read'],
+    45: ['chain', 'chainBack', 'elapsed24Read', 'overnightAny', 'earlier24Read'],
+    // 46–50: two-step stories read from the clock and answered in 24-hour time, any minute
+    46: ['chain24', 'chainBack', 'elapsed24Read', 'overnightAny', 'later24Read'],
+    47: ['chain24', 'chainBack24', 'elapsed24Read', 'chain', 'earlier24Read'],
+    48: ['chain24', 'chainBack24', 'elapsed24Read', 'overnightAny', 'chainBack'],
+    49: ['chain24', 'chainBack24', 'elapsed24Read', 'overnightAny'],
+    50: ['chain24', 'chainBack24', 'elapsed24Read', 'overnightAny', 'chainBack']
   };
 
   var HOURS = ['', 'אחת', 'שתיים', 'שלוש', 'ארבע', 'חמש', 'שש', 'שבע', 'שמונה', 'תשע', 'עשר', 'אחת־עשרה', 'שתים־עשרה'];
@@ -388,11 +413,144 @@
     };
   }
 
+  /* ---------- levels 31–50 ---------- */
+  function partIcon(t) { return t < 18 * 60 ? 'sun' : 'moon'; }
+  function anyMin(L, R) { return L >= 33 ? R.randInt(0, 59) : R.randInt(0, 11) * 5; }
+  function opts24(ans, cands, R) {
+    var dis = pickDistinct(fmt24(ans), cands, fmt24, R, function () { return ans + R.randInt(-20, 20) * 5; });
+    return R.shuffle([ans].concat(dis).map(function (x) { return { key: fmt24(x), main: fmt24(x), sub: '' }; }));
+  }
+  function opts12(ans, cands, R) {
+    var dis = pickDistinct(fmt12(ans), cands.map(norm12), fmt12, R, function () { return norm12(ans + R.randInt(1, 20) * 5); });
+    return R.shuffle([ans].concat(dis).map(function (x) { return { key: fmt12(x), main: fmt12(x), sub: '' }; }));
+  }
+  function readAs24(t) {
+    return 'השעון מראה ' + ltr(fmt12(t)) + ' ' + partOfDay(t) + ', כלומר ' + ltr(fmt24(t)) + '. ';
+  }
+
+  /* The time is only on the clock (with "בבוקר / אחר הצהריים / בערב" above it); answer in 24-hour time. */
+  function later24ReadQ(L, R, back) {
+    var t = back ? R.randInt(12, 22) * 60 + anyMin(L, R) : R.randInt(9, 19) * 60 + anyMin(L, R);
+    var d = R.randInt(6, 48) * 5;
+    if (back) d = Math.min(d, t - 6 * 60);
+    else d = Math.min(d, 23 * 60 + 55 - t);
+    var ans = back ? t - d : t + d;
+    var cands = [];
+    if (ans >= 780) cands.push(ans - 720);                           // written as on the 12-hour clock
+    if (!back && minOf(t) + d % 60 >= 60) cands.push(ans - 60);       // forgot to carry the hour
+    if (back && minOf(t) < d % 60) cands.push(ans + 60);              // forgot to borrow the hour
+    cands = cands.concat(R.shuffle([back ? t + d : t - d, ans + 1, ans - 1, ans + 10, ans - 10, ans + 60]));
+    return {
+      kind: back ? 'earlier24Read' : 'later24Read', clocks: [{ t: norm12(t), label: partOfDay(t), sun: partIcon(t) }],
+      status: back ? 'מה הייתה השעה לפני ' + dur(d) + '?' : 'מה תהיה השעה בעוד ' + dur(d) + '?',
+      prompt: 'קראו את השעון, וענו בשעון של 24 שעות.',
+      mode: 'digits', answer: fmt24(ans), answerText: fmt24(ans), options: opts24(ans, cands, R),
+      explain: readAs24(t) + (back ? subExplain(t, d, fmt24) : addExplain(t, d, fmt24)),
+      check: { t: t, d: d, back: back, ans: ans }
+    };
+  }
+
+  /* Two clocks, any minute, and no times written: read both and say how long passed. */
+  function elapsedAnyQ(L, R) {
+    var t1 = R.randInt(1, 11) * 60 + R.randInt(0, 59);
+    var d = R.randInt(25, 330);
+    if (d % 5 === 0) d += R.randInt(1, 4);
+    var t2 = t1 + d;
+    return {
+      kind: 'elapsedAny', clocks: [{ t: t1, label: 'התחלה' }, { t: t2, label: 'סוף' }],
+      status: 'כמה זמן עבר מהשעון הראשון עד השני?',
+      prompt: 'קראו את שני השעונים (פחות מ־6 שעות)',
+      mode: 'dur', answer: dur(d), answerText: dur(d), options: durOptionsFine(d, R),
+      explain: elapsedExplain(t1, t2, fmt12),
+      check: { t1: t1, t2: t2, d: d }
+    };
+  }
+
+  /* Like durOptions, but with one-minute look-alikes too. */
+  function durOptionsFine(d, R) {
+    var cands = R.shuffle([d + 60, d - 60, d + 1, d - 1, d + 10, d - 10]).concat([d + 5, d - 5, d + 30, d - 30]);
+    var dis = pickDistinct(dur(d), cands, function (x) { return x > 0 ? dur(x) : null; }, R, function () {
+      var x = d + R.randInt(-12, 12) * 5; return x > 0 ? x : null;
+    }).filter(function (x) { return x; });
+    return R.shuffle([d].concat(dis).map(function (x) { return { key: dur(x), main: dur(x), sub: '', rtl: true }; }));
+  }
+
+  /* Over midnight with any minute: 22:47 to 6:09. */
+  function overnightAnyQ(L, R) {
+    var t1 = R.randInt(20, 23) * 60 + R.randInt(0, 59);
+    var t2 = 1440 + R.randInt(4, 8) * 60 + R.randInt(0, 59);
+    var d = t2 - t1;
+    var trip = R.pick(NIGHTS);
+    return {
+      kind: 'overnightAny', clocks: [], digital: [t1, t2],
+      status: trip[2],
+      prompt: trip[0] + ltr(fmt24(t1)) + (t1 < 22 * 60 ? ' בערב' : ' בלילה') + trip[1] + ltr(fmt24(t2)) + ' למחרת.',
+      mode: 'dur', answer: dur(d), answerText: dur(d), options: durOptionsFine(d, R),
+      explain: elapsedExplain(t1, t2, fmt24),
+      check: { t1: t1, t2: t2, d: d }
+    };
+  }
+
+  var CHAINS = [
+    ['יצאנו בשעה שבשעון: ', ' הליכה ועוד ', ' קניות.', 'מתי סיימנו לקנות?'],
+    ['העוגה נכנסה לתנור בשעה שבשעון: ', ' אפייה ועוד ', ' צינון.', 'מתי אוכלים את העוגה?'],
+    ['הרכבת יצאה בשעה שבשעון: ', ' נסיעה ועוד ', ' באוטובוס.', 'באיזו שעה הגענו?']
+  ];
+  var CHAINS_BACK = [
+    ['התור לרופא בשעה שבשעון. נסיעה ', ' והתארגנות ', '.', 'מתי מתחילים להתארגן?'],
+    ['האורחים מגיעים בשעה שבשעון. בישול ', ' ועריכת שולחן ', '.', 'מתי מתחילים לבשל?'],
+    ['ההצגה בשעה שבשעון. נסיעה ', ' והליכה מהחניה ', '.', 'מתי יוצאים מהבית?']
+  ];
+
+  /* Two steps in one story; the starting (or arrival) time is only on the clock. h24: answer in 24-hour time. */
+  function chainQ(L, R, back, h24) {
+    var t = (h24 ? (back ? R.randInt(13, 21) : R.randInt(9, 17)) : R.randInt(1, 12)) * 60 + (L >= 39 ? R.randInt(0, 59) : R.randInt(0, 11) * 5);
+    var d1 = R.randInt(3, 30) * 5, d2 = R.randInt(3, 18) * 5;
+    var d = d1 + d2;
+    var ans = back ? t - d : t + d;
+    var f = h24 ? fmt24 : fmt12;
+    var st = back ? R.pick(CHAINS_BACK) : R.pick(CHAINS);
+    var cands = [back ? ans + d2 : ans - d2, back ? ans + d1 : ans - d1, back ? t + d : t - d, ans + 1, ans - 1, ans + 60, ans - 60];
+    if (h24 && ans >= 780) cands.unshift(ans - 720);
+    var options = h24 ? opts24(ans, cands, R) : opts12(norm12(ans), cands, R);
+    var start = (h24 ? readAs24(t) : 'השעון מראה ' + ltr(fmt12(t)) + '. ') + 'ביחד ' + dur(d1) + ' ועוד ' + dur(d2) + ' = ' + dur(d) + '. ';
+    return {
+      kind: (back ? 'chainBack' : 'chain') + (h24 ? '24' : ''),
+      clocks: [h24 ? { t: norm12(t), label: partOfDay(t), sun: partIcon(t) } : { t: norm12(t) }],
+      status: st[3],
+      prompt: st[0] + dur(d1) + st[1] + dur(d2) + st[2] + (h24 ? ' ענו ב־24 שעות.' : ''),
+      mode: 'digits', answer: f(h24 ? ans : norm12(ans)), answerText: f(h24 ? ans : norm12(ans)), options: options,
+      explain: start + (back ? subExplain(t, d, f) : addExplain(t, d, f)),
+      check: { t: t, d: d, back: back, ans: ans }
+    };
+  }
+
+  /* A morning clock and an afternoon clock: how long between them (across noon, up to 10 hours)? */
+  function elapsed24ReadQ(L, R) {
+    var t1 = R.randInt(6, 11) * 60 + R.randInt(0, 59);
+    var t2 = R.randInt(12, 17) * 60 + R.randInt(0, 59);
+    var d = t2 - t1;
+    var opts = durOptionsFine(d, R);
+    return {
+      kind: 'elapsed24Read', clocks: [{ t: norm12(t1), label: 'בבוקר', sun: 'sun' }, { t: norm12(t2), label: 'אחר הצהריים', sun: 'sun' }],
+      status: 'כמה זמן עבר מהשעון הראשון עד השני?',
+      prompt: 'הימני בבוקר, השמאלי אחר הצהריים',
+      mode: 'dur', answer: dur(d), answerText: dur(d), options: opts,
+      explain: elapsedExplain(t1, t2, fmt24),
+      check: { t1: t1, t2: t2, d: d }
+    };
+  }
+
   function makeQuestion(level, R, prevKind) {
     var L = clampLevel(level);
     var pool = POOLS[L];
     var kind = R.pick(pool), tries = 0;
     while (pool.length > 1 && kind === prevKind && tries++ < 10) kind = R.pick(pool);
+    if (kind === 'later24Read' || kind === 'earlier24Read') return later24ReadQ(L, R, kind === 'earlier24Read');
+    if (kind === 'elapsedAny') return elapsedAnyQ(L, R);
+    if (kind === 'overnightAny') return overnightAnyQ(L, R);
+    if (kind === 'elapsed24Read') return elapsed24ReadQ(L, R);
+    if (kind.slice(0, 5) === 'chain') return chainQ(L, R, kind.indexOf('Back') !== -1, kind.slice(-2) === '24');
     if (kind === 'laterRead' || kind === 'earlierRead') return laterReadQ(L, R, kind);
     if (kind === 'earlier24') return earlier24Q(L, R);
     if (kind === 'overnight') return overnightQ(L, R);
@@ -437,6 +595,7 @@
       'הסתכלו על השעון: המחוג הקצר מראה שעות, המחוג הארוך מראה דקות.',
       'קראו את השאלה שמעל השעון.',
       'בחרו את התשובה הנכונה מבין ארבע האפשרויות.',
+      'ברמות הגבוהות קוראים את השעון בעצמכם ועונים בשעון של 24 שעות, ויש שאלות של שני שלבים.',
       'אחרי כל תשובה יופיע הסבר. לחצו "לשאלה הבאה" כשתהיו מוכנים.'
     ],
     css: [
@@ -469,7 +628,9 @@
       '.g-choice.is-correct .ct-sub{color:var(--good)}.g-choice.is-wrong .ct-sub{color:var(--bad)}',
       '.ct-words .ct-main{font-size:1.25rem}',
       '.ct-explain{margin:0;font-size:1.15rem;font-weight:700;text-align:center;background:var(--sun-soft);color:var(--ink);',
-      'padding:.4rem .9rem;border-radius:var(--radius-sm);max-width:100%;text-wrap:balance;line-height:1.4}'
+      'padding:.4rem .9rem;border-radius:var(--radius-sm);max-width:100%;text-wrap:balance;line-height:1.4}',
+      '.ct-clocks.ct-small .ct-svg{width:min(100%,8rem,18svh)}',
+      '.ct-explain.ct-long{font-size:1.05rem;line-height:1.3;padding-block:.3rem}'
     ].join(''),
     generate: makeQuestion,
     _util: { fmt12: fmt12, fmt24: fmt24, words: words, dur: dur, norm12: norm12 },
@@ -544,7 +705,11 @@
           if (ok) correct++;
           else btn.classList.add('is-wrong');
           // one short explanation line takes the place of the prompt (and the hand legend)
-          var explain = ctx.el('p', { class: 'ct-explain', 'aria-live': 'polite' }, q.explain);
+          // a long explanation gets a smaller clock (and slightly smaller text) so it all fits a phone screen
+          var long = q.explain.length > 90;
+          var explain = ctx.el('p', { class: 'ct-explain' + (long ? ' ct-long' : ''), 'aria-live': 'polite' }, q.explain);
+          var clocksEl = root.querySelector('.ct-clocks');
+          if (long && clocksEl) clocksEl.classList.add('ct-small');
           if (legendEl) legendEl.remove();
           if (promptEl) promptEl.replaceWith(explain); else root.insertBefore(explain, grid);
           var nextBtn = ctx.el('button', {

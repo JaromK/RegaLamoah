@@ -5,7 +5,7 @@
   var ROUNDS = 6;
   var MIN_TAP = 48; // px, smallest exit slot / cell we allow (board is at most 5 × 5)
 
-  // Per level (1–30): board size, number of bumpers, the fewest bumpers the ball must hit,
+  // Per level (1–50): board size, number of bumpers, the fewest bumpers the ball must hit,
   // and whether the bumpers are hidden while answering (memorise first).
   var LEVELS = [
     { n: 4, bumpers: 1, hits: 1, hide: false }, // 1
@@ -38,7 +38,30 @@
     { n: 5, bumpers: 9, hits: 6, hide: true },  // 27
     { n: 5, bumpers: 9, hits: 7, hide: true },  // 28
     { n: 5, bumpers: 10, hits: 7, hide: true }, // 29
-    { n: 5, bumpers: 10, hits: 8, hide: true }  // 30
+    { n: 5, bumpers: 10, hits: 8, hide: true }, // 30
+    // 31–35: more lines (b4/h4: bumpers and hits when a phone screen only has room for a 4 × 4 board)
+    { n: 5, bumpers: 11, hits: 8, hide: true, b4: 6, h4: 6 },   // 31
+    { n: 5, bumpers: 11, hits: 9, hide: true, b4: 6, h4: 6 },   // 32
+    { n: 5, bumpers: 11, hits: 9, hide: true, b4: 6, h4: 7 },   // 33
+    { n: 5, bumpers: 12, hits: 9, hide: true, b4: 7, h4: 7 },   // 34
+    { n: 5, bumpers: 12, hits: 10, hide: true, b4: 7, h4: 7 },  // 35
+    // 36–40: blind = the entry arrow appears only after the lines are hidden, so remember the whole board
+    { n: 5, bumpers: 11, hits: 9, hide: true, b4: 6, h4: 7, blind: true },   // 36
+    { n: 5, bumpers: 12, hits: 9, hide: true, b4: 7, h4: 7, blind: true },   // 37
+    { n: 5, bumpers: 12, hits: 10, hide: true, b4: 7, h4: 8, blind: true },  // 38
+    { n: 5, bumpers: 13, hits: 10, hide: true, b4: 7, h4: 8, blind: true },  // 39
+    { n: 5, bumpers: 13, hits: 10, hide: true, b4: 8, h4: 8, blind: true },  // 40
+    // 41–50: two balls on the same hidden board; say where each one leaves before any is shown
+    { n: 5, bumpers: 11, hits: 8, hide: true, b4: 6, h4: 6, blind: true, two: true },   // 41
+    { n: 5, bumpers: 11, hits: 9, hide: true, b4: 6, h4: 7, blind: true, two: true },   // 42
+    { n: 5, bumpers: 12, hits: 9, hide: true, b4: 7, h4: 7, blind: true, two: true },   // 43
+    { n: 5, bumpers: 12, hits: 10, hide: true, b4: 7, h4: 7, blind: true, two: true },  // 44
+    { n: 5, bumpers: 12, hits: 10, hide: true, b4: 7, h4: 8, blind: true, two: true },  // 45
+    { n: 5, bumpers: 13, hits: 10, hide: true, b4: 7, h4: 8, blind: true, two: true },  // 46
+    { n: 5, bumpers: 13, hits: 10, hide: true, b4: 8, h4: 8, blind: true, two: true },  // 47
+    { n: 5, bumpers: 13, hits: 11, hide: true, b4: 8, h4: 9, blind: true, two: true },  // 48
+    { n: 5, bumpers: 14, hits: 11, hide: true, b4: 8, h4: 9, blind: true, two: true },  // 49
+    { n: 5, bumpers: 14, hits: 12, hide: true, b4: 8, h4: 9, blind: true, two: true }   // 50
   ];
 
   // Edge slots: T (top, by column), B (bottom), L (left, by row), R (right). Grid is always drawn LTR.
@@ -105,6 +128,28 @@
     return best;
   }
 
+  // Levels 41+: a second ball from another opening. Neither ball may leave where the other comes in,
+  // and they leave from different openings.
+  function makeDouble(n, bumpers, minHits, rnd) {
+    for (var attempt = 0; attempt < 200; attempt++) {
+      var R = makeRound(n, bumpers, minHits, rnd);
+      if (!R) continue;
+      var slotsList = [];
+      EDGES.forEach(function (e) { for (var i = 0; i < n; i++) slotsList.push({ edge: e, i: i }); });
+      var e1 = R.entry, x1 = R.path.exit;
+      var same = function (a, b) { return a.edge === b.edge && a.i === b.i; };
+      var best = null;
+      rnd.shuffle(slotsList).forEach(function (s) {
+        if (same(s, e1) || same(s, x1)) return;
+        var p = trace(n, R.board, s.edge, s.i);
+        if (!p || same(p.exit, s) || same(p.exit, e1) || same(p.exit, x1) || p.hits < 2) return;
+        if (!best || p.hits > best.path.hits) best = { entry: s, path: p };
+      });
+      if (best && best.path.hits >= (n === 4 ? 2 : Math.min(minHits - 4, 5))) { R.second = best; return R; }
+    }
+    return null;
+  }
+
   var css = [
     '.bp-wrap{width:calc(100% + 1.5rem);max-width:min(28rem,calc(100svh - 15rem));min-width:17rem;margin-inline:-.75rem;}',
     '.bp-board{--n:4;--slot:3rem;display:grid;direction:ltr;gap:4px;width:100%;',
@@ -131,6 +176,11 @@
     '.bp-ball{position:relative;z-index:1;width:55%;height:55%;max-width:1.6rem;max-height:1.6rem;border-radius:50%;',
     'background:var(--sun);border:2px solid var(--ink);}',
     '.bp-slot .bp-ball{position:absolute;}',
+    '.bp-blind .bp-slot.bp-later{background:var(--surface);border-color:var(--line);color:transparent;}',
+    // while the entry is still a secret it looks like every other opening
+    '.bp-blind .bp-slot.bp-later::after{content:"";position:absolute;width:.55rem;height:.55rem;border-radius:50%;background:var(--line);}',
+    '.bp-slot.bp-picked{background:var(--sun-soft);border-color:var(--sun);color:var(--ink);border-width:3px;font-size:1.3rem;}',
+    '.bp-entry{white-space:nowrap;}',
     '@media (prefers-reduced-motion: reduce){.bp-cell{transition:none;}}'
   ].join('');
 
@@ -145,10 +195,11 @@
       'כדור נכנס ללוח מהחץ ונע בקו ישר.',
       'כשהכדור פוגע בקו אלכסוני הוא פונה הצידה.',
       'לחצו על הפתח שממנו הכדור ייצא מהלוח.',
-      'בשלבים מתקדמים: זכרו איפה הקווים, ואז הם יוסתרו.'
+      'בשלבים מתקדמים: זכרו איפה הקווים, ואז הם יוסתרו.',
+      'ברמות הגבוהות הכניסה מופיעה רק אחרי שהקווים מוסתרים, ולפעמים יש שני כדורים: בחרו קודם את היציאה של כדור 1 ואז של כדור 2.'
     ],
     css: css,
-    _model: { LEVELS: LEVELS, trace: trace, makeRound: makeRound },
+    _model: { LEVELS: LEVELS, trace: trace, makeRound: makeRound, makeDouble: makeDouble },
     start: function (root, ctx) {
       var el = ctx.el;
       var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
@@ -159,7 +210,9 @@
       var avail = Math.min(contentWidth(root) + 1.5 * rem, 28 * rem);
       try { if (window.innerHeight) avail = Math.min(avail, Math.max(17 * rem, window.innerHeight - 15 * rem)); } catch (e) { /* ignore */ }
       while (n > 4 && (avail - 2 * 3 * rem - (n + 1) * 4) / n < MIN_TAP) n--;
-      var bumpers = Math.min(spec.bumpers, n === 4 ? 5 : 10);
+      var bumpers = Math.min(spec.bumpers, n === 4 ? (spec.b4 || 5) : 14);
+      var minHits = n === 4 && spec.h4 ? spec.h4 : spec.hits;
+      var answers = 0;   // two balls in a round on levels 41+, so count every answer
 
       var round = 0, score = 0;
 
@@ -167,8 +220,9 @@
         if (round >= ROUNDS) {
           ctx.finish({
             correct: score,
-            total: ROUNDS,
-            note: 'מצאתם את היציאה הנכונה ב-' + score + ' מתוך ' + ROUNDS + ' לוחות'
+            total: answers,
+            note: spec.two ? 'מצאתם את היציאה הנכונה של ' + score + ' מתוך ' + answers + ' כדורים'
+              : 'מצאתם את היציאה הנכונה ב-' + score + ' מתוך ' + ROUNDS + ' לוחות'
           });
           return;
         }
@@ -179,21 +233,27 @@
 
       function playRound() {
         root.innerHTML = '';
-        var R = makeRound(n, bumpers, spec.hits, ctx);
+        var R = (spec.two && makeDouble(n, bumpers, minHits, ctx)) || makeRound(n, bumpers, minHits, ctx);
+        var balls = [{ entry: R.entry, path: R.path }].concat(R.second ? [R.second] : []);
+        var picks = [];
         var accepting = false;
         var slots = {};
         var cellEls = [];
 
         var grid = el('div', { class: 'bp-board', style: { '--n': n } });
         function corner() { return el('div', { class: 'bp-corner', 'aria-hidden': 'true' }); }
+        function entryNo(edge, i) {
+          for (var q = 0; q < balls.length; q++) if (balls[q].entry.edge === edge && balls[q].entry.i === i) return q + 1;
+          return 0;
+        }
         function slot(edge, i) {
-          var isEntry = R.entry.edge === edge && R.entry.i === i;
+          var no = entryNo(edge, i), isEntry = no > 0;
           var pos = (edge === 'T' || edge === 'B') ? 'טור ' + (i + 1) : 'שורה ' + (i + 1);
           var b = el('button', {
-            class: 'bp-slot' + (isEntry ? ' bp-entry' : ''), type: 'button', disabled: true,
-            'aria-label': isEntry ? 'כאן הכדור נכנס (' + EDGE_NAME[edge] + ', ' + pos + ')' : 'יציאה ' + EDGE_NAME[edge] + ', ' + pos,
+            class: 'bp-slot' + (isEntry ? ' bp-entry' + (spec.blind ? ' bp-later' : '') : ''), type: 'button', disabled: true,
+            'aria-label': isEntry ? 'כאן ' + (balls.length > 1 ? 'כדור ' + no : 'הכדור') + ' נכנס (' + EDGE_NAME[edge] + ', ' + pos + ')' : 'יציאה ' + EDGE_NAME[edge] + ', ' + pos,
             onclick: function () { onPick(edge, i); }
-          }, isEntry ? IN_ARROW[edge] : el('span', { class: 'bp-dot' }));
+          }, isEntry ? (balls.length > 1 ? IN_ARROW[edge] + no : IN_ARROW[edge]) : el('span', { class: 'bp-dot' }));
           slots[slotKey(edge, i)] = b;
           return el('div', { class: (edge === 'T' || edge === 'B') ? 'bp-tb' : 'bp-lr' }, b);
         }
@@ -220,8 +280,13 @@
         var wrap = el('div', { class: 'bp-wrap' }, grid);
         root.appendChild(wrap);
 
+        function askText() {
+          if (balls.length > 1) return 'לאן ייצא כדור ' + (picks.length + 1) + '? דמיינו את הקווים';
+          return spec.hide ? 'לאן הכדור ייצא? דמיינו את הקווים' : 'לאן הכדור ייצא?';
+        }
         function startAnswer() {
-          ctx.setStatus(spec.hide ? 'לאן הכדור ייצא? דמיינו את הקווים' : 'לאן הכדור ייצא?');
+          grid.classList.remove('bp-blind');
+          ctx.setStatus(askText());
           Object.keys(slots).forEach(function (k) {
             if (!slots[k].classList.contains('bp-entry')) slots[k].disabled = false;
           });
@@ -229,7 +294,8 @@
         }
 
         if (spec.hide) {
-          ctx.setStatus('זכרו איפה ' + bumpers + ' הקווים');
+          ctx.setStatus(spec.blind ? 'זכרו את כל ' + bumpers + ' הקווים, הכניסה תופיע אחר כך' : 'זכרו איפה ' + bumpers + ' הקווים');
+          if (spec.blind) grid.classList.add('bp-blind');
           var doneResolve = null;
           var readyBtn = el('button', {
             class: 'btn btn-primary btn-lg', type: 'button',
@@ -251,21 +317,45 @@
 
         function onPick(edge, i) {
           if (!accepting) return;
-          accepting = false;
           ctx.sound('tap');
-          Object.keys(slots).forEach(function (k) { slots[k].disabled = true; });
-          var ex = R.path.exit;
-          var ok = ex.edge === edge && ex.i === i;
-          if (ok) score++;
           var picked = slots[slotKey(edge, i)];
-          picked.classList.add(ok ? 'is-correct' : 'is-wrong');
-          if (!ok) picked.textContent = '✗';
+          if (balls.length > 1 && picks.length === 0) {
+            // first of two balls: mark the choice and ask about the second ball (the same opening may be chosen again)
+            picks.push({ edge: edge, i: i });
+            picked.classList.add('bp-picked');
+            picked.textContent = '1';
+            ctx.setStatus(askText());
+            return;
+          }
+          accepting = false;
+          picks.push({ edge: edge, i: i });
+          Object.keys(slots).forEach(function (k) { slots[k].disabled = true; });
           grid.classList.remove('bp-hidden');
-          ctx.setStatus('כך הכדור עובר בלוח');
-          animate().then(function () {
-            var exitSlot = slots[slotKey(ex.edge, ex.i)];
-            exitSlot.classList.remove('is-wrong');
-            exitSlot.classList.add('is-correct');
+          if (balls.length > 1) picked.textContent = picks[0].edge === edge && picks[0].i === i ? '1 2' : '2';
+          var oks = balls.map(function (b, q) { return b.path.exit.edge === picks[q].edge && b.path.exit.i === picks[q].i; });
+          var p = Promise.resolve();
+          balls.forEach(function (b, q) {
+            p = p.then(function () {
+              ctx.setStatus(balls.length > 1 ? 'כך עובר כדור ' + (q + 1) : 'כך הכדור עובר בלוח');
+              var mine = slots[slotKey(picks[q].edge, picks[q].i)];
+              if (!oks[q]) { mine.classList.remove('bp-picked'); mine.classList.add('is-wrong'); if (balls.length === 1) mine.textContent = '✗'; }
+              return animate(b.path, q);
+            }).then(function () {
+              var exitSlot = slots[slotKey(b.path.exit.edge, b.path.exit.i)];
+              exitSlot.classList.remove('is-wrong', 'bp-picked');
+              exitSlot.classList.add('is-correct');
+              if (balls.length > 1) exitSlot.textContent = String(q + 1);
+              answers++;
+              if (oks[q]) score++;
+            });
+          });
+          p.then(function () {
+            var ok = oks.every(Boolean);
+            if (balls.length > 1) {
+              var good = oks.filter(Boolean).length;
+              ctx.setStatus(ok ? 'מצוין! שני הכדורים יצאו בדיוק שם' : good ? 'כדור אחד נכון. הפתחים הירוקים הם היציאות' : 'הכדורים יצאו בפתחים הירוקים');
+              return ctx.feedback(ok, ok ? undefined : 'הכדורים יצאו בפתחים הירוקים');
+            }
             ctx.setStatus(ok ? 'מצוין! הכדור יצא בדיוק שם' : 'הכדור יצא בפתח הירוק');
             return ctx.feedback(ok, ok ? undefined : 'הכדור יצא בפתח הירוק');
           }).then(function () {
@@ -273,10 +363,10 @@
           }).then(nextRound);
         }
 
-        function animate() {
-          var ball = el('span', { class: 'bp-ball', 'aria-hidden': 'true' });
+        function animate(path, q) {
+          var ball = el('span', { class: 'bp-ball' + (q ? ' bp-ball2' : ''), 'aria-hidden': 'true' });
           var p = Promise.resolve();
-          var steps = R.path.cells;
+          var steps = path.cells;
           steps.forEach(function (rc) {
             p = p.then(function () {
               var cell = cellEls[rc[0]][rc[1]];
@@ -286,9 +376,15 @@
             });
           });
           return p.then(function () {
-            var ex = R.path.exit;
+            var ex = path.exit;
             slots[slotKey(ex.edge, ex.i)].appendChild(ball);
             return ctx.wait(350);
+          }).then(function () {
+            if (balls.length > 1) {
+              // clear the trail so the second ball's path is easy to follow
+              if (ball.parentNode) ball.parentNode.removeChild(ball);
+              cellEls.forEach(function (row) { row.forEach(function (c) { c.classList.remove('bp-trail'); }); });
+            }
           });
         }
       }

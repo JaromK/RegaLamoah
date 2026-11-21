@@ -9,7 +9,7 @@
   var DIV = '÷';     // ÷
   var SP = ' ';      // thin space keeps long expressions on one line
 
-  // Per level (1–30): which expression kinds may appear, the value range and how
+  // Per level (1–50): which expression kinds may appear, the value range and how
   // close the two sides are (maxDiff). Each step adds a little size or a new kind.
   var LEVELS = [
     { kinds: ['num'], min: 2, max: 20, diff: 6, noEqual: true },               // 1
@@ -41,7 +41,31 @@
     { kinds: ['div2', 'mulPlus', 'mulMul', 'bigAdd'], min: 12, max: 140, diff: 1, mulMax: 12, cMax: 40 },        // 27
     { kinds: ['div2', 'mulAdd', 'mulSub', 'mulMul', 'mulPlus', 'bigSub'], min: 15, max: 160, diff: 1, mulMax: 12, cMax: 40 }, // 28
     { kinds: ['div2', 'mulAdd', 'mulMul', 'mulPlus', 'bigAdd', 'bigSub'], min: 20, max: 180, diff: 1, mulMax: 12, cMax: 45 }, // 29
-    { kinds: ['div2', 'mulAdd', 'mulSub', 'mulMul', 'mulPlus', 'bigAdd', 'bigSub'], min: 20, max: 200, diff: 1, mulMax: 12, cMax: 50 } // 30
+    { kinds: ['div2', 'mulAdd', 'mulSub', 'mulMul', 'mulPlus', 'bigAdd', 'bigSub'], min: 20, max: 200, diff: 1, mulMax: 12, cMax: 50 }, // 30
+    // 31–40: the order of operations matters (7 + 3 ✕ 4 is 19, not 40), brackets, two-digit times one digit,
+    // and more pairs of the same kind (same: chance both boards use the same kind of exercise)
+    { kinds: ['addMul', 'mulAdd', 'mulSub', 'mulMul', 'mulPlus', 'bigSub'], min: 20, max: 200, diff: 1, mulMax: 12, cMax: 50 },          // 31
+    { kinds: ['addMul', 'subMul', 'mulAdd', 'mulPlus', 'bigAdd', 'div2'], min: 20, max: 200, diff: 1, mulMax: 12, cMax: 60 },            // 32
+    { kinds: ['addMul', 'subMul', 'twoMul', 'mulMul', 'mulPlus', 'bigSub'], min: 30, max: 200, diff: 1, mulMax: 12, cMax: 60 },          // 33
+    { kinds: ['addMul', 'subMul', 'twoMul', 'paren', 'mulPlus', 'div2'], min: 30, max: 200, diff: 1, mulMax: 12, cMax: 60, same: 0.2 }, // 34
+    { kinds: ['addMul', 'subMul', 'twoMul', 'paren', 'mulMul', 'mulPlus'], min: 30, max: 220, diff: 1, mulMax: 12, cMax: 70, same: 0.3 }, // 35
+    { kinds: ['addMul', 'subMul', 'paren', 'mul3', 'twoMul', 'mulPlus'], min: 30, max: 220, diff: 1, mulMax: 12, cMax: 70, same: 0.35 }, // 36
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'mul3', 'twoMul'], min: 30, max: 240, diff: 1, mulMax: 12, cMax: 80, same: 0.4 }, // 37
+    { kinds: ['subMul', 'paren', 'parenSub', 'mul3', 'divAdd', 'twoMul'], min: 20, max: 240, diff: 1, mulMax: 12, cMax: 80, same: 0.45 }, // 38
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'divAdd', 'mulPlus'], min: 20, max: 250, diff: 1, mulMax: 12, cMax: 90, same: 0.5 }, // 39
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'mul3', 'divAdd', 'twoMul'], min: 20, max: 250, diff: 1, mulMax: 12, cMax: 90, same: 0.55 }, // 40
+    // 41–50: more "equal" pairs, and more and more pairs where working left to right without the
+    // order of operations (or ignoring the brackets) gives the wrong board (trap)
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'mul3', 'divAdd', 'twoMul'], min: 20, max: 260, diff: 1, mulMax: 12, cMax: 90, same: 0.55, eqRate: 0.2, trap: 0.3 }, // 41
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'mul3', 'divAdd', 'twoMul'], min: 20, max: 260, diff: 1, mulMax: 12, cMax: 90, same: 0.6, eqRate: 0.2, trap: 0.4 },  // 42
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'divAdd', 'mulPlus'], min: 20, max: 270, diff: 1, mulMax: 12, cMax: 100, same: 0.6, eqRate: 0.2, trap: 0.5 },       // 43
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'mul3', 'divAdd'], min: 20, max: 280, diff: 1, mulMax: 12, cMax: 100, same: 0.65, eqRate: 0.25, trap: 0.55 },      // 44
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'mul3', 'divAdd'], min: 20, max: 280, diff: 1, mulMax: 12, cMax: 100, same: 0.7, eqRate: 0.25, trap: 0.6 },       // 45
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'divAdd', 'twoMul'], min: 20, max: 290, diff: 1, mulMax: 12, cMax: 110, same: 0.7, eqRate: 0.25, trap: 0.65 },     // 46
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'divAdd'], min: 20, max: 290, diff: 1, mulMax: 12, cMax: 110, same: 0.75, eqRate: 0.25, trap: 0.7 },               // 47
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'divAdd'], min: 20, max: 300, diff: 1, mulMax: 12, cMax: 120, same: 0.8, eqRate: 0.25, trap: 0.75 },               // 48
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'divAdd'], min: 20, max: 300, diff: 1, mulMax: 12, cMax: 120, same: 0.85, eqRate: 0.25, trap: 0.8 },               // 49
+    { kinds: ['addMul', 'subMul', 'paren', 'parenSub', 'divAdd'], min: 20, max: 300, diff: 1, mulMax: 12, cMax: 120, same: 0.9, eqRate: 0.25, trap: 0.9 }                 // 50
   ];
 
   function ri(rng, a, b) { return a + Math.floor(rng() * (b - a + 1)); }
@@ -96,7 +120,7 @@
       case 'mulPlus': // a × b + c × d  (two products added)
         for (i = 0; i < 60; i++) {
           a = ri(rng, 2, mm); b = ri(rng, 2, mm);
-          c = ri(rng, 2, 9); var e = v - a * b - c;
+          c = ri(rng, 2, 9); var e = v - a * b;   // the second product is c × (e ÷ c)
           if (e < 0) continue;
           if (e % c === 0 && e / c >= 2 && e / c <= 9) return { text: j(a, TIMES, b, '+', c, TIMES, e / c), value: v };
         }
@@ -112,14 +136,55 @@
         if (v < 11 || v > 30) return null;
         b = ri(rng, 3, 9);
         return { text: j(v * b, DIV, b), value: v };
+      // levels 31+: 'naive' is what you get working left to right / ignoring the brackets (a common slip)
+      case 'addMul': // c + a × b  (the multiplication comes first)
+        for (i = 0; i < 40; i++) {
+          a = ri(rng, 2, mm); b = ri(rng, 2, mm); c = v - a * b;
+          if (c >= 2 && c <= cm) return { text: j(c, '+', a, TIMES, b), value: v, naive: (c + a) * b };
+        }
+        return null;
+      case 'subMul': // c − a × b
+        for (i = 0; i < 40; i++) {
+          a = ri(rng, 2, mm); b = ri(rng, 2, mm); c = v + a * b;
+          if (c > a + 1 && c <= 300) return { text: j(c, MINUS, a, TIMES, b), value: v, naive: (c - a) * b };
+        }
+        return null;
+      case 'paren': // (a + b) × c
+      case 'parenSub': // (a − b) × c
+        opts = [];
+        for (c = 2; c <= 9; c++) if (v % c === 0 && v / c >= 3 && v / c <= 40) opts.push(c);
+        if (!opts.length) return null;
+        c = pk(rng, opts); p = v / c;
+        if (kind === 'paren') { a = ri(rng, 1, p - 1); return { text: j('(' + a, '+', (p - a) + ')', TIMES, c), value: v, naive: a + (p - a) * c }; }
+        b = ri(rng, 2, Math.min(30, Math.max(2, p))); a = p + b;
+        return { text: j('(' + a, MINUS, b + ')', TIMES, c), value: v, naive: a - b * c };
+      case 'mul3': // a × b × c
+        opts = [];
+        for (a = 2; a <= 6; a++) for (b = 2; b <= 9; b++) if (v % (a * b) === 0 && v / (a * b) >= 2 && v / (a * b) <= 9) opts.push([a, b]);
+        if (!opts.length) return null;
+        p = pk(rng, opts);
+        return { text: j(p[0], TIMES, p[1], TIMES, v / (p[0] * p[1])), value: v };
+      case 'twoMul': // 23 × 4
+        opts = [];
+        for (b = 3; b <= 9; b++) if (v % b === 0 && v / b >= 13 && v / b <= 49 && (v / b) % 10 !== 0) opts.push(b);
+        if (!opts.length) return null;
+        b = pk(rng, opts);
+        return { text: j(v / b, TIMES, b), value: v };
+      case 'divAdd': // c + a ÷ b  (the division comes first)
+        for (i = 0; i < 40; i++) {
+          b = ri(rng, 2, 9); a = b * ri(rng, 2, 12); c = v - a / b;
+          if (c >= 2 && c <= cm) return { text: j(c, '+', a, DIV, b), value: v, naive: (c + a) / b };
+        }
+        return null;
     }
     return null;
   }
 
   function makeTrial(level, rng, wantEqual) {
     var spec = LEVELS[level - 1];
+    var wantTrap = !wantEqual && spec.trap && rng() < spec.trap;
     for (var tries = 0; tries < 400; tries++) {
-      var kL = pk(rng, spec.kinds), kR = pk(rng, spec.kinds);
+      var kL = pk(rng, spec.kinds), kR = spec.same && rng() < spec.same ? kL : pk(rng, spec.kinds);
       var vL = ri(rng, spec.min, spec.max);
       var eq = wantEqual && !spec.noEqual;
       var vR = eq ? vL : vL + (rng() < 0.5 ? -1 : 1) * ri(rng, 1, spec.diff);
@@ -127,6 +192,11 @@
       var L = build(kL, vL, spec, rng), R = build(kR, vR, spec, rng);
       if (!L || !R || L.text === R.text) continue;
       if (eq && kL === 'num' && kR === 'num') continue;
+      if (wantTrap && tries < 350) {
+        // a trap pair: the slip (left to right, or ignoring the brackets) points to the other board
+        var nL = L.naive === undefined ? L.value : L.naive, nR = R.naive === undefined ? R.value : R.naive;
+        if ((nL > nR) === (L.value > R.value) || nL === nR) continue;
+      }
       if (rng() < 0.5) { var t = L; L = R; R = t; }
       return { a: L, b: R, answer: L.value > R.value ? 'a' : (L.value < R.value ? 'b' : 'eq') };
     }
@@ -177,6 +247,7 @@
       'יופיעו שני לוחות, ובכל אחד מספר או תרגיל.',
       'חשבו בראש כמה יוצא בכל לוח.',
       'לחצו על הלוח שהתוצאה שלו גדולה יותר.',
+      'ברמות הגבוהות שימו לב לסדר הפעולות: כפל וחילוק לפני חיבור וחיסור, ומה שבסוגריים קודם.',
       'אם התוצאות שוות, לחצו "שווים". אין מגבלת זמן.'
     ],
     css: css,
@@ -187,7 +258,7 @@
       var level = Math.max(1, Math.min(LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var rng = Math.random;
       // Exactly ~15% equal trials, spread randomly through the session.
-      var equalCount = LEVELS[level - 1].noEqual ? 0 : Math.round(TRIALS * EQUAL_RATE);
+      var equalCount = LEVELS[level - 1].noEqual ? 0 : Math.round(TRIALS * (LEVELS[level - 1].eqRate || EQUAL_RATE));
       var plan = [];
       for (var i = 0; i < TRIALS; i++) plan.push(i < equalCount);
       plan = ctx.shuffle(plan);
