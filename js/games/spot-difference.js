@@ -13,17 +13,11 @@
   }
 
   /* [rows, cols] per level (index = level). */
-  var SIZES = [null,
-    [2, 3], [3, 3], [3, 3], [3, 4], [3, 4],
-    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
-    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
-    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
-    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
-    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],
-    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4],   // 31–40
-    [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [4, 4]];  // 41–50
-  /* Capped at 4 × 4 so both pictures fit one phone screen with big, well-spaced tiles; from
-     level 6 the difficulty keeps rising through ever more similar changes (see kindsFor). */
+  /* [rows, cols] per level (index = level): from level 4 a 3 × 4 picture. Kept small in count so that on a phone
+     both pictures fit one screen with big tiles (older eyes); difficulty keeps rising through ever more similar
+     changes (see kindsFor). */
+  var SIZES = [null, [2, 3], [3, 3], [3, 3]];
+  for (var lv = 4; lv <= 50; lv++) SIZES.push([3, 4]);
 
   /* Which kinds of change can appear at each level (similarity rises with level). */
   function kindsFor(L) {
@@ -233,15 +227,18 @@
     ],
     css: [
       '.sd-wrap{display:flex;flex-direction:column;align-items:center;gap:.6rem;width:100%}',
-      '.sd-panel{display:flex;flex-direction:column;align-items:center;gap:4px;max-width:100%}',
-      '.sd-panel-a{flex-direction:row;gap:.6rem;padding:6px 10px;border-radius:var(--radius);background:var(--surface-2);border:1px solid var(--line)}',
-      '.sd-label{font-weight:800;font-size:1.1rem;color:var(--ink);line-height:1.2;text-align:center}',
-      '.sd-grid{display:grid;grid-template-columns:repeat(var(--cols),var(--sd-t));gap:.6rem;direction:ltr}',
-      '.sd-panel-a .sd-grid{gap:4px}',
+      /* both pictures the same, big size; a short label above each */
+      '.sd-panel{display:flex;flex-direction:column;align-items:center;gap:2px;max-width:100%;padding:2px 4px 4px;border-radius:var(--radius);border:1px solid var(--line)}',
+      '.sd-panel-a{background:var(--surface-2)}',
+      '.sd-label{font-weight:800;font-size:1rem;color:var(--ink);line-height:1.25;text-align:center}',
+      '.sd-grid{display:grid;grid-template-columns:repeat(var(--cols),var(--sd-t));gap:5px;direction:ltr}',
+      /* a computer screen: the two pictures side by side */
+      '.sd-grid{--sd-t:var(--tp)}',
+      '@media (min-width:760px){.sd-wrap{flex-direction:row;justify-content:center;align-items:center;gap:1.2rem}.sd-grid{--sd-t:var(--tw)}}',
       '.sd-next{font-size:1.2rem;padding-inline:2rem}',
       '.sd-tile{width:var(--sd-t);height:var(--sd-t);border-radius:var(--radius-sm);',
       'border:2px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;',
-      'padding:0;cursor:pointer;font-size:calc(var(--sd-t) * .6);line-height:1;transition:background-color .2s,border-color .2s}',
+      'padding:0;cursor:pointer;font-size:calc(var(--sd-t) * .64);line-height:1;transition:background-color .2s,border-color .2s}',
       '.sd-panel-a .sd-tile{cursor:default;border-width:1px}',
       '.sd-tile:hover:not(:disabled):not(div){border-color:var(--attention)}',
       '.sd-tile:disabled{cursor:default}',
@@ -268,14 +265,16 @@
 
         root.innerHTML = '';
         // Picture A is look-only and compact; only picture B is tapped, with big tiles.
-        var tileB = 'min(' + (q.cols <= 3 ? 72 : 58) + 'px, calc((100vw - 58px - ' + (q.cols - 1) * 0.6 + 'rem) / ' + q.cols + '))';
-        var tileA = q.cols <= 3 ? '46px' : '38px';
+        // one tile size for both pictures: as big as the width and the height of the screen allow
+        var tileP = 'min(' + (q.cols <= 3 ? 96 : 90) + 'px, calc((100vw - 4.3rem - ' + (q.cols - 1) * 5 + 'px) / ' + q.cols + '), max(calc((100svh - 19.5rem) / ' + (2 * q.rows) + ' - 5px), 52px))';
+        // side by side on a computer: the height of one picture and half the width
+        var tileW = 'min(100px, calc((100svh - 16rem) / ' + q.rows + ' - 5px), calc((min(100vw, 46rem) - 9rem - ' + (2 * q.cols) * 5 + 'px) / ' + (2 * q.cols) + '))';
         var wrap = ctx.el('div', { class: 'sd-wrap' });
         var tiles = { a: [], b: [] };
         var answered = false;
 
         function panel(which, label, cells) {
-          var grid = ctx.el('div', { class: 'sd-grid', dir: 'ltr', style: { '--cols': q.cols, '--sd-t': which === 'a' ? tileA : tileB } });
+          var grid = ctx.el('div', { class: 'sd-grid', dir: 'ltr', style: { '--cols': q.cols, '--tp': tileP, '--tw': tileW } });
           cells.forEach(function (emo, i) {
             var r = Math.floor(i / q.cols) + 1, c = (i % q.cols) + 1;
             var span = ctx.el('span', { class: 'sd-emo', 'aria-hidden': 'true' }, emo);
@@ -290,7 +289,7 @@
             tiles[which].push(t);
             grid.appendChild(t);
           });
-          var lab = which === 'a' ? ctx.el('div', { class: 'sd-label' }, ['תמונה', ctx.el('br'), 'א']) : ctx.el('div', { class: 'sd-label' }, label);
+          var lab = ctx.el('div', { class: 'sd-label' }, label);
           return ctx.el('div', { class: 'sd-panel sd-panel-' + which, role: which === 'a' ? 'img' : null, 'aria-label': which === 'a' ? label : null }, [lab, grid]);
         }
 
@@ -311,9 +310,6 @@
           var ok = i === q.target || i === q.target2;
           if (ok) correct++;
           else tiles.b[i].classList.add('is-wrong');
-          // the status line now names picture B, so its label makes room for the next button
-          var labB = wrap.querySelector('.sd-panel-b .sd-label');
-          if (labB) labB.style.display = 'none';
           // Explanation goes to the status line + toast; the board only gains the next button.
           ctx.setStatus((ok ? 'נכון! ' : '') + q.explain);
           var nextBtn = ctx.el('button', {
