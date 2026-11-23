@@ -209,6 +209,7 @@
     '.wl-clue .ck{flex:none;width:1.4rem;height:1.4rem;border:2px solid var(--ink-soft);border-radius:4px;display:grid;place-items:center;font-size:.95rem;}',
     '.wl-clue.is-done{opacity:.55;}',
     '.wl-clue.is-done .ck{background:var(--good);border-color:var(--good);color:var(--surface);}',
+    '.wl-clue.is-tip{opacity:1;background:var(--c-purple-soft);box-shadow:inset 0 0 0 3px var(--c-purple);}',
     '.wl-acts .btn{min-height:3.2rem;padding-inline:1rem;}',
     /* the chooser opens over the bottom of the screen */
     '.wl-sheet{position:fixed;inset-inline:0;bottom:0;z-index:15;background:var(--surface);border-top:3px solid var(--c-blue);box-shadow:var(--shadow);',
@@ -340,6 +341,7 @@
         }
         function place(x, h) {
           ctx.sound('tap');
+          if (tipFocus) { tipFocus = null; showTipClue(-1); }
           var pets = open ? open.pets : x >= n;
           var old = who(h, pets);
           if (x < 0) { if (old >= 0) at[old] = -1; }
@@ -363,21 +365,65 @@
           ctx.setStatus(bad === 1 ? 'אחד לא במקום. בדקו את האדום' : bad + ' לא במקום. בדקו את האדומים');
           ctx.sound('bad');
         }
+        /* A hint that teaches: point at one clue and say who it helps to place; a second tap says which houses
+           are still possible for them. It never moves anyone into a house. */
+        var STREETS = null, tipFocus = null; // tipFocus = { clue, x, step }
+        function verb(x) { return x < n && ent(x).f ? 'גרה' : 'גר'; }
+        // houses entity x can still be in, given the people already in the right place and the clues in `use`
+        function housesFor(x, use) {
+          STREETS = STREETS || allStreets(n, P.pets);
+          var set = {};
+          STREETS.forEach(function (s) {
+            for (var y = 0; y < E; y++) if (at[y] === P.sol[y] && s[y] !== at[y]) return;
+            for (var i = 0; i < use.length; i++) if (!holds(P.clues[use[i]], s, n)) return;
+            set[s[x]] = true;
+          });
+          return Object.keys(set).map(Number).sort(function (a, b) { return a - b; });
+        }
+        function showTipClue(i) {
+          [].forEach.call(clueList.querySelectorAll('.wl-clue'), function (b, j) { b.classList.toggle('is-tip', j === i); });
+        }
         function hint() {
           if (done) return;
           closeSheet();
-          var xs = [];
-          for (var x = 0; x < E; x++) if (at[x] !== P.sol[x]) xs.push(x);
-          if (!xs.length) return;
+          var todo = [];
+          for (var x = 0; x < E; x++) if (at[x] !== P.sol[x]) todo.push(x);
+          if (!todo.length) return;
           hints++;
-          var ppl = xs.filter(function (v) { return v < n; });
-          var x2 = ctx.pick(ppl.length ? ppl : xs);
-          var h = P.sol[x2], old = who(h, x2 >= n);
-          if (old >= 0) at[old] = -1;
-          at[x2] = h; showWrong = false;
-          ctx.setStatus('רמז: ' + label(x2) + ' ' + (x2 < n && ent(x2).f ? 'גרה' : 'גר') + ' בבית מספר ' + (h + 1));
-          render();
-          if (at.every(function (v, i) { return v === P.sol[i]; })) win();
+          // someone in the wrong house: say who, not where they belong
+          var misplaced = todo.filter(function (y) { return at[y] >= 0; })[0];
+          if (misplaced !== undefined) {
+            tipFocus = null; showTipClue(-1);
+            showWrong = true; render();
+            ctx.setStatus('רמז: ' + label(misplaced) + ' לא בבית הנכון (מסומן באדום). קראו שוב את הרמזים עליו');
+            return;
+          }
+          // second tap on the same hint: the houses that are still possible
+          if (tipFocus && tipFocus.step === 1 && at[tipFocus.x] < 0) {
+            tipFocus.step = 2;
+            var hs = housesFor(tipFocus.x, [tipFocus.clue]);
+            ctx.setStatus(hs.length === 1
+              ? 'רמז: לפי הרמז המסומן יש רק בית אחד ש' + label(tipFocus.x) + (tipFocus.x < n && ent(tipFocus.x).f ? ' יכולה' : ' יכול') + ' להיות בו. איזה?'
+              : 'רמז: לפי הרמז המסומן, ' + label(tipFocus.x) + ' ' + verb(tipFocus.x) + ' באחד מהבתים ' + hs.map(function (h) { return h + 1; }).join(' או '));
+            return;
+          }
+          // the clue that tells the most about someone who is not placed yet
+          var best = null;
+          P.clues.forEach(function (c, i) {
+            todo.forEach(function (y) {
+              var k = housesFor(y, [i]).length;
+              if (!best || k < best.k || (k === best.k && marks[best.clue] && !marks[i])) best = { clue: i, x: y, k: k };
+            });
+          });
+          var base = best ? housesFor(best.x, []).length : 0;
+          if (!best || best.k >= base) { // no clue helps alone: two clues together
+            tipFocus = null; showTipClue(-1);
+            ctx.setStatus('רמז: אף רמז לבד לא מספיק עכשיו. נסו לחבר שני רמזים שמדברים על אותו אחד');
+            return;
+          }
+          tipFocus = { clue: best.clue, x: best.x, step: 1 };
+          showTipClue(best.clue);
+          ctx.setStatus('רמז: קראו שוב את הרמז המסומן. הוא עוזר לדעת איפה ' + label(best.x) + ' ' + verb(best.x) + '. (לחיצה נוספת על "רמז" תגיד באילו בתים)');
         }
         function reveal() {
           if (done) return;
@@ -389,7 +435,7 @@
         }
         function win() {
           done = true; showWrong = false;
-          var ok = hints + wrong <= 1;
+          var ok = hints + wrong <= 2; // one hint read twice still counts
           if (ok) solved++;
           render();
           ctx.setStatus(ok ? 'מצוין! כולם בבית הנכון' : 'כולם בבית הנכון, בעזרת רמזים');
