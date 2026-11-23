@@ -342,6 +342,19 @@
   }
 
   /* One card in the "all games" list (also used by the search results). */
+  /* Games that live in their own app: the card opens that site. */
+  var LINKED_GAMES = [
+    { skill: 'logic', name: 'סודוקו', url: 'https://jaromk.github.io/Sudoku/',
+      tagline: 'מלאו את הלוח במספרים 1 עד 9, בלי לחזור על מספר בשורה, בטור ובריבוע' }
+  ];
+  function linkCard(g) {
+    return el('li', null, el('a', { class: 'game-card is-new is-link', href: g.url }, [
+      el('span', { class: 'game-card-name' }, [g.name, el('span', { class: 'card-new' }, 'חדש')]),
+      el('span', { class: 'game-card-tag' }, g.tagline),
+      el('span', { class: 'card-link-note' }, 'נפתח באתר הסודוקו שלנו ←')
+    ]));
+  }
+
   function gameCard(g) {
     var lv = getLevel(g.id);
     return el('li', null, el('button', { class: 'game-card' + (g.isNew ? ' is-new' : ''), type: 'button', onclick: function () { renderIntro(g, false); } }, [
@@ -487,9 +500,10 @@
         var games = BG.all().filter(function (g) { return g.skill === skill; });
         games = games.filter(function (g) { return g.isNew; }).concat(games.filter(function (g) { return !g.isNew; }));
         if (!games.length) return null;
+        var links = LINKED_GAMES.filter(function (g) { return g.skill === skill; });
         return el('div', { class: 'skill-group' }, [
           el('h3', { class: 'skill-group-title' }, [skillIcon(skill), BG.SKILLS[skill].label]),
-          el('ul', { class: 'game-grid' }, games.map(gameCard))
+          el('ul', { class: 'game-grid' }, links.map(linkCard).concat(games.map(gameCard)))
         ]);
       }))
     ]);
