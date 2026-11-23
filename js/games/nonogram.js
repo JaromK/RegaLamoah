@@ -204,6 +204,9 @@
     '.ng-done .ng-cell.is-on{background:var(--good);border-color:var(--good);}',
     '.ng-done .ng-cell.is-x::after{content:"";}',
     '.ng-line-ok{opacity:.45;}',
+    '.ng-tip{opacity:1;background:var(--c-purple-soft);outline:3px solid var(--c-purple);border-radius:6px;}',
+    '.ng-cell.is-tipline{box-shadow:0 0 0 2px var(--c-purple);}',
+    '.ng-cell.is-bad{box-shadow:inset 0 0 0 4px var(--c-red);}',
     '.ng-hint{margin:0;font-size:1.05rem;color:var(--ink-soft);text-align:center;}'
   ].join('');
 
@@ -316,6 +319,7 @@
         function tap(r, c) {
           if (done) return;
           ctx.sound('tap');
+          if (tip || cellBtns[r][c].classList.contains('is-bad')) clearTip();
           state[r][c] = (state[r][c] + 1) % 3;
           if (state[r][c] === 1) autoCross();
           render();
@@ -329,21 +333,75 @@
         }
 
         // Hint: fix one cell that is wrong or still open (a filled one first).
+        /* A hint that teaches: point at a row or column where some cell can already be worked out for sure, and
+           explain how; a second tap says how many such cells there are. It never colours a cell. */
+        var tip = null; // { kind: 'r' | 'c', i, n, fill, step }
+        function lineOf(kind, i) {
+          var out = [], L = kind === 'r' ? C : R;
+          for (var j = 0; j < L; j++) {
+            var r = kind === 'r' ? i : j, c = kind === 'r' ? j : i;
+            // only right marks count as known: a coloured cell that should be coloured, an X where it should be empty
+            out.push(state[r][c] === 1 && grid[r][c] === 1 ? 1 : state[r][c] === 2 && grid[r][c] === 0 ? 0 : -1);
+          }
+          return out;
+        }
+        // cells of a line that every way of placing its numbers agrees on, and that are not marked yet
+        function sureCells(kind, i) {
+          var known = lineOf(kind, i);
+          var clue = kind === 'r' ? runs(grid[i]) : colClue(grid, i);
+          var ps = placements(clue, known.length).filter(function (p) { return p.every(function (v, j) { return known[j] < 0 || known[j] === v; }); });
+          var out = [];
+          known.forEach(function (k, j) {
+            if (k >= 0 || !ps.length) return;
+            var v = ps[0][j];
+            if (ps.every(function (p) { return p[j] === v; })) out.push({ j: j, v: v });
+          });
+          return out;
+        }
+        function clearTip() {
+          tip = null;
+          rowClues.forEach(function (x) { x.classList.remove('ng-tip'); });
+          colClues.forEach(function (x) { x.classList.remove('ng-tip'); });
+          cellBtns.forEach(function (row) { row.forEach(function (b) { b.classList.remove('is-tipline', 'is-bad'); }); });
+        }
         function hint() {
           if (done) return;
-          var pick = null;
-          for (var r = 0; r < R && !pick; r++) for (var c = 0; c < C && !pick; c++) {
-            if (grid[r][c] === 1 && state[r][c] !== 1) pick = [r, c];
+          // a cell coloured by mistake comes first: say which one is wrong, not what is right
+          for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) if (state[r][c] === 1 && grid[r][c] === 0) {
+            hints++;
+            clearTip();
+            cellBtns[r][c].classList.add('is-bad');
+            ctx.setStatus('רמז: המשבצת המסומנת באדום לא צריכה להיות צבועה. בדקו את המספרים של השורה והטור שלה');
+            return;
           }
-          for (r = 0; r < R && !pick; r++) for (c = 0; c < C && !pick; c++) {
-            if (grid[r][c] === 0 && state[r][c] === 1) pick = [r, c];
+          // second tap: how many cells are sure in that line
+          if (tip && tip.step === 1 && sureCells(tip.kind, tip.i).length) {
+            hints++;
+            tip.step = 2;
+            var sure = sureCells(tip.kind, tip.i), filled = sure.filter(function (x) { return x.v === 1; }).length;
+            ctx.setStatus('רמז: ב' + (tip.kind === 'r' ? 'שורה' : 'טור') + ' המסומנ' + (tip.kind === 'r' ? 'ת' : '') + ' יש ' + sure.length +
+              (sure.length === 1 ? ' משבצת בטוחה' : ' משבצות בטוחות') + (filled ? ' (' + filled + ' צבועות)' : ' (כולן ריקות: X)') + '. איפה?');
+            return;
           }
-          if (!pick) return;
+          // the line with the most cells that can be worked out for sure (cells to colour count first)
+          var best = null;
+          ['r', 'c'].forEach(function (kind) {
+            for (var i = 0; i < (kind === 'r' ? R : C); i++) {
+              var s = sureCells(kind, i), f = s.filter(function (x) { return x.v === 1; }).length;
+              var score = f * 10 + s.length;
+              if (s.length && (!best || score > best.score)) best = { kind: kind, i: i, score: score, fill: f > 0 };
+            }
+          });
+          if (!best) return;
           hints++;
-          state[pick[0]][pick[1]] = grid[pick[0]][pick[1]] ? 1 : 2;
-          ctx.setStatus('רמז: שורה ' + (pick[0] + 1) + ', טור ' + (pick[1] + 1) + ' מימין');
-          render();
-          checkDone();
+          clearTip();
+          tip = { kind: best.kind, i: best.i, step: 1 };
+          (best.kind === 'r' ? rowClues[best.i] : colClues[best.i]).classList.add('ng-tip');
+          for (var j = 0; j < (best.kind === 'r' ? C : R); j++) (best.kind === 'r' ? cellBtns[best.i][j] : cellBtns[j][best.i]).classList.add('is-tipline');
+          var nm = best.kind === 'r' ? 'בשורה המסומנת' : 'בטור המסומן';
+          ctx.setStatus(best.fill
+            ? 'רמז: ' + nm + ' אפשר כבר לדעת משבצת צבועה. נסו לשים את הקטעים הכי בהתחלה, ואז הכי בסוף: מה שצבוע בשתי הדרכים צבוע בטוח'
+            : 'רמז: ' + nm + ' יש משבצות שבטוח נשארות ריקות. סמנו אותן ב-X (לחיצה שנייה על משבצת)');
         }
 
         // Stuck: show the picture (the round does not count as solved).
@@ -357,12 +415,12 @@
         function checkDone() {
           for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) if ((state[r][c] === 1) !== (grid[r][c] === 1)) return;
           done = true;
-          if (hints <= 1) solved++;
+          if (hints <= 2) solved++;
           wrap.classList.add('ng-done');
           for (r = 0; r < R; r++) for (c = 0; c < C; c++) if (state[r][c] === 2) state[r][c] = 0;
           render();
-          ctx.setStatus(hints === 99 ? 'זה הציור' : hints > 1 ? 'הציור התגלה, בעזרת רמזים' : 'מצוין! גיליתם את הציור');
-          ctx.feedback(hints <= 1, hints === 99 ? 'הנה הציור' : hints > 1 ? 'בפעם הבאה נסו עם רמז אחד לכל היותר' : undefined).then(function () {
+          ctx.setStatus(hints === 99 ? 'זה הציור' : hints > 2 ? 'הציור התגלה, בעזרת רמזים' : 'מצוין! גיליתם את הציור');
+          ctx.feedback(hints <= 2, hints === 99 ? 'הנה הציור' : hints > 2 ? 'בפעם הבאה נסו עם פחות רמזים' : undefined).then(function () {
             actions.innerHTML = '';
             if (hints !== 99) { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
