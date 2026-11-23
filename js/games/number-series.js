@@ -418,6 +418,8 @@
           }, round >= ROUNDS ? 'לסיכום' : 'לשאלה הבאה');
           after.appendChild(nextBtn);
           ctx.feedback(ok, ok ? 'נכון! ' + q.explain : 'התשובה הנכונה: ' + (isTwo ? ltr(q.answer) : q.answer));
+          // a correct answer moves on by itself after the toast; after a mistake the button waits
+          if (ok) { nextBtn.hidden = true; ctx.wait(2300).then(function () { if (!nextBtn.disabled) { nextBtn.disabled = true; nextRound(); } }); }
           ctx.wait(50).then(function () { try { nextBtn.focus({ preventScroll: true }); } catch (e) { /* ignore */ } });
         }
       }

@@ -555,6 +555,7 @@
           // the player moves on when ready; the scale now shows the answer, so the choices
           // and the label make room for the button
           ctx.wait(700).then(function () {
+            if (ok) { ctx.wait(1600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', {
               class: 'btn btn-primary btn-lg', type: 'button',
               onclick: function () { next.disabled = true; nextRound(); }

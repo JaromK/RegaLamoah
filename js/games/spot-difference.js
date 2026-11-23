@@ -322,6 +322,8 @@
           }, round >= ROUNDS ? 'לסיכום' : 'לתמונה הבאה');
           root.appendChild(nextBtn);
           ctx.feedback(ok, ok ? 'נכון! מצאתם את ההבדל' : 'ההבדל מסומן בירוק');
+          // a correct answer moves on by itself after the toast; after a mistake the button waits
+          if (ok) { nextBtn.hidden = true; ctx.wait(2300).then(function () { if (!nextBtn.disabled) { nextBtn.disabled = true; nextRound(); } }); }
           ctx.wait(50).then(function () { try { nextBtn.focus({ preventScroll: true }); } catch (e) { /* ignore */ } });
         }
       }

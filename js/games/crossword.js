@@ -539,6 +539,7 @@
           ctx.feedback(ok, shownAll ? 'הנה הפתרון' : undefined).then(function () {
             kbd.remove();
             acts.innerHTML = '';
+            if (!shownAll) { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'לתשבץ הבא');
             acts.appendChild(next);

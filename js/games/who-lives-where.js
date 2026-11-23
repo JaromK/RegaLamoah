@@ -393,7 +393,7 @@
           if (ok) solved++;
           render();
           ctx.setStatus(ok ? 'מצוין! כולם בבית הנכון' : 'כולם בבית הנכון, בעזרת רמזים');
-          ctx.feedback(ok, ok ? undefined : 'פתרתם, עם קצת עזרה').then(nextBtn);
+          ctx.feedback(ok, ok ? undefined : 'פתרתם, עם קצת עזרה').then(function () { return ctx.wait(600); }).then(nextRound);
         }
         function nextBtn() {
           actions.innerHTML = '';

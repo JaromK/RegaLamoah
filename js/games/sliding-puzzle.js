@@ -278,6 +278,7 @@
           ctx.setStatus(ok ? 'מצוין! הכול מסודר' : 'סידרתם, בעזרת הרבה רמזים');
           ctx.feedback(ok, ok ? 'כל הכבוד!' : 'בפעם הבאה נסו עם פחות רמזים').then(function () {
             actions.innerHTML = '';
+            { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'ללוח הבא');
             actions.appendChild(next);

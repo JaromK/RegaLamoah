@@ -270,6 +270,7 @@
           ctx.setStatus(ok ? 'מצוין! הדיסקים במקום' : hints > 1 ? 'סידרתם, בעזרת רמזים' : 'סידרתם, אבל אפשר בפחות מהלכים');
           ctx.feedback(ok, ok ? (hist.length <= P.opt ? 'במספר המהלכים הקטן ביותר!' : 'כל הכבוד!') : 'אפשר היה ב-' + P.opt + ' מהלכים').then(function () {
             actions.innerHTML = '';
+            { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'לסידור הבא');
             actions.appendChild(next);

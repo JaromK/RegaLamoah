@@ -201,6 +201,7 @@
           render();
           ctx.setStatus('המסר: ' + text);
           ctx.feedback(ok, ok ? undefined : 'פענחתם, בעזרת רמזים').then(function () {
+            { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'למסר הבא');
             actions.appendChild(next);

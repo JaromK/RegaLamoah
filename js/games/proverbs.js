@@ -471,7 +471,7 @@
           explain.hidden = false;
           ctx.feedback(ok, ok ? null : (isIdiom ? 'לא הפעם' : isSwap ? 'המילה שהוחלפה: ' + sw.wrong : 'המילה החסרה: ' + item.a))
             .then(function () { return ctx.wait(200); })
-            .then(function () { nextBtn.hidden = false; nextBtn.focus(); });
+            .then(function () { if (ok) return ctx.wait(2200).then(function () { if (!nextBtn.disabled) { nextBtn.disabled = true; nextRound(); } }); nextBtn.hidden = false; nextBtn.focus(); });
         }
       }
 

@@ -513,6 +513,7 @@
               if (!right) nb.classList.add('is-wrong');
               ctx.setStatus(right ? 'נכון! זה ' + drawing.name : 'זה ' + drawing.name);
               ctx.feedback(right, right ? undefined : 'זה ציור של ' + drawing.name).then(function () {
+                if (right) { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
                 var go = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { go.disabled = true; nextRound(); } },
                   round >= ROUNDS ? 'לסיכום' : 'לציור הבא');
                 actions.appendChild(go);

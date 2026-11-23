@@ -235,6 +235,7 @@
           ctx.feedback(ok, ok ? undefined : 'המילה: ' + word).then(function () {
             kbd.remove();
             acts.innerHTML = '';
+            if (!reveal) { ctx.wait(600).then(next); return; } // a correct answer moves on by itself
             var b = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { b.disabled = true; next(); } },
               round >= ROUNDS ? 'לסיכום' : 'למילה הבאה');
             acts.appendChild(b);

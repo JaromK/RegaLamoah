@@ -200,6 +200,8 @@
             var nx = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { nx.disabled = true; playLetter(pi + 1); } },
               pi + 1 >= plan.length ? 'לסיכום' : 'לאות הבאה');
             actions.appendChild(nx);
+            // the filled sheet stays a moment, then the next letter comes by itself
+            ctx.wait(2200).then(function () { if (!nx.disabled) nx.click(); });
             return;
           }
           asked++;

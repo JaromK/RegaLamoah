@@ -364,6 +364,7 @@
           ctx.setStatus(hints === 99 ? 'זה הציור' : hints > 1 ? 'הציור התגלה, בעזרת רמזים' : 'מצוין! גיליתם את הציור');
           ctx.feedback(hints <= 1, hints === 99 ? 'הנה הציור' : hints > 1 ? 'בפעם הבאה נסו עם רמז אחד לכל היותר' : undefined).then(function () {
             actions.innerHTML = '';
+            if (hints !== 99) { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'לציור הבא');
             actions.appendChild(next);

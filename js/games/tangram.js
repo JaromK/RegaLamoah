@@ -489,7 +489,7 @@
           if (hints) hintRounds++;
           draw();
           ctx.setStatus(hints > 1 ? 'הצללית מלאה, בעזרת רמזים' : 'מצוין! הצללית מלאה');
-          ctx.feedback(hints <= 1, hints > 1 ? 'הפעם בעזרת רמזים. בפעם הבאה נסו עם רמז אחד לכל היותר' : undefined).then(function () { return ctx.wait(700); }).then(showNext);
+          ctx.feedback(hints <= 1, hints > 1 ? 'הפעם בעזרת רמזים. בפעם הבאה נסו עם רמז אחד לכל היותר' : undefined).then(function () { return ctx.wait(700); }).then(nextRound);
         }
 
         // Hint: put one piece where it is in our solution (moving away anything in its way is up to the player).

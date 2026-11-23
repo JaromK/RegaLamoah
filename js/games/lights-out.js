@@ -219,6 +219,7 @@
           ctx.setStatus(ok ? (P.goal ? 'מצוין! כל האורות דולקים' : 'מצוין! כל האורות כבויים') : hints > 1 ? 'פתרתם, בעזרת רמזים' : 'פתרתם, אבל אפשר בפחות לחיצות');
           ctx.feedback(ok, ok ? (hist.length <= P.opt ? 'במספר הלחיצות הקטן ביותר!' : 'כל הכבוד!') : 'אפשר היה ב-' + P.opt + ' לחיצות').then(function () {
             actions.innerHTML = '';
+            { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'ללוח הבא');
             actions.appendChild(next);

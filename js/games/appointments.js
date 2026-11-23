@@ -445,6 +445,7 @@
           ctx.setStatus(msg || (ok ? 'כל הכללים מתקיימים!' : 'עכשיו כל הכללים מתקיימים'));
           ctx.feedback(ok, msg).then(function () {
             actions.innerHTML = '';
+            if (ok) { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var nb = el('button', { class: 'btn btn-primary ap-check', type: 'button', onclick: function () { nb.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'ליומן הבא');
             actions.appendChild(nb);

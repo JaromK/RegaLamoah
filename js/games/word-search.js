@@ -283,6 +283,7 @@
           ctx.setStatus(hints === 99 ? 'המילים שנשארו מסומנות' : ok ? 'מצאתם את כל המילים!' : 'מצאתם הכול, בעזרת רמזים');
           ctx.feedback(ok, hints === 99 ? 'הנה המילים' : undefined).then(function () {
             actions.innerHTML = '';
+            if (hints !== 99) { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'ללוח הבא');
             actions.appendChild(next);

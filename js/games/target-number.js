@@ -312,7 +312,7 @@
           if (ok) solved++;
           render();
           status(ok ? 'מצוין! הגעתם ל-' + P.target : 'הגעתם ל-' + P.target + ', בעזרת רמזים');
-          ctx.feedback(ok, ok ? undefined : 'הגעתם, עם כמה רמזים').then(nextBtn);
+          ctx.feedback(ok, ok ? undefined : 'הגעתם, עם כמה רמזים').then(function () { return ctx.wait(600); }).then(nextRound);
         }
         function nextBtn() {
           actions.innerHTML = '';

@@ -658,6 +658,7 @@
             root.insertBefore(sol, grid);
             ctx.setStatus(ok ? 'נכון! התוצאה: ' + C.answer : 'התוצאה הנכונה: ' + C.answer);
             ctx.feedback(ok, ok ? null : 'התוצאה הנכונה: ' + C.answer).then(function () {
+              if (ok) return ctx.wait(1800).then(nextRound); // a correct answer moves on by itself
               root.appendChild(nextBtn(round >= ROUNDS ? 'לסיכום' : 'הבא', nextRound));
             });
           });

@@ -315,6 +315,7 @@
           ctx.setStatus(ok ? 'הגעתם הביתה! ' + steps + ' צעדים' : helped ? 'הגעתם הביתה, בעזרת הקו הצהוב' : 'הגעתם הביתה, בדרך ארוכה (' + steps + ' צעדים, הקצרה: ' + P.best + ')');
           ctx.feedback(ok, ok ? undefined : 'הגעתם! בפעם הבאה נסו דרך קצרה יותר').then(function () {
             pad.remove();
+            { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'למבוך הבא');
             root.appendChild(el('div', { class: 'g-actions' }, next));

@@ -227,6 +227,7 @@
             if (t.kind === 'back') w.insertBefore(el('p', { class: 'g-hint', style: { margin: 0 } }, 'המספר המקורי: ' + numText(who.num, t.show)), actions);
           }
           ctx.feedback(ok, ok ? null : 'הספרות באדום לא נכונות').then(function () {
+            if (ok) { ctx.wait(600).then(next); return; } // a correct answer moves on by itself
             var nb = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { nb.disabled = true; next(); } },
               idx >= COUNT ? 'לסיכום' : 'למספר הבא');
             actions.appendChild(nb);

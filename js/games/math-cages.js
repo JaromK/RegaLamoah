@@ -387,6 +387,7 @@
           ctx.setStatus(hints === 99 ? 'זה הפתרון' : ok ? 'מצוין! הלוח פתור' : 'הלוח פתור, בעזרת רמזים');
           ctx.feedback(ok, hints === 99 ? 'הנה הפתרון' : ok ? undefined : 'בפעם הבאה נסו עם רמז אחד לכל היותר').then(function () {
             actions.innerHTML = '';
+            if (hints !== 99) { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'ללוח הבא');
             actions.appendChild(next);

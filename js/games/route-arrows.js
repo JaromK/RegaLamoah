@@ -352,6 +352,8 @@
           var tip = ok ? 'נכון! הגעתם ל' + q.answer.n : 'הגעתם ל' + q.answer.n + ' ' + q.answer.e;
           // (the route is drawn on the map; a list of moves in the bubble would cover it)
           ctx.feedback(ok, tip);
+          // a correct answer moves on by itself after the toast; after a mistake the button waits
+          if (ok) { nextBtn.hidden = true; ctx.wait(2300).then(function () { if (!nextBtn.disabled) { nextBtn.disabled = true; nextRound(); } }); }
           ctx.wait(50).then(function () { try { nextBtn.focus({ preventScroll: true }); } catch (e) { /* ignore */ } });
         }
       }

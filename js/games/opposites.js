@@ -193,6 +193,7 @@
           note.remove(); // its place goes to the "next" button, so the full board still fits
           ctx.setStatus((ok ? 'מצאתם את כל הזוגות!' : 'מצאתם הכול, עם כמה טעויות בדרך') + (mistakes ? ' (טעויות: ' + mistakes + ')' : ' בלי אף טעות'));
           ctx.feedback(ok).then(function () {
+            { ctx.wait(600).then(next); return; } // a correct answer moves on by itself
             var nb = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { nb.disabled = true; next(); } },
               round >= ROUNDS ? 'לסיכום' : 'ללוח הבא');
             acts.appendChild(nb);

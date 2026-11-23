@@ -204,6 +204,7 @@
           ctx.setStatus(msg || (ok ? 'הקופסה מוכנה ומדויקת!' : 'הקופסה מוכנה, אחרי תיקון'));
           ctx.feedback(ok, msg).then(function () {
             actions.innerHTML = '';
+            if (ok) { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'לקופסה הבאה');
             actions.appendChild(next);

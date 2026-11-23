@@ -459,6 +459,7 @@
             : 'למשל: "' + WORDS[b.w] + '" (' + b.s + ' נקודות).' + (best.w !== b.w ? ' הכי שווה: "' + WORDS[best.w] + '" (' + best.s + ').' : '');
           render();
           ctx.feedback(ok, ok ? undefined : 'למשל: ' + WORDS[b.w]).then(function () {
+            if (ok) { ctx.wait(2600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'הלאה');
             actions.innerHTML = '';

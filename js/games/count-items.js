@@ -28,9 +28,9 @@
     /* after a mistake every counted picture gets its number, so the player can count along */
     '.ci-num{position:absolute;transform:translate(10%,-115%);min-width:1.45rem;height:1.45rem;padding:0 .2rem;border-radius:999px;',
     'background:var(--c-blue);color:#fff;font:900 .95rem/1.45rem var(--font-body);text-align:center;pointer-events:none;z-index:2;}',
+    '.ci-go{grid-column:span 2;min-height:3.6rem;font-size:1.1rem;padding:.3rem .6rem;}',
     '.ci-num.is-low{transform:translate(10%,15%);}',
     '.ci-num.k1{background:var(--c-red);}.ci-num.k2{background:var(--c-purple);}',
-    '.ci-explain{margin:0;font-size:1.15rem;font-weight:800;text-align:center;}',
     '.ci-q{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.35rem;margin:0;}',
     '.ci-q .ci-em{font-size:2rem;line-height:1;}',
     '.ci-choices{max-width:26rem;grid-template-columns:repeat(4,minmax(0,1fr));}',
@@ -241,9 +241,14 @@
               board.appendChild(el('span', { class: 'ci-num k' + ki + (pc.y < 14 ? ' is-low' : ''), 'aria-hidden': 'true', style: { left: pc.x + '%', top: pc.y + '%' } }, String(i + 1)));
             });
           });
-          ctx.setStatus('לא בדיוק. בחרתם ' + v + ', והתשובה ' + answer);
-          root.appendChild(el('p', { class: 'ci-explain', 'aria-live': 'polite' }, msg + '. כל אחד מסומן במספר בתמונה.'));
-          ctx.feedback(false, 'התשובה הנכונה: ' + answer).then(function () { return ctx.next(); }).then(nextRound);
+          // the explanation goes to the status line (no extra row), so the picture and the button still fit
+          ctx.setStatus(msg + '. כל אחד מסומן במספר.');
+          ctx.feedback(false, 'בחרתם ' + v + '. התשובה: ' + answer).then(function () {
+            // only the chosen and the right number stay; the button takes the place of the others (same row, nothing moves)
+            buttons.forEach(function (b, k) { if (opts[k] !== v && opts[k] !== answer) b.hidden = true; });
+            var go = el('button', { class: 'btn btn-primary ci-go', type: 'button', onclick: function () { go.disabled = true; nextRound(); } }, 'הבנתי, ממשיכים');
+            buttons[0].parentNode.appendChild(go);
+          });
         }
       }
 

@@ -489,6 +489,8 @@
           }, round >= ROUNDS ? 'לסיכום' : 'לשאלה הבאה');
           root.appendChild(nextBtn);
           ctx.feedback(ok, ok ? 'נכון! ' + moneyText(q.answer) : 'התשובה הנכונה: ' + moneyText(q.answer));
+          // a correct answer moves on by itself after the toast; after a mistake the button waits
+          if (ok) { nextBtn.hidden = true; ctx.wait(2300).then(function () { if (!nextBtn.disabled) { nextBtn.disabled = true; nextRound(); } }); }
         }
       }
 

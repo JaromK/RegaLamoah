@@ -206,6 +206,7 @@
           ctx.setStatus('התמונה שלמה: ' + photo.w + '!');
           ctx.feedback(ok, ok ? undefined : 'התמונה שלמה, בעזרת רמזים').then(function () {
             actions.innerHTML = '';
+            { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'לתמונה הבאה');
             actions.appendChild(next);

@@ -317,7 +317,7 @@
           }
           var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextQ(); } },
             q >= Q ? 'לסיכום' : 'לשאלה הבאה');
-          ctx.feedback(ok).then(function () { actions.appendChild(next); if (!ok) next.scrollIntoView({ block: 'nearest' }); });
+          ctx.feedback(ok).then(function () { if (ok) { nextQ(); return; } actions.appendChild(next); if (!ok) next.scrollIntoView({ block: 'nearest' }); });
         }
       }
       nextQ();
