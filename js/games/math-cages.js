@@ -228,6 +228,10 @@
     '.mc-cell.bl{border-left:3px solid var(--ink);}',
     '.mc-cell.is-fixed{color:var(--ink-soft);cursor:default;background:var(--surface-2);}',
     '.mc-cell.is-sel{background:var(--sun-soft);box-shadow:inset 0 0 0 3px var(--sun);}',
+    '.mc-cell.is-focus{box-shadow:inset 0 0 0 4px var(--c-purple);}',
+    '.mc-cell.is-bad{box-shadow:inset 0 0 0 4px var(--c-red);}',
+    '.mc-tip{margin:0;max-width:30rem;font-size:1.05rem;font-weight:700;line-height:1.35;text-align:center;background:var(--c-purple-soft);',
+    'border:2px solid var(--c-purple);border-radius:var(--radius-sm);padding:.4rem .7rem;}',
     '.mc-cell.is-clash{color:var(--bad);}',
     '.mc-lab{position:absolute;top:2px;right:4px;font-family:var(--font-body);font-size:clamp(.75rem,3.2vw,.95rem);font-weight:800;',
     'color:var(--logic);line-height:1;direction:ltr;}',
@@ -274,7 +278,7 @@
         root.innerHTML = '';
         var n = pz.n;
         var g = pz.fixed.map(function (row) { return row.slice(); });
-        var sel = -1, done = false, hints = 0;
+        var sel = -1, done = false, hints = 0, focus = null; // focus = the hinted cell { k, step, bad }
 
         var labelAt = {};
         pz.cages.forEach(function (cg) {
@@ -304,7 +308,9 @@
         var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
         var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'הראו פתרון');
         var actions = el('div', { class: 'g-actions' }, [hintBtn, showBtn]);
+        var tip = el('p', { class: 'mc-tip', 'aria-live': 'polite', hidden: true });
         root.appendChild(grid);
+        root.appendChild(tip);
         root.appendChild(pad);
         root.appendChild(actions);
         ctx.setStatus('לחצו על משבצת ריקה, ואז על מספר');
@@ -327,6 +333,8 @@
             if (g[r][c]) b.appendChild(document.createTextNode(String(g[r][c])));
             b.classList.toggle('is-sel', k === sel && !done);
             b.classList.toggle('is-clash', clash(r, c));
+            b.classList.toggle('is-focus', !!focus && focus.k === k && !done);
+            b.classList.toggle('is-bad', !!focus && !!focus.bad && focus.k === k && !done);
             b.disabled = done;
           });
           [].forEach.call(pad.children, function (b) { b.disabled = done || sel < 0; });
@@ -343,6 +351,7 @@
         function put(v) {
           if (done || sel < 0) return;
           ctx.sound('tap');
+          if (focus && focus.k === sel) { focus = null; tip.hidden = true; }
           g[Math.floor(sel / n)][sel % n] = v;
           // move on to the next empty cell
           if (v) for (var s = 1; s <= n * n; s++) { var k = (sel + s) % (n * n); if (!g[Math.floor(k / n)][k % n]) { sel = k; break; } }
@@ -350,26 +359,95 @@
           checkDone();
         }
 
+        /* ---------- hints that teach: point at one cell and explain how to work it out, never fill it in ---------- */
+        function val(k) { return g[Math.floor(k / n)][k % n]; }
+        function right(k) { return val(k) && val(k) === pz.sol[Math.floor(k / n)][k % n]; }
+        // numbers still missing from k's row and column (only correct numbers count)
+        function lineOpts(k) {
+          var r = Math.floor(k / n), c = k % n, out = [];
+          for (var d = 1; d <= n; d++) {
+            var used = false;
+            for (var i = 0; i < n; i++) if ((i !== c && right(r * n + i) && val(r * n + i) === d) || (i !== r && right(i * n + c) && val(i * n + c) === d)) used = true;
+            if (!used) out.push(d);
+          }
+          return out;
+        }
+        // numbers k can take so that its cage can still reach its target
+        function cageOpts(k) {
+          var cg = pz.cages[pz.owner[k]], cs = cg.cells, out = {};
+          var opts = cs.map(function (x) { return x === k ? lineOpts(x) : right(x) ? [val(x)] : lineOpts(x); });
+          var cur = [];
+          (function walk(i) {
+            if (i === cs.length) { if (cageOk(cg, cur)) out[cur[cs.indexOf(k)]] = true; return; }
+            opts[i].forEach(function (d) {
+              // no number twice in a row or column inside the cage
+              for (var j = 0; j < i; j++) if (cur[j] === d && (Math.floor(cs[j] / n) === Math.floor(cs[i] / n) || cs[j] % n === cs[i] % n)) return;
+              cur[i] = d; walk(i + 1);
+            });
+          })(0);
+          return Object.keys(out).map(Number).sort(function (a, b) { return a - b; });
+        }
+        function cageLabel(k) {
+          var cg = pz.cages[pz.owner[k]];
+          return cg.hidden ? cg.target + '?' : cg.op ? cg.target + cg.op : String(cg.target);
+        }
+        function listOrAsk(name, list) { return list.length === 1 ? name + ' מתאים רק מספר אחד. איזה?' : name + ' אפשר: ' + list.join(', '); }
         function hint() {
           if (done) return;
-          for (var k = 0; k < n * n; k++) {
-            var r = Math.floor(k / n), c = k % n;
-            if (g[r][c] !== pz.sol[r][c]) {
-              g[r][c] = pz.sol[r][c];
-              hints++;
-              sel = k;
-              ctx.setStatus('רמז: הוספנו מספר אחד נכון');
-              render();
-              checkDone();
-              return;
-            }
+          // 1. a wrong number comes first: mark it, without saying what is right
+          for (var b = 0; b < n * n; b++) if (val(b) && !right(b)) {
+            hints++;
+            focus = { k: b, step: 1, bad: true }; sel = b;
+            var br = Math.floor(b / n), bc = b % n;
+            showTip('המספר ' + val(b) + ' במשבצת המסומנת באדום לא מתאים. ' +
+              (clash(br, bc) ? 'הוא כבר מופיע באותה שורה או באותו טור.' : 'בדקו שוב את החשבון של הכלוב שלה (' + cageLabel(b) + ').') + ' מחקו אותו (⌫) ונסו מספר אחר.');
+            render(); return;
           }
+          // 2. pressing again on the same cell: what fits the row and column, and what fits the cage
+          if (focus && !focus.bad && !val(focus.k) && focus.step === 1) {
+            hints++;
+            focus.step = 2;
+            var lo2 = lineOpts(focus.k), co2 = cageOpts(focus.k);
+            showTip(lo2.length === 1 || co2.length === 1
+              ? (co2.length === 1 ? listOrAsk('לכלוב ' + cageLabel(focus.k), co2) : listOrAsk('לשורה ולטור', lo2))
+              : listOrAsk('לפי השורה והטור', lo2) + '. ' + listOrAsk('לפי הכלוב ' + cageLabel(focus.k), co2) + '. איזה מספר מתאים לשניהם?');
+            render(); return;
+          }
+          // 3. a new cell: the empty cell with the fewest possible numbers
+          var bestK = -1, bestN = 99;
+          for (var k = 0; k < n * n; k++) {
+            if (val(k)) continue;
+            var lo = lineOpts(k), co = cageOpts(k);
+            var both = lo.filter(function (d) { return co.indexOf(d) !== -1; }).length;
+            if (both < bestN) { bestN = both; bestK = k; }
+          }
+          if (bestK < 0) return;
+          hints++;
+          focus = { k: bestK, step: 1 }; sel = bestK;
+          var r = Math.floor(bestK / n), c = bestK % n, emptyRow = 0, emptyCol = 0;
+          for (var i = 0; i < n; i++) { if (!right(r * n + i)) emptyRow++; if (!right(i * n + c)) emptyCol++; }
+          var cg = pz.cages[pz.owner[bestK]];
+          var emptyCage = cg.cells.filter(function (x) { return !right(x); }).length;
+          var text;
+          if (cg.cells.length === 1) {
+            text = 'נסו את המשבצת המסומנת: היא כלוב של משבצת אחת. במשבצת כזאת כותבים בדיוק את המספר של הכלוב.';
+          } else if (emptyRow === 1 || emptyCol === 1) {
+            text = 'נסו את המשבצת המסומנת: ' + (emptyRow === 1 ? 'בשורה' : 'בטור') + ' שלה חסר רק מספר אחד. איזה מספר מ-1 עד ' + n + ' עוד לא כתוב שם?';
+          } else if (emptyCage === 1 && cg.cells.length > 1) {
+            text = 'נסו את המשבצת המסומנת: בכלוב שלה (' + cageLabel(bestK) + ') חסר רק מספר אחד. חשבו איזה מספר משלים את החשבון.';
+          } else {
+            text = 'נסו את המשבצת המסומנת. חשבו אילו מספרים מתאימים לכלוב שלה (' + cageLabel(bestK) + '), ואילו עוד חסרים בשורה ובטור שלה.' +
+              ' (לחיצה נוספת על "רמז" תראה את האפשרויות)';
+          }
+          showTip(text);
+          render();
         }
+        function showTip(t) { tip.textContent = t; tip.hidden = false; ctx.setStatus('רמז'); }
 
         function reveal() {
           if (done) return;
           g = pz.sol.map(function (row) { return row.slice(); });
-          hints = 99;
+          hints = 99; focus = null; tip.hidden = true;
           checkDone();
         }
 
@@ -380,12 +458,13 @@
             return;
           }
           done = true;
-          var ok = hints <= 1;
+          var ok = hints <= 2; // one cell explained twice still counts as solved alone
+          focus = null; tip.hidden = true;
           if (ok) solved++;
           grid.classList.add('mc-done');
           render();
           ctx.setStatus(hints === 99 ? 'זה הפתרון' : ok ? 'מצוין! הלוח פתור' : 'הלוח פתור, בעזרת רמזים');
-          ctx.feedback(ok, hints === 99 ? 'הנה הפתרון' : ok ? undefined : 'בפעם הבאה נסו עם רמז אחד לכל היותר').then(function () {
+          ctx.feedback(ok, hints === 99 ? 'הנה הפתרון' : ok ? undefined : 'בפעם הבאה נסו עם פחות רמזים').then(function () {
             actions.innerHTML = '';
             if (hints !== 99) { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
