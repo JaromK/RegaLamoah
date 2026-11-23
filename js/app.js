@@ -52,7 +52,7 @@
   function clear() {
     U.stopSpeaking();
     screenGame = null;
-    document.body.classList.remove('is-playing', 'on-home');
+    document.body.classList.remove('is-playing', 'on-home', 'on-intro');
     app.innerHTML = '';
     window.scrollTo(0, 0);
   }
@@ -585,6 +585,7 @@
   function renderIntro(game, daily) {
     endCurrent();
     clear();
+    document.body.classList.add('on-intro');
     screenGame = game;
     guardBack();
     refreshScreen = function () { renderIntro(game, daily); };
@@ -593,44 +594,50 @@
 
     var startBtn = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { startGame(game, daily, level); } },
       'התחלה ברמה ' + level);
-    var speakBtn = el('button', { class: 'btn btn-secondary', type: 'button', hidden: true, onclick: function () { U.speak(speakText); } }, 'הקראת ההוראות');
+    var speakBtn = el('button', { class: 'btn btn-secondary btn-sm', type: 'button', hidden: true, onclick: function () { U.speak(speakText); } }, 'הקראת ההוראות');
     function checkVoice() { if (U.canSpeak()) speakBtn.hidden = false; }
     checkVoice();
     if ('speechSynthesis' in window) window.speechSynthesis.addEventListener('voiceschanged', checkVoice, { once: true });
 
+    /* Two parts: the description (intro-main) and the start panel (intro-side). On a wide screen they sit side by
+       side, so the instructions and the start button are seen together; on a phone the start button stays pinned
+       to the bottom of the screen while the instructions scroll. */
     app.appendChild(el('section', { class: 'intro' }, [
-      el('div', { class: 'intro-head' }, [
-        skillIcon(game.skill),
-        el('div', null, [
-          el('div', { class: 'intro-chips' }, [skillChip(game.skill), el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.maxLevelOf(game.id))]),
-          el('h1', { class: 'intro-title' }, game.name),
-          el('p', { class: 'intro-tag' }, game.tagline)
-        ])
-      ]),
-      el('h2', { class: 'intro-sub' }, 'איך משחקים'),
-      el('ol', { class: 'steps' }, game.instructions.map(function (s) { return el('li', null, s); })),
-      game.benefit ? el('p', { class: 'benefit' }, [el('strong', null, 'מה זה מאמן: '), game.benefit]) : null,
-      // games with levelPicker show the levels right here: tap one to play it
-      game.levelPicker ? el('div', { class: 'intro-levels' }, [
-        el('h2', { class: 'intro-levels-title' }, 'בחרו רמה'),
-        levelPath({
-          level: level, best: getBest(game.id), max: BG.maxLevelOf(game.id),
-          onPick: function (picked) { BG.state.levels[game.id] = picked; BG.save(); renderIntro(game, daily); }
-        })
-      ]) : null,
-      game.levelPicker ? null : el('div', { class: 'level-box level-box-compact' }, [
-        el('p', { class: 'level-now' }, [
-          el('strong', null, 'הרמה שלכם:'),
-          el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.maxLevelOf(game.id)),
-          el('span', null, BG.stageOf(level).name)
+      el('div', { class: 'intro-main' }, [
+        el('div', { class: 'intro-head' }, [
+          skillIcon(game.skill),
+          el('div', null, [
+            el('div', { class: 'intro-chips' }, [skillChip(game.skill), el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.maxLevelOf(game.id))]),
+            el('h1', { class: 'intro-title' }, game.name),
+            el('p', { class: 'intro-tag' }, game.tagline)
+          ])
         ]),
-        el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { openSettings({ gameId: game.id }); } },
-          'שינוי רמה')
+        el('div', { class: 'intro-sub-row' }, [el('h2', { class: 'intro-sub' }, 'איך משחקים'), speakBtn]),
+        el('ol', { class: 'steps' }, game.instructions.map(function (s) { return el('li', null, s); })),
+        game.benefit ? el('p', { class: 'benefit' }, [el('strong', null, 'מה זה מאמן: '), game.benefit]) : null,
+        // games with levelPicker show the levels right here: tap one to play it
+        game.levelPicker ? el('div', { class: 'intro-levels' }, [
+          el('h2', { class: 'intro-levels-title' }, 'בחרו רמה'),
+          levelPath({
+            level: level, best: getBest(game.id), max: BG.maxLevelOf(game.id),
+            onPick: function (picked) { BG.state.levels[game.id] = picked; BG.save(); renderIntro(game, daily); }
+          })
+        ]) : null
       ]),
-      el('div', { class: 'intro-actions' }, [
-        startBtn,
-        speakBtn,
-        el('button', { class: 'btn btn-quiet', type: 'button', onclick: renderHome }, 'חזרה לדף הבית')
+      el('div', { class: 'intro-side' }, [
+        game.levelPicker ? null : el('div', { class: 'level-box level-box-compact' }, [
+          el('p', { class: 'level-now' }, [
+            el('strong', null, 'הרמה שלכם:'),
+            el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.maxLevelOf(game.id)),
+            el('span', null, BG.stageOf(level).name)
+          ]),
+          el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { openSettings({ gameId: game.id }); } },
+            'שינוי רמה')
+        ]),
+        el('div', { class: 'intro-actions intro-start' }, [startBtn]),
+        el('div', { class: 'intro-back' }, [
+          el('button', { class: 'btn btn-quiet', type: 'button', onclick: renderHome }, 'חזרה לדף הבית')
+        ])
       ])
     ]));
   }
