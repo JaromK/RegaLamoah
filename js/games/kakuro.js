@@ -189,6 +189,19 @@
     '.kk-n{display:flex;align-items:center;gap:.05em;font-weight:900;font-size:calc(100cqw / var(--c) * .4);line-height:1;direction:ltr;white-space:nowrap;}',
     '.kk-n i{font-style:normal;font-size:.9em;color:var(--sun);}',
     '.kk-done .kk-cell{background:var(--good-soft);}',
+    /* small numbers (notes): up to 9 little digits in a 3 × 3 pattern, 1 at the top right */
+    '.kk-notes{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);width:92%;height:92%;direction:rtl;',
+    'font-family:var(--font-body);font-weight:800;font-size:calc(100cqw / var(--c) * .24);line-height:1;color:var(--ink-soft);}',
+    '.kk-notes span{display:grid;place-items:center;}',
+    '.kk-cell.is-sel .kk-notes{color:var(--c-on-yellow);}',
+    '.kk-cell.is-focus{box-shadow:inset 0 0 0 4px var(--c-purple);}',
+    '.kk-cell.is-focus-run{background:var(--c-purple-soft);}',
+    '.kk-cell.is-bad{box-shadow:inset 0 0 0 4px var(--c-red);}',
+    '.kk-pad.is-notes .g-choice{font-size:1rem;color:var(--ink-soft);border-style:dashed;}',
+    '.kk-note-btn[aria-pressed="true"]{background:var(--c-purple-soft);border-color:var(--c-purple);color:var(--ink);}',
+    '.kk-actions{gap:.4rem;}.kk-actions .btn{padding-inline:.75rem;white-space:nowrap;font-size:.9rem;}',
+    '.kk-tip{margin:0;max-width:30rem;font-size:1.05rem;font-weight:700;line-height:1.35;text-align:center;background:var(--c-purple-soft);',
+    'border:2px solid var(--c-purple);border-radius:var(--radius-sm);padding:.4rem .7rem;}',
     '.kk-pad{display:grid;grid-template-columns:repeat(var(--k),minmax(0,1fr));gap:.35rem;width:100%;max-width:30rem;}',
     '.kk-pad .g-choice{min-height:2.75rem;font-size:1.45rem;padding:0;}'
   ].join('');
@@ -204,7 +217,8 @@
       'במשבצות הכהות כתובים סכומים. החץ מראה לאן הסכום שייך: ◂ למשבצות שמשמאלו באותה שורה, ▾ למשבצות שמתחתיו באותו טור.',
       'מלאו מספרים במשבצות הלבנות כך שכל שורה וכל טור יגיעו לסכום שלהם.',
       'אסור לחזור על אותו מספר באותה שורה או באותו טור. לחצו על משבצת ואז על מספר.',
-      'אין שעון, ויש "רמז" אם נתקעים.'
+      'רוצים לרשום אפשרויות? לחצו "מספרים קטנים" ואז על מספרים, והם ייכתבו קטן במשבצת.',
+      'תקועים? "רמז" מסמן משבצת ומסביר איך לחשוב עליה, בלי לגלות את התשובה. אין שעון.'
     ],
     css: css,
     _model: { spec: spec, makePuzzle: makePuzzle, search: search },
@@ -231,6 +245,7 @@
       function play(P) {
         root.innerHTML = '';
         var val = Object.assign({}, P.fixed), sel = -1, hints = 0, done = false;
+        var notes = {}, noteMode = false, focus = null; // focus = the hinted cell { k, step, bad }
         var across = {}, down = {};
         P.runs.forEach(function (run) { (run.dir === 'a' ? across : down)[run.clue] = run.sum; });
         var btn = {}, kids = [];
@@ -255,10 +270,15 @@
           pad.appendChild(el('button', { class: 'g-choice', type: 'button', onclick: function () { put(v); } }, String(v)));
         })(v);
         pad.appendChild(el('button', { class: 'g-choice', type: 'button', 'aria-label': 'מחיקה', onclick: function () { put(0); } }, '⌫'));
+        var noteBtn = el('button', { class: 'btn btn-quiet btn-sm kk-note-btn', type: 'button', 'aria-pressed': 'false', onclick: function () {
+          noteMode = !noteMode; noteBtn.setAttribute('aria-pressed', String(noteMode)); pad.classList.toggle('is-notes', noteMode);
+          ctx.setStatus(noteMode ? 'מספרים קטנים: לחצו על מספר כדי לרשום או למחוק אותו' : 'מלאו מספרים מ-1 עד ' + P.dmax);
+        } }, '✏️ מספרים קטנים');
         var hintBtn = el('button', { class: 'btn btn-secondary btn-sm', type: 'button', onclick: hint }, 'רמז');
-        var showBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: reveal }, 'הראו פתרון');
-        var actions = el('div', { class: 'g-actions' }, [hintBtn, showBtn]);
-        root.appendChild(grid); root.appendChild(pad); root.appendChild(actions);
+        var showBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: reveal }, 'פתרון');
+        var actions = el('div', { class: 'g-actions kk-actions' }, [noteBtn, hintBtn, showBtn]);
+        var tip = el('p', { class: 'kk-tip', 'aria-live': 'polite', hidden: true });
+        root.appendChild(grid); root.appendChild(tip); root.appendChild(pad); root.appendChild(actions);
         ctx.setStatus('מלאו מספרים מ-1 עד ' + P.dmax);
         sel = P.cells.filter(function (k) { return !val[k]; })[0];
         render();
@@ -275,9 +295,19 @@
         function render() {
           var runCells = {};
           if (sel >= 0 && !done) P.map[sel].forEach(function (ri) { P.runs[ri].cells.forEach(function (x) { runCells[x] = true; }); });
+          var focusRun = {};
+          if (focus && !done) P.map[focus.k].forEach(function (ri) { P.runs[ri].cells.forEach(function (x) { focusRun[x] = true; }); });
           P.cells.forEach(function (k) {
             var b = btn[k];
             b.textContent = val[k] ? String(val[k]) : '';
+            if (!val[k] && notes[k] && !done) {
+              var box = el('span', { class: 'kk-notes', 'aria-hidden': 'true' });
+              for (var d = 1; d <= 9; d++) box.appendChild(el('span', null, notes[k][d] ? String(d) : ''));
+              b.appendChild(box);
+            }
+            b.classList.toggle('is-focus', !!focus && focus.k === k && !done);
+            b.classList.toggle('is-focus-run', !!focusRun[k] && !(focus && focus.k === k) && k !== sel);
+            b.classList.toggle('is-bad', !!focus && !!focus.bad && focus.k === k && !done);
             b.classList.toggle('is-sel', k === sel && !done);
             b.classList.toggle('is-run', !!runCells[k] && k !== sel);
             b.classList.toggle('is-clash', clash(k));
@@ -290,31 +320,128 @@
         function put(v) {
           if (done || sel < 0) return;
           ctx.sound('tap');
+          if (noteMode && !val[sel]) { // small numbers: write or erase one, or clear them all with ⌫
+            if (!v) delete notes[sel];
+            else { notes[sel] = notes[sel] || {}; notes[sel][v] = !notes[sel][v]; }
+            render(); return;
+          }
+          if (focus && focus.k === sel) { focus = null; tip.hidden = true; }
           if (v) val[sel] = v; else delete val[sel];
-          if (v) { // move on to the next empty cell
+          if (v) { // the number is now used in this row and column: drop it from their small numbers
+            P.map[sel].forEach(function (ri) { P.runs[ri].cells.forEach(function (x) { if (notes[x]) notes[x][v] = false; }); });
+          }
+          if (v && !noteMode) { // move on to the next empty cell
             var i = P.cells.indexOf(sel);
             for (var s = 1; s < P.cells.length; s++) { var k = P.cells[(i + s) % P.cells.length]; if (!val[k]) { sel = k; break; } }
           }
           render(); check();
         }
+        /* ---------- hints that teach: point at one cell and explain how to work it out, never fill it in ---------- */
+        var NAME = { a: 'בשורה', d: 'בטור' };
+        // digits that can still go in cell k as far as one run is concerned (only correct numbers count as placed)
+        function runOptions(ri, k) {
+          var run = P.runs[ri], used = [], empty = 0, rest = run.sum;
+          run.cells.forEach(function (x) {
+            if (x !== k && val[x] && val[x] === P.sol[x]) { used.push(val[x]); rest -= val[x]; } else empty++;
+          });
+          var out = [];
+          for (var d = 1; d <= P.dmax; d++) {
+            if (used.indexOf(d) !== -1) continue;
+            if (canFill(empty - 1, rest - d, used.concat([d]), 1)) out.push(d);
+          }
+          return { opts: out, empty: empty, rest: rest, used: used, run: run };
+        }
+        function canFill(n, sum, used, from) {
+          if (n === 0) return sum === 0;
+          for (var d = from; d <= P.dmax; d++) {
+            if (used.indexOf(d) !== -1 || d > sum) continue;
+            if (canFill(n - 1, sum - d, used.concat([d]), d + 1)) return true;
+          }
+          return false;
+        }
+        // the ways to fill a run's empty cells (sorted digit lists, at most 2 are needed), to spot "only one way" sums
+        function combos(n, sum, used, from, acc, out) {
+          if (n === 0) { if (sum === 0) out.push(acc.slice()); return out; }
+          for (var d = from; d <= P.dmax && out.length < 2; d++) {
+            if (used.indexOf(d) !== -1 || d > sum) continue;
+            acc.push(d); combos(n - 1, sum - d, used, d + 1, acc, out); acc.pop();
+          }
+          return out;
+        }
         function hint() {
           if (done) return;
-          var k = P.cells.filter(function (x) { return val[x] && val[x] !== P.sol[x]; })[0];
-          if (k === undefined) k = sel >= 0 && !val[sel] ? sel : P.cells.filter(function (x) { return !val[x]; })[0];
-          if (k === undefined) return;
+          // 1. a wrong number comes first: mark it, without saying what is right
+          var bad = P.cells.filter(function (x) { return val[x] && val[x] !== P.sol[x]; })[0];
+          if (bad !== undefined) {
+            hints++;
+            focus = { k: bad, step: 1, bad: true }; sel = bad;
+            var dup = P.map[bad].some(function (ri) { return P.runs[ri].cells.some(function (x) { return x !== bad && val[x] === val[bad]; }); });
+            showTip('המספר ' + val[bad] + ' במשבצת המסומנת באדום לא מתאים. ' +
+              (dup ? 'הוא כבר מופיע באותה שורה או באותו טור.' : 'בדקו שוב את הסכום של השורה ושל הטור שלה.') + ' מחקו אותו (⌫) ונסו מספר אחר.');
+            render(); return;
+          }
+          // 2. pressing again on the same cell: list what fits its row and what fits its column
+          if (focus && !focus.bad && !val[focus.k] && focus.step === 1) {
+            hints++;
+            focus.step = 2;
+            var infos2 = P.map[focus.k].map(function (ri) { return runOptions(ri, focus.k); });
+            var last = infos2.filter(function (o) { return o.empty === 1; })[0];
+            if (last) { // one number missing: write out the sum to work out, not the answer
+              showTip('חשבו: ' + last.run.sum + (last.used.length ? ' − ' + last.used.join(' − ') : '') + ' = ?');
+            } else {
+              // a list with a single number would give the answer away: say only how many fit
+              showTip(infos2.map(function (o) {
+                return o.opts.length === 1 ? NAME[o.run.dir] + ' מתאים רק מספר אחד. איזה?' : NAME[o.run.dir] + ' אפשר רק: ' + o.opts.join(', ');
+              }).join('. ') + (infos2.length > 1 ? '. איזה מספר מתאים לשניהם?' : ''));
+            }
+            render(); return;
+          }
+          // 3. a new cell: the empty cell with the fewest possible numbers
+          var bestK = -1, bestN = 99;
+          P.cells.forEach(function (x) {
+            if (val[x]) return;
+            var set = null;
+            P.map[x].forEach(function (ri) {
+              var o = runOptions(ri, x).opts;
+              set = set ? set.filter(function (d) { return o.indexOf(d) !== -1; }) : o;
+            });
+            if (set.length < bestN) { bestN = set.length; bestK = x; }
+          });
+          if (bestK < 0) return;
           hints++;
-          val[k] = P.sol[k]; sel = k;
-          ctx.setStatus('רמז: הוספנו מספר נכון');
-          render(); check();
+          focus = { k: bestK, step: 1 }; sel = bestK;
+          var infos = P.map[bestK].map(function (ri) { return runOptions(ri, bestK); });
+          var one = infos.filter(function (o) { return o.empty === 1; })[0];
+          var text;
+          if (one) {
+            text = 'נסו את המשבצת המסומנת: ' + NAME[one.run.dir] + ' שלה חסר רק מספר אחד. הסכום הוא ' + one.run.sum +
+              (one.used.length ? ' וכבר כתוב שם ' + one.used.join(' + ') : '') + '. כמה חסר?';
+          } else {
+            var uniq = infos.filter(function (o) { return combos(o.empty, o.rest, o.used, 1, [], []).length === 1; })[0];
+            if (uniq) {
+              var c = combos(uniq.empty, uniq.rest, uniq.used, 1, [], [])[0];
+              var other = infos.filter(function (o) { return o !== uniq; })[0];
+              text = 'נסו את המשבצת המסומנת. ' + NAME[uniq.run.dir] + ' שלה ' + uniq.empty + ' משבצות ריקות שסכומן ' + uniq.rest +
+                ', ויש לזה רק דרך אחת: ' + c.join(' + ') + '.' +
+                (other ? ' עכשיו בדקו את ' + (other.run.dir === 'a' ? 'השורה' : 'הטור') + ' שלה: איזה מהמספרים האלה מתאים גם שם?' : '');
+            } else {
+              text = 'נסו את המשבצת המסומנת. חשבו אילו מספרים מתאימים לשורה שלה ואילו לטור שלה. רק מעט מספרים מתאימים לשניהם.' +
+                ' (לחיצה נוספת על "רמז" תראה את האפשרויות)';
+            }
+          }
+          showTip(text);
+          render();
         }
-        function reveal() { if (done) return; val = Object.assign({}, P.sol); hints = 99; render(); check(); }
+        function showTip(t) { tip.textContent = t; tip.hidden = false; ctx.setStatus('רמז'); }
+        function reveal() { if (done) return; val = Object.assign({}, P.sol); hints = 99; focus = null; tip.hidden = true; render(); check(); }
         function check() {
           if (P.cells.some(function (k) { return !val[k]; })) return;
           // any filling that meets every sum is right, even if it differs from ours
           var good = P.cells.every(function (k) { return !clash(k); });
           if (!good) { ctx.setStatus('הלוח מלא, אבל יש סכום שלא מסתדר. המספרים האדומים צריכים תיקון'); return; }
           done = true;
-          var ok = hints <= (P.cells.length > 20 ? 2 : 1);
+          tip.hidden = true; focus = null;
+          var ok = hints <= (P.cells.length > 20 ? 3 : 2);
           if (ok) solved++;
           grid.classList.add('kk-done');
           render();
