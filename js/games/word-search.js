@@ -125,8 +125,10 @@
     '.wsr-rings rect{fill:none;stroke-width:1.1;}',
     '.wsr-rings rect.is-shown{stroke:var(--ink-soft);stroke-dasharray:2 1.4;}',
     '.wsr-cell.is-hint{box-shadow:inset 0 0 0 4px var(--sun);}',
-    '.wsr-words{display:flex;flex-wrap:wrap;gap:.3rem .4rem;justify-content:center;max-width:30rem;margin:0;padding:0;list-style:none;}',
-    '.wsr-words li{font-size:1.02rem;font-weight:800;padding:0 .5rem;border-radius:999px;background:var(--surface-2);border:2px solid var(--line);}',
+    /* compact word chips and one row of small buttons, so the board, the words and the buttons fit a phone screen */
+    '.wsr-words{display:flex;flex-wrap:wrap;gap:.25rem .3rem;justify-content:center;max-width:30rem;margin:-.35rem 0 0;padding:0;list-style:none;}',
+    '.wsr-words li{font-size:.98rem;line-height:1.35;font-weight:800;padding:0 .45rem;border-radius:999px;background:var(--surface-2);border:2px solid var(--line);}',
+    '.wsr-actions{flex-wrap:nowrap;margin-top:-.35rem;}',
     '.wsr-words li.is-found{text-decoration:line-through;color:var(--ink);}',
     '.wsr-theme{margin:0;font-size:1.2rem;font-weight:800;color:var(--language);}'
   ].join('');
@@ -202,9 +204,9 @@
         }
         var chips = B.words.map(function (w) { return el('li', null, w.w); });
         var list = el('ul', { class: 'wsr-words' }, chips);
-        var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
-        var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'הראו את המילים');
-        var actions = el('div', { class: 'g-actions' }, [hintBtn, showBtn]);
+        var hintBtn = el('button', { class: 'btn btn-secondary btn-sm', type: 'button', onclick: hint }, 'רמז');
+        var showBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: reveal }, 'הראו את המילים');
+        var actions = el('div', { class: 'g-actions wsr-actions' }, [hintBtn, showBtn]);
         root.appendChild(wrap);
         root.appendChild(list);
         root.appendChild(actions);
