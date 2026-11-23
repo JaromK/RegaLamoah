@@ -820,6 +820,18 @@
           setTimeout(function () { if (session.active) resolve(); }, ms);
         });
       },
+      /* After a mistake: keep the explanation on screen and wait for the player to tap "הבנתי, ממשיכים"
+         instead of moving on by itself. Resolves when tapped. */
+      next: function (label) {
+        return new Promise(function (resolve) {
+          if (!session.active) return;
+          var b = el('button', { class: 'btn btn-primary btn-lg g-next', type: 'button', onclick: function () {
+            b.remove(); if (session.active) resolve();
+          } }, label || 'הבנתי, ממשיכים');
+          board.appendChild(b);
+          setTimeout(function () { try { b.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {} }, 50);
+        });
+      },
       setProgress: guard(function (cur, total) {
         if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' }); // each round starts at the top
         progressText.textContent = 'שלב ' + cur + ' מתוך ' + total;

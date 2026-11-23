@@ -40,6 +40,23 @@
     return String(n);
   }
 
+  // why a number is (or is not) a "בום": "21 = 3 × 7", "יש בו את הספרה 7"
+  function because(n, k, contains) {
+    var r = [];
+    if (n % k === 0) r.push(n + ' = ' + (n / k) + ' × ' + k);
+    if (contains && String(n).indexOf(String(k)) !== -1) r.push('יש בו את הספרה ' + k);
+    return r.join(' וגם ');
+  }
+  function why(n, s) {
+    var A = hits(n, s.a, s.contains), B = s.b ? hits(n, s.b, s.contains) : false;
+    if (!A && !B) return n + ' הוא מספר רגיל: לא מתחלק ב-' + s.a + (s.contains ? ' ואין בו ' + s.a : '') +
+      (s.b ? ', וגם לא ב-' + s.b : '');
+    var parts = [];
+    if (A) parts.push(because(n, s.a, s.contains));
+    if (B) parts.push(because(n, s.b, s.contains));
+    return 'במקום ' + n + ' אומרים "' + say(n, s) + '", כי ' + parts.join(', וגם ');
+  }
+
   // the rule as one or two short lines
   function ruleLines(s) {
     var out = ['"בום!" = מתחלק ב-' + s.a + (s.contains ? ' או שיש בו ' + s.a : '')];
@@ -115,8 +132,11 @@
         all.forEach(function (st) { st.el.classList.toggle('is-turn', st === seats[i]); });
         var v = next();
         setBubble(seats[i], say(v, s));
+        // a friend's "בום" is explained too (unless the numbers are hidden on this level)
+        if (!s.hide) ctx.setStatus(say(v, s) === String(v) ? 'החברים סופרים…' : seats[i].f.name + ': ' + why(v, s));
         ctx.sound('note', 440 + i * 60);
-        ctx.wait(1100).then(function () {
+        // a friend's בום stays a little longer, so its reason can be read
+        ctx.wait(!s.hide && say(v, s) !== String(v) ? 2400 : 1100).then(function () {
           if (s.hide) setBubble(seats[i], '');
           friendsSpeak(i + 1);
         });
@@ -167,9 +187,12 @@
           if (ok) good++;
           b.classList.add(ok ? 'is-correct' : 'is-wrong');
           if (!ok) [].forEach.call(choices.children, function (x) { if (x.textContent === right) x.classList.add('is-correct'); });
-          var why = right === String(v) ? v + ' הוא מספר רגיל' : 'במקום ' + v + ' אומרים "' + right + '"';
-          ctx.setStatus(why);
-          ctx.feedback(ok, ok ? undefined : why).then(function () {
+          var text = why(v, s);
+          ctx.setStatus((ok ? 'נכון! ' : 'לא בדיוק. ') + text);
+          // the toast is short; the full reason stays in the status line. After a mistake the game waits for a tap.
+          ctx.feedback(ok, ok ? undefined : 'אומרים: ' + right).then(function () {
+            return ok ? ctx.wait(right === String(v) ? 300 : 1500) : ctx.next();
+          }).then(function () {
             delete choices.dataset.done;
             seats.forEach(function (st) { setBubble(st, ''); });
             round();

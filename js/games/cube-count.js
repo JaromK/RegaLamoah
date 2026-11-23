@@ -70,7 +70,7 @@
   var C30 = Math.cos(Math.PI / 6), S30 = 0.5;
   // x goes to the front-right (down-right on screen), y goes back (up-right), z up
   function proj(x, y, z) { return [(x + y) * C30, (x - y) * S30 - z]; }
-  function drawStack(H, ghostH) {
+  function drawStack(H, ghostH, numbers) {
     var d = H.length, w = H[0].length;
     var s = svgEl('svg', { class: 'cc-svg', 'aria-hidden': 'true' });
     var polys = [];
@@ -100,6 +100,17 @@
       edges.forEach(function (e) { polys.push(svgEl('line', { x1: e[0][0], y1: e[0][1], x2: e[1][0], y2: e[1][1], class: 'cc-box' })); });
     }
     polys.forEach(function (pl) { s.appendChild(pl); });
+    // after a mistake: how many cubes stand in each column, written on its top
+    if (numbers) {
+      for (var ny = 0; ny < d; ny++) for (var nx = 0; nx < w; nx++) {
+        if (!H[ny][nx]) continue;
+        var c = proj(nx + 0.5, ny + 0.5, H[ny][nx]);
+        s.appendChild(svgEl('circle', { cx: c[0], cy: c[1], r: 0.3, class: 'cc-numbg' }));
+        var tx = svgEl('text', { x: c[0], y: c[1] + 0.02, class: 'cc-num' });
+        tx.textContent = H[ny][nx];
+        s.appendChild(tx);
+      }
+    }
     // view box around everything
     var xs = [], ys = [];
     [[0, 0], [w, 0], [0, d], [w, d]].forEach(function (q) { [0, maxZ].forEach(function (z) { var pp = proj(q[0], q[1], z); xs.push(pp[0]); ys.push(pp[1]); }); });
@@ -159,6 +170,8 @@
     '.cc-top{fill:var(--perception-soft);stroke:var(--ink);stroke-width:.03;stroke-linejoin:round;}',
     '.cc-front{fill:var(--perception);fill-opacity:.55;stroke:var(--ink);stroke-width:.03;stroke-linejoin:round;}',
     '.cc-side{fill:var(--perception);stroke:var(--ink);stroke-width:.03;stroke-linejoin:round;}',
+    '.cc-numbg{fill:var(--c-blue);stroke:#fff;stroke-width:.05;}',
+    '.cc-num{fill:#fff;font:900 .4px var(--font-body);text-anchor:middle;dominant-baseline:central;}',
     '.cc-box{stroke:var(--ink-soft);stroke-width:.04;stroke-dasharray:.12 .08;}',
     '.cc-choices{grid-template-columns:repeat(4,minmax(0,1fr));max-width:24rem;}',
     '.cc-choices .g-choice{font-size:1.7rem;font-variant-numeric:tabular-nums;}',
@@ -196,17 +209,23 @@
         ctx.setProgress(round, ROUNDS);
         var R = makeRound(spec, ctx);
         root.innerHTML = '';
+        var showNumbers = function () {};
         if (R.ask === 'diff') {
           ctx.setStatus('כמה קוביות יש בבניין א יותר מבבניין ב?');
           var fa = el('figure'), fb = el('figure');
           fa.appendChild(drawStack(R.A)); fa.appendChild(el('figcaption', null, 'א'));
           fb.appendChild(drawStack(R.B)); fb.appendChild(el('figcaption', null, 'ב'));
+          showNumbers = function () {
+            fa.replaceChild(drawStack(R.A, 0, true), fa.firstChild);
+            fb.replaceChild(drawStack(R.B, 0, true), fb.firstChild);
+          };
           root.appendChild(el('div', { class: 'cc-two' }, [fa, fb]));
         } else {
           ctx.setStatus(R.ask === 'box' ? 'כמה קוביות חסרות כדי למלא את התיבה המקווקוות?'
             : R.ask === 'hidden' ? 'כמה קוביות מוסתרות לגמרי (לא רואים מהן כלום)?' : 'כמה קוביות יש בבניין?');
           var fig = el('div', { class: 'cc-fig', role: 'img', 'aria-label': 'בניין קוביות' });
           fig.appendChild(drawStack(R.H, R.ask === 'box' ? R.full : 0));
+          showNumbers = function () { fig.replaceChild(drawStack(R.H, R.ask === 'box' ? R.full : 0, true), fig.firstChild); };
           root.appendChild(fig);
         }
         var explain = el('p', { class: 'cc-explain', 'aria-live': 'polite' });
@@ -224,8 +243,11 @@
           if (ok) correct++;
           buttons.forEach(function (b) { b.disabled = true; if (+b.textContent === R.answer) b.classList.add('is-correct'); });
           if (!ok) btn.classList.add('is-wrong');
-          explain.textContent = R.explain;
-          ctx.feedback(ok, ok ? undefined : 'התשובה: ' + R.answer).then(function () { return ctx.wait(ok ? 700 : 1800); }).then(nextRound);
+          explain.textContent = ok ? R.explain : R.explain + ' המספר על כל עמודה: כמה קוביות יש בה.';
+          if (!ok) showNumbers();
+          if (!ok) ctx.setStatus('לא בדיוק. בחרתם ' + v + ', והתשובה ' + R.answer);
+          // after a mistake the explanation stays until the player taps to go on
+          ctx.feedback(ok, ok ? undefined : 'התשובה: ' + R.answer).then(function () { return ok ? null : ctx.next(); }).then(nextRound);
         }
       }
 

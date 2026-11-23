@@ -25,6 +25,12 @@
     'border-radius:50%;}',
     '.ci-board.ci-done .ci-item{opacity:.35;}',
     '.ci-board.ci-done .ci-item.ci-hit{opacity:1;background:var(--good-soft);box-shadow:0 0 0 3px var(--good);}',
+    /* after a mistake every counted picture gets its number, so the player can count along */
+    '.ci-num{position:absolute;transform:translate(10%,-115%);min-width:1.45rem;height:1.45rem;padding:0 .2rem;border-radius:999px;',
+    'background:var(--c-blue);color:#fff;font:900 .95rem/1.45rem var(--font-body);text-align:center;pointer-events:none;z-index:2;}',
+    '.ci-num.is-low{transform:translate(10%,15%);}',
+    '.ci-num.k1{background:var(--c-red);}.ci-num.k2{background:var(--c-purple);}',
+    '.ci-explain{margin:0;font-size:1.15rem;font-weight:800;text-align:center;}',
     '.ci-q{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.35rem;margin:0;}',
     '.ci-q .ci-em{font-size:2rem;line-height:1;}',
     '.ci-choices{max-width:26rem;grid-template-columns:repeat(4,minmax(0,1fr));}',
@@ -156,6 +162,7 @@
           var jx = (Math.random() - 0.5) * 0.3, jy = (Math.random() - 0.5) * 0.3;
           var x = (col + 0.5 + jx) / cols * 100;
           var y = (r + 0.5 + jy) / cols * 100;
+          pc.x = x; pc.y = y;
           var node = el('span', {
             class: 'ci-item' + (pc.hit ? ' ci-hit' : ''), 'aria-hidden': 'true',
             style: { left: x + '%', top: y + '%' }
@@ -219,10 +226,24 @@
           } else {
             msg = 'היו ' + answer + ' ' + targets[0];
           }
-          ctx.setStatus(ok ? 'נכון! ' + msg : msg + ' (מסומנים בתמונה)');
-          ctx.feedback(ok, ok ? undefined : 'התשובה הנכונה: ' + answer).then(function () {
-            return ctx.wait(1500);
-          }).then(nextRound);
+          if (ok) {
+            ctx.setStatus('נכון! ' + msg);
+            ctx.feedback(true).then(nextRound);
+            return;
+          }
+          // a mistake: number every picture that counts (each kind in its own colour), explain, and wait
+          var targetsShown = mode === 'size' || mode === 'face' ? [targets[0]] : targets;
+          targetsShown.forEach(function (kind, ki) {
+            var hits = pieces.filter(function (pc) { return pc.hit && pc.e === kind; });
+            // number them top to bottom, right to left, the way one counts
+            hits.sort(function (p, q) { return Math.round(p.y / 12) - Math.round(q.y / 12) || q.x - p.x; });
+            hits.forEach(function (pc, i) {
+              board.appendChild(el('span', { class: 'ci-num k' + ki + (pc.y < 14 ? ' is-low' : ''), 'aria-hidden': 'true', style: { left: pc.x + '%', top: pc.y + '%' } }, String(i + 1)));
+            });
+          });
+          ctx.setStatus('לא בדיוק. בחרתם ' + v + ', והתשובה ' + answer);
+          root.appendChild(el('p', { class: 'ci-explain', 'aria-live': 'polite' }, msg + '. כל אחד מסומן במספר בתמונה.'));
+          ctx.feedback(false, 'התשובה הנכונה: ' + answer).then(function () { return ctx.next(); }).then(nextRound);
         }
       }
 

@@ -341,6 +341,7 @@ p { margin: 0; }
 }
 .g-choice:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
 .g-choice.is-selected { border-color: var(--accent); background: var(--accent-soft); }
+.g-next { align-self: center; min-width: 14rem; }
 .g-choice.is-correct { border-color: var(--good); background: var(--good-soft); color: var(--good); }
 .g-choice.is-wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
 .g-choice:disabled { cursor: default; }
