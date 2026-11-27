@@ -199,6 +199,67 @@
     if (!document.body.classList.contains('on-home')) renderHome();
   });
 
+  /* ---------- typing on a real keyboard ----------
+     In every game, a letter or number key presses the on-screen button that shows the same letter or number
+     (keypads, letter boards, number answers), Backspace presses ⌫, and Enter presses the game's one main button.
+     An English keyboard layout types the Hebrew letter on the same key. Numbers of two digits can be typed too.
+     Games that read the keyboard themselves (they call preventDefault) and text fields are left alone. */
+  var EN_HE = { q: '/', w: "'", e: 'ק', r: 'ר', t: 'א', y: 'ט', u: 'ו', i: 'ן', o: 'ם', p: 'פ', a: 'ש', s: 'ד', d: 'ג', f: 'כ', g: 'ע',
+    h: 'י', j: 'ח', k: 'ל', l: 'ך', ';': 'ף', z: 'ז', x: 'ס', c: 'ב', v: 'ה', b: 'נ', n: 'מ', m: 'צ', ',': 'ת', '.': 'ץ' };
+  var FINAL_BASE = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };
+  var typed = '', typedTimer = null;
+  function keyButtons() {
+    return [].slice.call(document.querySelectorAll('.play-board button')).filter(function (b) {
+      return !b.disabled && b.offsetParent !== null && !b.closest('[hidden]');
+    });
+  }
+  function keyText(b) { return (b.textContent || '').replace(/\s+/g, ' ').trim(); }
+  // the best button for a text: keypad-like buttons first, then the last one on the page (keypads are below boards)
+  function buttonFor(text, list) {
+    var hits = list.filter(function (b) { var t = keyText(b); return t === text || (text.length === 1 && FINAL_BASE[t] === text); });
+    if (!hits.length) return null;
+    var pads = hits.filter(function (b) { return /choice|key|pad|opt/.test(b.className) || /pad|kb|keys/.test(b.parentNode.className || ''); });
+    return (pads.length ? pads : hits)[(pads.length ? pads : hits).length - 1];
+  }
+  function pressTyped(final) {
+    var list = keyButtons(), exact = buttonFor(typed, list);
+    var longer = list.some(function (b) { var t = keyText(b); return t.length > typed.length && t.indexOf(typed) === 0 && /^\d+$/.test(t); });
+    if (exact && (final || !longer)) { exact.click(); typed = ''; return; }
+    if (final || !longer) typed = '';
+  }
+  window.addEventListener('keydown', function (e) {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || !current || !current.active) return;
+    if (document.querySelector('dialog[open]')) return;
+    var ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return;
+    var k = e.key;
+    if (k === 'Backspace' || k === 'Delete') {
+      var del = keyButtons().filter(function (b) { return /⌫/.test(keyText(b)) || b.getAttribute('aria-label') === 'מחיקה'; }).pop();
+      if (del) { e.preventDefault(); del.click(); }
+      return;
+    }
+    if (k === 'Enter') {
+      if (ae && ae.tagName === 'BUTTON') return; // the browser presses the focused button itself
+      var main = keyButtons().filter(function (b) { return b.classList.contains('btn-primary'); });
+      if (main.length === 1) { e.preventDefault(); main[0].click(); }
+      return;
+    }
+    if (k.length !== 1) return;
+    var ch = EN_HE[k.toLowerCase()] && !/[א-ת]/.test(k) ? EN_HE[k.toLowerCase()] : k;
+    ch = FINAL_BASE[ch] || ch;
+    if (/^\d$/.test(ch)) {
+      // digits: wait a moment when a longer number could still be meant ("1" then "2" = 12)
+      typed += ch; e.preventDefault();
+      clearTimeout(typedTimer);
+      pressTyped(false);
+      if (typed) typedTimer = setTimeout(function () { pressTyped(true); }, 900);
+      return;
+    }
+    if (!/[א-ת]/.test(ch)) return;
+    var b = buttonFor(ch, keyButtons());
+    if (b) { e.preventDefault(); b.click(); }
+  });
+
   function optionGroup(label, options, value, onChange) {
     var buttons = options.map(function (o) {
       var b = el('button', {

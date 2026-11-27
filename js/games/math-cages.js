@@ -237,7 +237,8 @@
     'color:var(--logic);line-height:1;direction:ltr;}',
     '.mc-done .mc-cell{background:var(--good-soft);}',
     '.mc-pad{display:grid;grid-template-columns:repeat(var(--k),minmax(0,1fr));gap:.45rem;width:100%;max-width:24rem;}',
-    '.mc-pad .g-choice{min-height:3.5rem;font-size:1.6rem;padding:.2rem;}'
+    '.mc-pad .g-choice{min-height:3.5rem;font-size:1.6rem;padding:.2rem;}',
+    '.mc-actions{flex-wrap:nowrap;gap:.3rem;width:100%;max-width:26rem;}.mc-actions .btn{flex:1 1 auto;min-width:0;padding-inline:.45rem;font-size:.95rem;white-space:nowrap;}'
   ].join('');
 
   BrainGames.register({
@@ -306,16 +307,18 @@
         }
         pad.appendChild(el('button', { class: 'g-choice', type: 'button', 'aria-label': 'מחיקה', onclick: function () { put(0); } }, '⌫'));
         var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
-        var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'הראו פתרון');
-        var actions = el('div', { class: 'g-actions' }, [hintBtn, showBtn]);
+        var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'פתרון');
+        var undoBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: undo }, '↶ בטלו');
+        var clearBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: clearAll }, 'נקו הכול');
+        var actions = el('div', { class: 'g-actions mc-actions' }, [hintBtn, undoBtn, clearBtn, showBtn]);
+        var past = []; // earlier boards, for "בטלו"
         var tip = el('p', { class: 'mc-tip', 'aria-live': 'polite', hidden: true });
         root.appendChild(grid);
         root.appendChild(tip);
         root.appendChild(pad);
         root.appendChild(actions);
         ctx.setStatus('לחצו על משבצת ריקה, ואז על מספר');
-        // first empty cell is selected, so the pad works right away
-        for (var e = 0; e < n * n; e++) if (!g[Math.floor(e / n)][e % n]) { sel = e; break; }
+        sel = -1; // the player picks where to start
         render();
 
         function clash(r, c) {
@@ -339,6 +342,31 @@
           });
           [].forEach.call(pad.children, function (b) { b.disabled = done || sel < 0; });
           hintBtn.disabled = showBtn.disabled = done;
+          undoBtn.disabled = done || !past.length;
+          clearBtn.disabled = done || !anyPlayed();
+        }
+        function anyPlayed() {
+          for (var k = 0; k < n * n; k++) if (g[Math.floor(k / n)][k % n] && !pz.fixed[Math.floor(k / n)][k % n]) return true;
+          return false;
+        }
+        function snapshot() { past.push(g.map(function (row) { return row.slice(); })); }
+        function undo() {
+          if (done || !past.length) return;
+          ctx.sound('tap');
+          g = past.pop();
+          if (focus && !focus.bad && val(focus.k)) { focus = null; tip.hidden = true; }
+          ctx.setStatus('הצעד האחרון בוטל');
+          render();
+        }
+        // every number the player wrote goes; the numbers given at the start stay
+        function clearAll() {
+          if (done || !anyPlayed()) return;
+          ctx.sound('tap');
+          snapshot();
+          g = g.map(function (row, r) { return row.map(function (v, c) { return pz.fixed[r][c] ? v : 0; }); });
+          focus = null; tip.hidden = true;
+          ctx.setStatus('הלוח נוקה. אפשר להתחיל מחדש (או "בטלו")');
+          render();
         }
 
         function select(k) {
@@ -352,9 +380,10 @@
           if (done || sel < 0) return;
           ctx.sound('tap');
           if (focus && focus.k === sel) { focus = null; tip.hidden = true; }
+          if (g[Math.floor(sel / n)][sel % n] === v) return;
+          snapshot();
           g[Math.floor(sel / n)][sel % n] = v;
-          // move on to the next empty cell
-          if (v) for (var s = 1; s <= n * n; s++) { var k = (sel + s) % (n * n); if (!g[Math.floor(k / n)][k % n]) { sel = k; break; } }
+          // the same cell stays picked: the player chooses where to go next
           render();
           checkDone();
         }
