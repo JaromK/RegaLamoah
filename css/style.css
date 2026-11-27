@@ -45,7 +45,7 @@
   --c-black: #1b1b1b;  --c-black-soft: #e4e4e4;
   --c-on-yellow: #1b1b1b;
 
-  --font-display: "Frank Ruhl Libre", "David", "Times New Roman", serif;
+  --font-display: "Rubik", "Assistant", "Arial Hebrew", "Segoe UI", Arial, sans-serif;
   --font-body: "Assistant", "Arial Hebrew", "Segoe UI", Arial, sans-serif;
 
   --radius: 14px;
@@ -167,8 +167,12 @@ p { margin: 0; }
   display: inline-block; padding: .1rem .7rem; border-radius: 999px; font-size: .85rem; font-weight: 700;
   background: var(--sun-soft); color: var(--ink); font-variant-numeric: tabular-nums;
 }
-.skill-icon { width: 2.75rem; height: 2.75rem; border-radius: 12px; display: inline-grid; place-items: center; flex: none; }
+.skill-icon { width: 2.75rem; height: 2.75rem; border-radius: 12px; display: inline-grid; place-items: center; flex: none;
+  font-size: 1.55rem; line-height: 1; font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; }
 .skill-icon svg { width: 1.7rem; height: 1.7rem; fill: currentColor; stroke: currentColor; }
+/* a game's own icon on its card */
+.game-card-head { display: flex; align-items: center; gap: .6rem; width: 100%; }
+.game-card-head .skill-icon { width: 2.6rem; height: 2.6rem; font-size: 1.5rem; }
 .skill-memory { background: var(--memory-soft); color: var(--memory); }
 .skill-attention { background: var(--attention-soft); color: var(--attention); }
 .skill-logic { background: var(--logic-soft); color: var(--logic); }
@@ -220,7 +224,7 @@ p { margin: 0; }
 .skill-groups { display: flex; flex-direction: column; gap: 1.5rem; }
 .skill-group { display: flex; flex-direction: column; gap: .7rem; }
 .skill-group-title { display: flex; align-items: center; gap: .6rem; font-size: 1.25rem; font-family: var(--font-body); font-weight: 800; }
-.skill-group-title .skill-icon { width: 2.2rem; height: 2.2rem; }
+.skill-group-title .skill-icon { width: 2.4rem; height: 2.4rem; font-size: 1.4rem; }
 .skill-group-title .skill-icon svg { width: 1.3rem; height: 1.3rem; }
 .game-card.is-new { border-color: var(--sun); box-shadow: inset 0 0 0 1px var(--sun); }
 .card-new { display: inline-block; margin-inline-start: .45rem; padding: 0 .5rem; border-radius: 999px; background: var(--sun); color: var(--c-on-yellow); font-size: .85rem; font-weight: 800; vertical-align: .15rem; }
@@ -244,7 +248,7 @@ p { margin: 0; }
 /* ---------- intro ---------- */
 .intro { display: flex; flex-direction: column; gap: 1.2rem; }
 .intro-head { display: flex; gap: 1rem; align-items: flex-start; }
-.intro-head > .skill-icon { width: 4rem; height: 4rem; border-radius: 16px; }
+.intro-head > .skill-icon { width: 4rem; height: 4rem; border-radius: 16px; font-size: 2.3rem; }
 .intro-head > .skill-icon svg { width: 2.4rem; height: 2.4rem; }
 .intro-chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .4rem; }
 .intro-title { font-size: clamp(2rem, 6vw, 2.6rem); font-weight: 900; }
@@ -301,7 +305,7 @@ p { margin: 0; }
 .play-settings svg { width: 1.3rem; height: 1.3rem; fill: none; stroke: currentColor; stroke-width: 2; }
 .play-progress-row { display: flex; align-items: center; gap: .7rem; }
 .play-progress-row .play-bar { flex: 1; }
-.play-title .skill-icon { width: 2.2rem; height: 2.2rem; }
+.play-title .skill-icon { width: 2.2rem; height: 2.2rem; font-size: 1.3rem; }
 .play-title .skill-icon svg { width: 1.3rem; height: 1.3rem; }
 .play-progress { font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; font-size: .95rem; white-space: nowrap; }
 .play-bar { display: block; height: .5rem; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
@@ -377,7 +381,7 @@ p { margin: 0; }
 
 /* ---------- results ---------- */
 .result { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem; padding-top: 1rem; }
-.result > .skill-icon { width: 4.5rem; height: 4.5rem; border-radius: 50%; }
+.result > .skill-icon { width: 4.5rem; height: 4.5rem; border-radius: 50%; font-size: 2.5rem; }
 .result > .skill-icon svg { width: 2.6rem; height: 2.6rem; }
 .result-title { font-size: clamp(2.2rem, 7vw, 3rem); font-weight: 900; }
 .result-score { font-size: 1.35rem; }
@@ -414,6 +418,19 @@ p { margin: 0; }
 .search-input { flex: 1; min-width: 0; max-width: none; background: var(--surface); font-size: 1.25rem; }
 .search-input::-webkit-search-cancel-button { display: none; }
 .search-row .search-clear { flex: none; }
+.search-row { position: relative; }
+.search-box { flex: 1; min-width: 0; display: flex; }
+.search-box .search-input { width: 100%; }
+.search-suggest { position: absolute; top: calc(100% + 4px); inset-inline: 0; z-index: 12; margin: 0; padding: .3rem; list-style: none;
+  background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  max-height: min(22rem, 60svh); overflow-y: auto; }
+.search-suggest[hidden] { display: none; }
+.search-suggest button > span:not(.skill-icon) { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-suggest button { width: 100%; display: flex; align-items: center; gap: .6rem; padding: .35rem .45rem; border: 0; border-radius: 8px;
+  background: transparent; color: var(--ink); font: inherit; font-size: 1.15rem; font-weight: 800; text-align: start; cursor: pointer; }
+.search-suggest button:hover, .search-suggest button.is-active { background: var(--accent-soft); }
+.search-suggest .skill-icon { width: 2.2rem; height: 2.2rem; font-size: 1.3rem; }
+.search-suggest small { margin-inline-start: auto; color: var(--ink-soft); font-size: .85rem; font-weight: 700; white-space: nowrap; }
 .search-note { color: var(--ink-soft); font-weight: 700; margin: 0; }
 .search-note:empty, .search-results:empty { display: none; }
 .size-options { display: flex; gap: .75rem; flex-wrap: wrap; }

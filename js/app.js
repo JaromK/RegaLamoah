@@ -39,14 +39,6 @@
 
   var WEEKDAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 
-  var SKILL_ICONS = {
-    memory: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="10" width="16" height="22" rx="3"/><rect x="26" y="16" width="16" height="22" rx="3"/></svg>',
-    attention: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke-width="4"/><circle cx="24" cy="24" r="6"/></svg>',
-    logic: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="21" y="8" width="6" height="32" rx="3"/><rect x="8" y="21" width="32" height="6" rx="3"/></svg>',
-    language: '<svg viewBox="0 0 48 48" aria-hidden="true"><text x="24" y="36" text-anchor="middle" font-size="32" font-weight="800" font-family="Frank Ruhl Libre, serif">א</text></svg>',
-    perception: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l16 9v18l-16 9-16-9V15z" fill="none" stroke-width="4" stroke-linejoin="round"/><path d="M24 24l16-9M24 24v18M24 24L8 15" fill="none" stroke-width="3"/></svg>',
-    executive: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="34" width="36" height="6" rx="3"/><rect x="11" y="23" width="26" height="8" rx="3"/><rect x="16" y="12" width="16" height="8" rx="3"/></svg>'
-  };
 
   /* ---------- helpers ---------- */
   function clear() {
@@ -104,8 +96,27 @@
     } catch (e) { return U.dateKey(); }
   }
 
+  // each category and each game has its own picture (emoji), on the category's soft colour
+  var SKILL_EMOJI = { memory: '🧠', attention: '🎯', logic: '🧮', language: '💬', perception: '📐', executive: '🧭' };
+  var GAME_ICONS = {
+    'memory-pairs': '🃏', 'sequence-lights': '🚦', 'grid-memory': '🔲', 'mental-math': '➕', 'number-series': '📈', 'shop-change': '🪙',
+    'odd-one-out': '🙃', 'color-word': '🎨', 'whats-new': '✨', 'shopping-list': '📝', 'face-names': '🙂', 'count-items': '🍏',
+    'word-scramble': '🔀', 'proverbs': '📜', 'synonyms': '🤝', 'spot-difference': '🔎', 'clock-time': '🕰️', 'route-arrows': '↗️',
+    'word-pairs': '🔗', 'symbol-search': '🔣', 'balance-scale': '⚖️', 'word-links': '🧷', 'mirror-image': '🪞', 'rotate-shape': '🔄',
+    'ball-tower': '🔴', 'daily-order': '🗓️', 'middle-arrow': '➡️', 'unique-one': '⭐', 'follow-fish': '🐟', 'delivery-route': '🚚',
+    'brain-shift': '🔃', 'bigger-sum': '🔼', 'split-evenly': '🍕', 'bumper-path': '🎱', 'fit-piece': '🧱', 'what-is-this': '❓',
+    'photo-name': '🖼️', 'photo-pick': '📷', 'trios': '🎴', 'word-points': '💯', 'tangram': '🔷', 'nonogram': '🖌️', 'math-cages': '➗',
+    'dot-trail': '✏️', 'story-recall': '📖', 'analogies': '🟰', 'paper-fold': '📄', 'cube-count': '🧊', 'word-search': '🔤',
+    'kakuro': '🔢', 'seven-boom': '💥', 'gematria': '🔠', 'secret-message': '🔐', 'eretz-ir': '🌍', 'fractions': '🥧',
+    'jigsaw': '🧩', 'pill-box': '💊', 'water-pour': '🫗', 'sliding-puzzle': '🟦', 'hanoi': '🗼', 'lights-out': '💡',
+    'crossword': '✍️', 'guess-word': '💭', 'opposites': '☯️', 'who-lives-where': '🏘️', 'maze': '🌀', 'shadow-match': '👤',
+    'target-number': '🏹', 'where-is-it': '🔑', 'phone-number': '📞', 'appointments': '📅', 'block-rows': '🟥', 'mystery': '🕵️'
+  };
   function skillIcon(skill) {
-    return el('span', { class: 'skill-icon skill-' + skill, html: SKILL_ICONS[skill] });
+    return el('span', { class: 'skill-icon skill-' + skill, 'aria-hidden': 'true' }, SKILL_EMOJI[skill] || '');
+  }
+  function gameIcon(g) {
+    return el('span', { class: 'skill-icon skill-' + g.skill, 'aria-hidden': 'true' }, g.icon || GAME_ICONS[g.id] || SKILL_EMOJI[g.skill] || '');
   }
 
   function skillChip(skill) {
@@ -423,14 +434,14 @@
   function gameCard(g) {
     var lv = getLevel(g.id);
     return el('li', null, el('button', { class: 'game-card' + (g.isNew ? ' is-new' : ''), type: 'button', onclick: function () { renderIntro(g, false); } }, [
-      el('span', { class: 'game-card-name' }, [
+      el('span', { class: 'game-card-head' }, [gameIcon(g), el('span', { class: 'game-card-name' }, [
         g.name,
         g.isNew ? el('span', { class: 'card-new' }, 'חדש') : null,
         trophyKind(g.id) ? el('span', {
           class: 'card-trophy' + trophyClass(trophyKind(g.id)),
           title: 'זכיתם בגביע ה' + trophyInfo(trophyKind(g.id)).label, html: TROPHY_SVG
         }) : null
-      ]),
+      ])]),
       el('span', { class: 'game-card-tag' }, g.tagline),
       el('span', { class: 'game-card-level' }, [
         levelPill(lv),
@@ -474,15 +485,44 @@
   function searchSection() {
     var results = el('ul', { class: 'game-grid search-results' });
     var note = el('p', { class: 'search-note', 'aria-live': 'polite' });
+    var suggest = el('ul', { class: 'search-suggest', id: 'game-suggest', role: 'listbox', hidden: true });
     var input = el('input', {
       class: 'text-input search-input', id: 'game-search', type: 'search', autocomplete: 'off', enterkeyhint: 'search',
-      placeholder: 'שם משחק, או למשל: זיכרון, מילים, חשבון',
-      oninput: show
+      placeholder: 'שם המשחק', role: 'combobox', 'aria-autocomplete': 'list', 'aria-controls': 'game-suggest', 'aria-expanded': 'false',
+      oninput: show, onkeydown: keys, onblur: function () { setTimeout(hideSuggest, 150); }
     });
+    // the drop-down: up to 8 games whose name fits what is typed so far; a tap opens the game
+    var active = -1;
+    function hideSuggest() { suggest.hidden = true; input.setAttribute('aria-expanded', 'false'); active = -1; }
+    function fillSuggest(q) {
+      suggest.innerHTML = ''; active = -1;
+      var key = searchKey(q);
+      var list = BG.all().filter(function (g) { return searchKey(g.name).indexOf(key) !== -1; });
+      if (!list.length) list = findGames(q);
+      list.slice(0, 8).forEach(function (g) {
+        suggest.appendChild(el('li', { role: 'option' }, el('button', { type: 'button', tabindex: '-1',
+          onmousedown: function (e) { e.preventDefault(); }, onclick: function () { hideSuggest(); renderIntro(g, false); } },
+          [gameIcon(g), el('span', null, g.name), el('small', null, BG.SKILLS[g.skill].label)])));
+      });
+      suggest.hidden = !suggest.children.length;
+      input.setAttribute('aria-expanded', String(!suggest.hidden));
+    }
+    function keys(e) {
+      var items = [].slice.call(suggest.querySelectorAll('button'));
+      if (suggest.hidden || !items.length) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        active = (active + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+        items.forEach(function (b, i) { b.classList.toggle('is-active', i === active); });
+        items[active].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); items[active].click(); }
+      else if (e.key === 'Escape') hideSuggest();
+    }
     function show() {
       var q = input.value.trim();
       results.innerHTML = '';
-      if (!q) { note.textContent = ''; return; }
+      if (!q) { note.textContent = ''; hideSuggest(); return; }
+      fillSuggest(q);
       var found = findGames(q);
       note.textContent = found.length
         ? (found.length === 1 ? 'נמצא משחק אחד' : 'נמצאו ' + found.length + ' משחקים')
@@ -491,9 +531,10 @@
     }
     var clearBtn = el('button', { class: 'btn btn-quiet btn-sm search-clear', type: 'button', 'aria-label': 'ניקוי החיפוש',
       onclick: function () { input.value = ''; show(); input.focus(); } }, 'ניקוי');
+    var box = el('div', { class: 'search-box' }, [input, suggest]);
     return el('section', { class: 'section search' }, [
       el('h2', { class: 'section-title' }, el('label', { for: 'game-search' }, 'חיפוש משחק')),
-      el('form', { class: 'search-row', role: 'search', onsubmit: function (e) { e.preventDefault(); input.blur(); } }, [input, clearBtn]),
+      el('form', { class: 'search-row', role: 'search', onsubmit: function (e) { e.preventDefault(); hideSuggest(); input.blur(); } }, [box, clearBtn]),
       note,
       results
     ]);
@@ -544,7 +585,7 @@
         onclick: function () { renderIntro(g, true); }
       }, [
         el('span', { class: 'daily-num', 'aria-hidden': 'true' }, isDone ? '✓' : String(i + 1)),
-        skillIcon(g.skill),
+        gameIcon(g),
         el('span', { class: 'daily-text' }, [
           el('span', { class: 'daily-name' }, g.name),
           el('span', { class: 'daily-tag' }, g.tagline)
@@ -684,7 +725,7 @@
     app.appendChild(el('section', { class: 'intro' }, [
       el('div', { class: 'intro-main' }, [
         el('div', { class: 'intro-head' }, [
-          skillIcon(game.skill),
+          gameIcon(game),
           el('div', null, [
             el('div', { class: 'intro-chips' }, [skillChip(game.skill), el('span', { class: 'level-pill' }, 'רמה ' + level + ' מתוך ' + BG.maxLevelOf(game.id))]),
             el('h1', { class: 'intro-title' }, game.name),
@@ -833,7 +874,7 @@
       html: document.querySelector('#btn-settings svg').outerHTML, onclick: function () { openSettings({ gameId: game.id }); }
     });
     var head = el('div', { class: 'play-head' }, [
-      el('div', { class: 'play-title' }, [skillIcon(game.skill), el('span', { class: 'play-name' }, game.name)]),
+      el('div', { class: 'play-title' }, [gameIcon(game), el('span', { class: 'play-name' }, game.name)]),
       homeBtn,
       settingsBtn,
       exitBtn
@@ -1138,7 +1179,7 @@
     actions.push(el('button', { class: 'btn btn-quiet', type: 'button', onclick: renderHome }, 'לדף הבית'));
 
     app.appendChild(el('section', { class: 'result' }, [
-      skillIcon(game.skill),
+      gameIcon(game),
       el('h1', { class: 'result-title' }, headline),
       el('p', { class: 'result-score' }, [
         'עניתם נכון על ',
