@@ -7,11 +7,19 @@
   /* Level 1–50: n = board side, k = islands. */
   function spec(level) {
     var L = Math.max(1, Math.min(50, level));
-    if (L <= 6) return { n: 6, k: 5 };
-    if (L <= 14) return { n: 7, k: 7 };
-    if (L <= 26) return { n: 7, k: 9 };
-    if (L <= 38) return { n: 8, k: 11 };
-    return { n: 9, k: 13 };
+    // harder than before (user request): more islands on bigger boards, and from level 13 extra bridges that close
+    // loops, so fewer moves are forced; still exactly one solution
+    // hard = share of boards that the obvious rules alone cannot finish (they need looking ahead: "if I join these,
+    // that group is cut off")
+    if (L <= 4) return { n: 6, k: 5, loops: 0, hard: 0 };
+    if (L <= 8) return { n: 7, k: 7, loops: 0, hard: 0 };
+    if (L <= 12) return { n: 7, k: 9, loops: 0, hard: 0.2 };
+    if (L <= 18) return { n: 8, k: 10, loops: 1, hard: 0.5 };
+    if (L <= 25) return { n: 8, k: 12, loops: 1, hard: 0.6 };
+    if (L <= 32) return { n: 9, k: 13, loops: 2, hard: 0.8 };
+    if (L <= 38) return { n: 9, k: 15, loops: 2, hard: 0.9 };
+    if (L <= 45) return { n: 9, k: 16, loops: 3, hard: 1 }; // 9 × 9 at most: the islands stay big enough on a phone
+    return { n: 9, k: 17, loops: 3, hard: 1 };
   }
 
   /* islands: [{ r, c, need }]; edges: [{ a, b, horiz, cells: [i…] }] between islands that see each other */
@@ -63,9 +71,36 @@
     })(0);
     return found;
   }
+  /* Do the obvious rules alone finish this board? (an island takes every bridge it can still take; a bridge must
+     be there when the others cannot make up the number) */
+  function obvious(islands, E, sol) {
+    var val = E.map(function () { return 0; }), changed = true;
+    while (changed) {
+      changed = false;
+      var sum = islands.map(function () { return 0; });
+      E.forEach(function (e, k) { sum[e.a] += val[k]; sum[e.b] += val[k]; });
+      islands.forEach(function (isl, i) {
+        var left = isl.need - sum[i]; if (left <= 0) return;
+        var mine = [], caps = [];
+        E.forEach(function (e, k) {
+          if (e.a !== i && e.b !== i) return;
+          var j = e.a === i ? e.b : e.a;
+          var blocked = !val[k] && E.some(function (f, q) { return val[q] && crosses(e, f); });
+          mine.push(k); caps.push(blocked ? 0 : Math.min(2 - val[k], islands[j].need - sum[j]));
+        });
+        var total = caps.reduce(function (a, b) { return a + b; }, 0);
+        mine.forEach(function (k, t) {
+          var atLeast = left - (total - caps[t]);
+          if (atLeast > 0) { val[k] += atLeast; sum[E[k].a] += atLeast; sum[E[k].b] += atLeast; changed = true; }
+        });
+      });
+    }
+    return val.every(function (v, k) { return v === sol[k]; });
+  }
   function makePuzzle(sp, rnd) {
     var n = sp.n;
-    for (var attempt = 0; attempt < 200; attempt++) {
+    var wantHard = rnd.randInt(1, 100) <= (sp.hard || 0) * 100;
+    for (var attempt = 0; attempt < 400; attempt++) {
       var islands = [{ r: rnd.randInt(0, n - 1), c: rnd.randInt(0, n - 1), need: 0 }];
       var used = {}; used[islands[0].r * n + islands[0].c] = 'I';
       var bridges = [];
@@ -86,10 +121,25 @@
         bridges.push({ a: islands.indexOf(from), b: islands.length - 1, w: w });
       }
       if (islands.length < sp.k) continue;
+      // extra bridges between islands that see each other over open water: they close loops
+      var extra = 0;
+      rnd.shuffle(edgesOf(n, islands)).forEach(function (e) {
+        if (extra >= (sp.loops || 0)) return;
+        if (bridges.some(function (x) { return (x.a === e.a && x.b === e.b) || (x.a === e.b && x.b === e.a); })) return;
+        if (e.cells.some(function (x) { return used[x]; })) return;
+        var w2 = rnd.randInt(1, 2);
+        e.cells.forEach(function (x) { used[x] = 'B'; });
+        islands[e.a].need += w2; islands[e.b].need += w2;
+        bridges.push({ a: e.a, b: e.b, w: w2 });
+        extra++;
+      });
+      if (extra < (sp.loops || 0)) continue;
+      if (islands.some(function (x) { return x.need > 8; })) continue;
       var E = edgesOf(n, islands);
       if (count(islands, E, 2) !== 1) continue;
       var sol = E.map(function (e) { var b = bridges.filter(function (x) { return (x.a === e.a && x.b === e.b) || (x.a === e.b && x.b === e.a); })[0]; return b ? b.w : 0; });
-      return { n: n, islands: islands, edges: E, sol: sol };
+      if (wantHard && obvious(islands, E, sol)) continue;
+      return { n: n, islands: islands, edges: E, sol: sol, hard: wantHard };
     }
     return null;
   }
@@ -128,12 +178,12 @@
       'יש "רמז", "↶ בטלו" ו"נקו". אין שעון.'
     ],
     css: css,
-    _model: { spec: spec, makePuzzle: makePuzzle, count: count, edgesOf: edgesOf },
+    _model: { spec: spec, makePuzzle: makePuzzle, count: count, edgesOf: edgesOf, obvious: obvious },
     start: function (root, ctx) {
       var el = ctx.el;
       var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level)) || 1));
       var sp = spec(level);
-      var ROUNDS = sp.k <= 7 ? 3 : 2, round = 0, good = 0;
+      var ROUNDS = 3, round = 0, good = 0; // three boards at every level (user request)
       var NS = 'http://www.w3.org/2000/svg';
 
       function nextRound() {
@@ -142,6 +192,7 @@
         ctx.setProgress(round, ROUNDS);
         var P = null;
         for (var t = 0; t < 10 && !P; t++) P = makePuzzle(sp, ctx);
+        if (!P) P = makePuzzle({ n: sp.n, k: sp.k - 2, loops: Math.max(0, sp.loops - 1) }, ctx) || makePuzzle(spec(8), ctx); // very rare
         play(P);
       }
 
@@ -257,6 +308,16 @@
             if (room === left) { tip = i; ctx.setStatus('רמז: לאי המסומן חסרים ' + left + ' גשרים, ובדיוק כך הוא עוד יכול לקבל מהשכנים שלו. איפה הם?'); draw(); return; }
             if (nb === 1) { tip = i; ctx.setStatus('רמז: לאי המסומן נשאר רק שכן אחד שאפשר לבנות אליו גשר. כמה גשרים צריך?'); draw(); return; }
           }
+          // nothing obvious left: look ahead. A bridge of the solution not built yet, and what would go wrong without it
+          var k2 = E.findIndex(function (e, k) { return val[k] < P.sol[k]; });
+          if (k2 >= 0) {
+            var e2 = E[k2];
+            tip = I[e2.a].need <= I[e2.b].need ? e2.a : e2.b;
+            ctx.setStatus('רמז: חשבו קדימה על האי המסומן: אם הוא לא יתחבר לכיוון אחד, האם קבוצה של איים תישאר מנותקת מהשאר? בסוף כולם צריכים להיות מחוברים');
+            draw(); return;
+          }
+          var over = E.findIndex(function (e, k) { return val[k] > P.sol[k]; });
+          if (over >= 0) { tip = E[over].a; ctx.setStatus('רמז: יש גשר מיותר ליד האי המסומן'); draw(); return; }
           ctx.setStatus('רמז: חפשו אי עם מספר גדול ומעט שכנים: 4 עם שני שכנים בלבד = גשר כפול לכל אחד');
         }
       }
