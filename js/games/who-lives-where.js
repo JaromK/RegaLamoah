@@ -213,6 +213,8 @@
     'border:3px solid transparent;background:var(--surface-2);color:var(--ink);font:inherit;cursor:pointer;}',
     '.wl-slot.is-empty{border:3px dashed var(--ink-soft);}',
     '.wl-ghost{font-size:1.75rem;line-height:1;filter:grayscale(1) brightness(0);opacity:.28;}',
+    // several small animals: "an animal lives here", not a clue about which one
+    '.wl-ghost.is-pets{font-size:1.3rem;letter-spacing:-.08em;white-space:nowrap;opacity:.34;}',
     '@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .wl-ghost{filter:grayscale(1) brightness(0) invert(1);opacity:.35;}}',
     ':root[data-theme="dark"] .wl-ghost{filter:grayscale(1) brightness(0) invert(1);opacity:.35;}',
     '.wl-slot .e{font-size:1.35rem;line-height:1.1;}',
@@ -324,7 +326,7 @@
           if (x >= 0 && showWrong && at[x] !== P.sol[x]) cls += ' is-wrong';
           if (x >= 0 && done) cls += ' is-right';
           // an empty place shows a grey figure: a person, or an animal
-          var kids = x < 0 ? el('span', { class: 'wl-ghost', 'aria-hidden': 'true' }, pets ? '🐕' : '👤') : [el('span', { class: 'e', 'aria-hidden': 'true' }, ent(x).e), el('span', { class: 'nm' }, ent(x).name)];
+          var kids = x < 0 ? el('span', { class: 'wl-ghost' + (pets ? ' is-pets' : ''), 'aria-hidden': 'true' }, pets ? '🐈🐕' : '👤') : [el('span', { class: 'e', 'aria-hidden': 'true' }, ent(x).e), el('span', { class: 'nm' }, ent(x).name)];
           return el('button', { class: cls, type: 'button', disabled: done ? 'disabled' : null,
             'aria-label': 'בית ' + (h + 1) + (pets ? ', חיה' : ', אדם') + (x >= 0 ? ': ' + ent(x).name : ''),
             onclick: function () { openSheet(h, pets); } }, kids);
