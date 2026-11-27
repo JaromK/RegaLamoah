@@ -111,7 +111,7 @@
     'jigsaw': '🧩', 'pill-box': '💊', 'water-pour': '🫗', 'sliding-puzzle': '🟦', 'hanoi': '🗼', 'lights-out': '💡',
     'crossword': '✍️', 'guess-word': '💭', 'opposites': '☯️', 'who-lives-where': '🏘️', 'maze': '🌀', 'shadow-match': '👤',
     'target-number': '🏹', 'where-is-it': '🔑', 'phone-number': '📞', 'appointments': '📅', 'block-rows': '🟥', 'mystery': '🕵️',
-    'code-breaker': '🔓', 'two-colors': '🌓', 'crowns': '👑'
+    'code-breaker': '🔓', 'two-colors': '🌓', 'crowns': '👑', 'greater-less': '🪜'
   };
   function skillIcon(skill) {
     return el('span', { class: 'skill-icon skill-' + skill, 'aria-hidden': 'true' }, SKILL_EMOJI[skill] || '');
