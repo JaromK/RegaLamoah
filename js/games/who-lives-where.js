@@ -7,11 +7,14 @@
   var PEOPLE = [
     { name: 'רינה', f: true, e: '👩' }, { name: 'משה', f: false, e: '👴' }, { name: 'דוד', f: false, e: '👨' },
     { name: 'שרה', f: true, e: '👵' }, { name: 'יוסי', f: false, e: '🧔' }, { name: 'חנה', f: true, e: '👧' },
-    { name: 'רות', f: true, e: '👩‍🦰' }, { name: 'אבי', f: false, e: '👦' }
-  ];
+    { name: 'רות', f: true, e: '👩‍🦰' }, { name: 'אבי', f: false, e: '👦' },
+    { name: 'יעל', f: true, e: '👩‍🦱' }, { name: 'דני', f: false, e: '👨‍🦱' }, { name: 'מירי', f: true, e: '👩‍🦳' },
+    { name: 'עמוס', f: false, e: '👨‍🦳' }, { name: 'תמר', f: true, e: '👱‍♀️' }, { name: 'גיל', f: false, e: '👱‍♂️' }
+  ]; // more people than a street needs, so the next rounds and games bring other names (ctx.fresh)
   var PETS = [
-    { name: 'כלב', e: '🐕' }, { name: 'חתול', e: '🐈' }, { name: 'תוכי', e: '🦜' }, { name: 'דג', e: '🐟' }, { name: 'ארנב', e: '🐇' }
-  ];
+    { name: 'כלב', e: '🐕' }, { name: 'חתול', e: '🐈' }, { name: 'תוכי', e: '🦜' }, { name: 'דג', e: '🐟' }, { name: 'ארנב', e: '🐇' },
+    { name: 'סוס', e: '🐎' }, { name: 'צב', e: '🐢' }, { name: 'אוגר', e: '🐹' }, { name: 'כבש', e: '🐑' }, { name: 'עכבר', e: '🐁' }
+  ]; // all said with "גר" (masculine nouns)
   var COLORS = [
     { c: 'red', name: 'האדום' }, { c: 'blue', name: 'הכחול' }, { c: 'yellow', name: 'הצהוב' },
     { c: 'green', name: 'הירוק' }, { c: 'purple', name: 'הסגול' }
@@ -282,8 +285,9 @@
         root.innerHTML = '';
         var n = P.n, E = P.pets ? 2 * n : n;
         var cast = {
-          people: ctx.shuffle(PEOPLE.map(function (_, i) { return i; })).slice(0, n),
-          pets: ctx.shuffle(PETS.map(function (_, i) { return i; })).slice(0, n),
+          // people and animals not used in the last rounds and games, so they do not get mixed up
+          people: ctx.fresh('people', PEOPLE.map(function (_, i) { return i; }), n, function (i) { return PEOPLE[i].name; }),
+          pets: ctx.fresh('pets', PETS.map(function (_, i) { return i; }), n, function (i) { return PETS[i].name; }),
           colors: ctx.shuffle([0, 1, 2, 3, 4]).slice(0, n)
         };
         function ent(x) { return x < n ? PEOPLE[cast.people[x]] : PETS[cast.pets[x - n]]; }

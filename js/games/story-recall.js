@@ -396,7 +396,7 @@
       var el = ctx.el;
       var sp = spec(ctx.level);
       var ROUNDS = 2;
-      var order = ctx.shuffle(STORIES.map(function (_, i) { return i; }));
+      var order = ctx.fresh('story', STORIES.map(function (_, i) { return i; }), ROUNDS); // stories not told lately
       var round = 0, correct = 0, total = 0;
 
       function nextStory() {

@@ -59,7 +59,8 @@
   function loadState() {
     var base = {
       version: STATE_VERSION, name: '', welcomed: false,
-      levels: {}, best: {}, trophies: {}, history: {}, prefs: { sound: true, bigText: false, timer: false }
+      levels: {}, best: {}, trophies: {}, history: {}, prefs: { sound: true, bigText: false, timer: false },
+      recent: {} // names, animals and stories each game used lately (ctx.fresh), so the next rounds bring others
     };
     try {
       var raw = window.localStorage.getItem(STORE_KEY);
@@ -71,6 +72,7 @@
         base.best = parsed.best || {};
         base.trophies = parsed.trophies || {};
         base.history = parsed.history || {};
+        base.recent = parsed.recent && typeof parsed.recent === 'object' ? parsed.recent : {};
         base.prefs = Object.assign(base.prefs, parsed.prefs || {});
         if ((parsed.version || 1) < 2) {
           // v1 used levels 1–10; the same difficulty now sits on a 1–20 scale

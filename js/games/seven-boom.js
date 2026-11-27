@@ -5,8 +5,9 @@
 
   var FRIENDS = [
     { name: 'רותי', face: '👵' }, { name: 'משה', face: '👴' }, { name: 'שרה', face: '👩‍🦳' },
-    { name: 'דוד', face: '🧔' }, { name: 'יעל', face: '👩' }
-  ];
+    { name: 'דוד', face: '🧔' }, { name: 'יעל', face: '👩' }, { name: 'אבי', face: '👨' },
+    { name: 'חנה', face: '👵' }, { name: 'יוסף', face: '👴' }, { name: 'מירי', face: '👩‍🦰' }, { name: 'עמוס', face: '👨‍🦳' }
+  ]; // the friends change from game to game (ctx.fresh)
 
   /* Level 1–50:
      a = the "בום" number, contains = also when the digit appears, b = a second number that says "טראח"
@@ -105,7 +106,7 @@
       var TURNS = 12;
       var turn = 0, good = 0;
       var n = s.from;               // the next number to be counted
-      var friends = FRIENDS.slice(0, s.friends);
+      var friends = ctx.fresh('friends', FRIENDS, s.friends, function (f) { return f.name; });
       var seats = friends.map(function (f) { return { f: f, bubble: el('div', { class: 'sb-bubble' }) }; });
       var you = { f: { name: 'אתם', face: '🙂' }, bubble: el('div', { class: 'sb-bubble' }) };
       var all = seats.concat([you]);
@@ -127,6 +128,15 @@
         st.bubble.classList.toggle('is-boom', isNaN(Number(text)));
       }
 
+      // "הבנתי, ממשיכים" in the answer area (empty while the friends count), so it never pushes the page down
+      function waitTap() {
+        return new Promise(function (resolve) {
+          var b = el('button', { class: 'btn btn-primary btn-lg', type: 'button', style: { gridColumn: '1 / -1' }, onclick: function () {
+            b.remove(); resolve();
+          } }, 'הבנתי, ממשיכים');
+          choices.appendChild(b);
+        });
+      }
       function friendsSpeak(i) {
         if (i >= seats.length) { yourTurn(); return; }
         all.forEach(function (st) { st.el.classList.toggle('is-turn', st === seats[i]); });
@@ -137,7 +147,7 @@
         ctx.sound('note', 440 + i * 60);
         // a friend's בום: the game waits on its reason until the player taps, so there is time to read it
         var explained = !s.hide && say(v, s) !== String(v);
-        (explained ? ctx.wait(500).then(function () { return ctx.next('הבנתי, ממשיכים'); }) : ctx.wait(1100)).then(function () {
+        (explained ? ctx.wait(500).then(waitTap) : ctx.wait(1100)).then(function () {
           if (s.hide) setBubble(seats[i], '');
           friendsSpeak(i + 1);
         });
@@ -193,7 +203,10 @@
           // the toast is short; the full reason stays in the status line. After a mistake the game waits for a tap.
           ctx.feedback(ok, ok ? undefined : 'אומרים: ' + right).then(function () {
             // a right בום keeps its reason on screen a while before going on (a plain number moves on quickly)
-            return ok ? ctx.wait(right === String(v) ? 300 : 3500) : ctx.next();
+            if (ok) return ctx.wait(right === String(v) ? 300 : 3500);
+            // after a mistake only the chosen and the right answer stay, and the continue button takes the free row
+            [].slice.call(choices.children).forEach(function (x) { if (!x.classList.contains('is-correct') && !x.classList.contains('is-wrong')) x.remove(); });
+            return waitTap();
           }).then(function () {
             delete choices.dataset.done;
             seats.forEach(function (st) { setBubble(st, ''); });

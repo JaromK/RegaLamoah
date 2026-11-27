@@ -53,7 +53,10 @@
 
   /* One task: { kind, contacts: [{ face, name, num }], ask: index, answer: digits to type, show: chunk sizes, type: chunk sizes, words } */
   function makeTask(t, rnd) {
-    var people = rnd.shuffle(CONTACTS).slice(0, t.kind === 'two' ? 2 : 1).map(function (c) { return { face: c[0], name: c[1] }; });
+    // contacts not used in the last questions and games (ctx.fresh), so names do not get mixed up
+    var k = t.kind === 'two' ? 2 : 1;
+    var people = (rnd.fresh ? rnd.fresh('contacts', CONTACTS, k, function (c) { return c[1]; }) : rnd.shuffle(CONTACTS).slice(0, k))
+      .map(function (c) { return { face: c[0], name: c[1] }; });
     var prefix = null;
     people.forEach(function (p, i) {
       if (t.alike && i === 1) prefix = people[0].num.slice(0, t.n >= 9 ? 3 : 2);

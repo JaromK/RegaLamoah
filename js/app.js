@@ -897,6 +897,21 @@
       shuffle: function (a) { return U.shuffle(a); },
       randInt: function (a, b) { return U.randInt(a, b); },
       pick: function (a) { return U.pick(a); },
+      /* n items of pool that this game has not used lately (people's names, animals, stories): the ones used
+         longest ago come first, so the same level and the next levels bring different ones and nothing gets
+         mixed up with the game before. kind names the list; keyOf gives a short key for an item. */
+      fresh: function (kind, pool, n, keyOf) {
+        keyOf = keyOf || function (x) { return typeof x === 'object' ? JSON.stringify(x) : String(x); };
+        var all = BG.state.recent || (BG.state.recent = {});
+        var id = game.id + ':' + kind, mem = all[id] || [];
+        var rank = function (x) { return mem.indexOf(keyOf(x)); }; // -1 = not used lately; small = used long ago
+        var out = U.shuffle(pool.slice()).sort(function (a, b) { return rank(a) - rank(b); }).slice(0, n);
+        out.forEach(function (x) { var k = keyOf(x), j = mem.indexOf(k); if (j >= 0) mem.splice(j, 1); mem.push(k); });
+        var cap = Math.max(n, Math.floor(pool.length * 0.8));
+        all[id] = mem.slice(Math.max(0, mem.length - cap));
+        BG.save();
+        return out;
+      },
       isActive: function () { return session.active; },
       wait: function (ms) {
         return new Promise(function (resolve) {

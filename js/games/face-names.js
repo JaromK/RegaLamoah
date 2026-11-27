@@ -130,8 +130,9 @@
       function makePeople() {
         if (sameGender) {
           var g0 = ctx.pick(['m', 'f']);
-          var pool = ctx.shuffle(CHARS.filter(function (c) { return c.g === g0 || c.g === 'n'; })).slice(0, n);
-          var names = similarNames ? similarNameList(g0) : ctx.shuffle(NAMES[g0]);
+          // faces and names not used in the last rounds and games, so the new ones do not mix with the old
+          var pool = ctx.fresh('face', CHARS.filter(function (c) { return c.g === g0 || c.g === 'n'; }), n, function (c) { return c.e; });
+          var names = similarNames ? similarNameList(g0) : ctx.fresh('name-' + g0, NAMES[g0], n);
           if (names.length < n) names = names.concat(ctx.shuffle(NAMES[g0].filter(function (x) { return names.indexOf(x) === -1; })));
           var profs0 = ctx.shuffle(PROFS.map(function (_, i) { return i; }));
           var cities0 = ctx.shuffle(CITIES.map(function (_, i) { return i; }));
@@ -139,14 +140,17 @@
             return { emoji: c.e, g: g0, name: names[i], prof: profs0[i], city: cities0[i] };
           });
         }
-        var chars = ctx.shuffle(CHARS).slice(0, n);
+        var chars = ctx.fresh('face', CHARS, n, function (c) { return c.e; });
+        var gs = chars.map(function (c) { return c.g === 'n' ? ctx.pick(['m', 'f']) : c.g; });
+        var count = function (g) { return gs.filter(function (x) { return x === g; }).length; };
+        var freshNames = { m: ctx.fresh('name-m', NAMES.m, count('m')), f: ctx.fresh('name-f', NAMES.f, count('f')) };
         var usedNames = {};
         var profs = ctx.shuffle(PROFS.map(function (_, i) { return i; }));
         var cities = ctx.shuffle(CITIES.map(function (_, i) { return i; }));
         return chars.map(function (c, i) {
-          var g = c.g === 'n' ? ctx.pick(['m', 'f']) : c.g;
-          var name;
-          do { name = ctx.pick(NAMES[g]); } while (usedNames[name]);
+          var g = gs[i];
+          var name = freshNames[g].shift();
+          while (!name || usedNames[name]) name = ctx.pick(NAMES[g]);
           usedNames[name] = true;
           return { emoji: c.e, g: g, name: name, prof: profs[i], city: cities[i] };
         });
