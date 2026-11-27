@@ -113,6 +113,11 @@
     'target-number': '🏹', 'where-is-it': '🔑', 'phone-number': '📞', 'appointments': '📅', 'block-rows': '🟥', 'mystery': '🕵️',
     'code-breaker': '🔓', 'two-colors': '🌓', 'crowns': '👑', 'greater-less': '🪜', 'skyscrapers': '🏙️', 'treasures': '💎', 'ships': '🚢', 'bridges': '🌉', 'hitori': '⬛', 'truth-lies': '🤥'
   };
+  // the one "home" button used everywhere: the house and the words "דף הבית" (and the same for settings)
+  function homeButton(cls, onclick) {
+    return el('button', { class: 'btn ' + cls + ' with-icon', type: 'button', onclick: onclick }, [
+      el('span', { class: 'btn-ico', 'aria-hidden': 'true', html: document.querySelector('#btn-home svg').outerHTML }), el('span', null, 'דף הבית')]);
+  }
   function skillIcon(skill) {
     return el('span', { class: 'skill-icon skill-' + skill, 'aria-hidden': 'true' }, SKILL_EMOJI[skill] || '');
   }
@@ -784,7 +789,7 @@
         ]),
         el('div', { class: 'intro-actions intro-start' }, [startBtn]),
         el('div', { class: 'intro-back' }, [
-          el('button', { class: 'btn btn-quiet', type: 'button', onclick: renderHome }, 'חזרה לדף הבית')
+          homeButton('btn-quiet', renderHome)
         ])
       ])
     ]));
@@ -883,11 +888,14 @@
       else if (left >= origin.depth + 1) renderIntro(game, daily);
       else origin.back();
     };
-    var exitBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { askLeave('intro'); } }, 'יציאה');
-    var homeBtn = el('button', {
-      class: 'btn btn-quiet btn-sm play-settings', type: 'button', 'aria-label': 'לדף הבית', title: 'לדף הבית',
-      html: document.querySelector('#btn-home svg').outerHTML, onclick: function () { askLeave('home'); }
-    });
+    // the game's three buttons look alike: a picture and a small word under it
+    function toolBtn(svg, word, onclick) {
+      return el('button', { class: 'btn btn-quiet btn-sm play-tool', type: 'button', onclick: onclick }, [
+        el('span', { class: 'btn-ico', 'aria-hidden': 'true', html: svg }), el('span', { class: 'play-tool-word' }, word)]);
+    }
+    var EXIT_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
+    var exitBtn = toolBtn(EXIT_SVG, 'יציאה', function () { askLeave('intro'); });
+    var homeBtn = toolBtn(document.querySelector('#btn-home svg').outerHTML, 'דף הבית', function () { askLeave('home'); });
     var confirmBox = el('div', { class: 'confirm', hidden: true, role: 'group', 'aria-label': 'יציאה מהמשחק' }, [
       el('span', null, 'לצאת מהמשחק? הסיבוב הזה לא יישמר.'),
       el('span', { class: 'confirm-actions' }, [
@@ -897,10 +905,7 @@
     ]);
 
     // the top bar is hidden while playing, so settings stay reachable from the game header
-    var settingsBtn = el('button', {
-      class: 'btn btn-quiet btn-sm play-settings', type: 'button', 'aria-label': 'הגדרות', title: 'הגדרות',
-      html: document.querySelector('#btn-settings svg').outerHTML, onclick: function () { openSettings({ gameId: game.id }); }
-    });
+    var settingsBtn = toolBtn(document.querySelector('#btn-settings svg').outerHTML, 'הגדרות', function () { openSettings({ gameId: game.id }); });
     var head = el('div', { class: 'play-head' }, [
       el('div', { class: 'play-title' }, [gameIcon(game), el('span', { class: 'play-name' }, game.name)]),
       homeBtn,
@@ -1205,7 +1210,7 @@
     actions.push(againBtn);
     showPick();
     refreshScreen = showPick;
-    actions.push(el('button', { class: 'btn btn-quiet', type: 'button', onclick: renderHome }, 'לדף הבית'));
+    actions.push(homeButton('btn-quiet', renderHome));
 
     app.appendChild(el('section', { class: 'result' }, [
       gameIcon(game),
