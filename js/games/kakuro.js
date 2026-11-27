@@ -199,7 +199,7 @@
     '.kk-cell.is-bad{box-shadow:inset 0 0 0 4px var(--c-red);}',
     '.kk-pad.is-notes .g-choice{font-size:1rem;color:var(--ink-soft);border-style:dashed;}',
     '.kk-note-btn[aria-pressed="true"]{background:var(--c-purple-soft);border-color:var(--c-purple);color:var(--ink);}',
-    '.kk-actions{gap:.4rem;}.kk-actions .btn{padding-inline:.75rem;white-space:nowrap;font-size:.9rem;}',
+    '.kk-actions{gap:.3rem;flex-wrap:nowrap;}.kk-actions .btn{padding-inline:.55rem;white-space:nowrap;font-size:.9rem;min-width:0;}',
     '.kk-tip{margin:0;max-width:30rem;font-size:1.05rem;font-weight:700;line-height:1.35;text-align:center;background:var(--c-purple-soft);',
     'border:2px solid var(--c-purple);border-radius:var(--radius-sm);padding:.4rem .7rem;}',
     '.kk-pad{display:grid;grid-template-columns:repeat(var(--k),minmax(0,1fr));gap:.35rem;width:100%;max-width:30rem;}',
@@ -217,7 +217,7 @@
       'במשבצות הכהות כתובים סכומים. החץ מראה לאן הסכום שייך: ◂ למשבצות שמשמאלו באותה שורה, ▾ למשבצות שמתחתיו באותו טור.',
       'מלאו מספרים במשבצות הלבנות כך שכל שורה וכל טור יגיעו לסכום שלהם.',
       'אסור לחזור על אותו מספר באותה שורה או באותו טור. לחצו על משבצת ואז על מספר.',
-      'רוצים לרשום אפשרויות? לחצו "מספרים קטנים" ואז על מספרים, והם ייכתבו קטן במשבצת.',
+      'רוצים לרשום אפשרויות? לחצו "✏️ טיוטה" ואז על מספרים, והם ייכתבו קטן במשבצת. "↶ בטלו" מבטל את הצעד האחרון.',
       'תקועים? "רמז" מסמן משבצת ומסביר איך לחשוב עליה, בלי לגלות את התשובה. אין שעון.'
     ],
     css: css,
@@ -246,6 +246,7 @@
         root.innerHTML = '';
         var val = Object.assign({}, P.fixed), sel = -1, hints = 0, done = false;
         var notes = {}, noteMode = false, focus = null; // focus = the hinted cell { k, step, bad }
+        var undoStack = []; // { val, notes, sel } before each change, for "בטלו"
         var across = {}, down = {};
         P.runs.forEach(function (run) { (run.dir === 'a' ? across : down)[run.clue] = run.sum; });
         var btn = {}, kids = [];
@@ -272,15 +273,16 @@
         pad.appendChild(el('button', { class: 'g-choice', type: 'button', 'aria-label': 'מחיקה', onclick: function () { put(0); } }, '⌫'));
         var noteBtn = el('button', { class: 'btn btn-quiet btn-sm kk-note-btn', type: 'button', 'aria-pressed': 'false', onclick: function () {
           noteMode = !noteMode; noteBtn.setAttribute('aria-pressed', String(noteMode)); pad.classList.toggle('is-notes', noteMode);
-          ctx.setStatus(noteMode ? 'מספרים קטנים: לחצו על מספר כדי לרשום או למחוק אותו' : 'מלאו מספרים מ-1 עד ' + P.dmax);
-        } }, '✏️ מספרים קטנים');
+          ctx.setStatus(noteMode ? 'טיוטה: לחצו על מספר כדי לרשום אותו קטן במשבצת, או למחוק אותו' : 'מלאו מספרים מ-1 עד ' + P.dmax);
+        } }, '✏️ טיוטה');
         var hintBtn = el('button', { class: 'btn btn-secondary btn-sm', type: 'button', onclick: hint }, 'רמז');
         var showBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: reveal }, 'פתרון');
-        var actions = el('div', { class: 'g-actions kk-actions' }, [noteBtn, hintBtn, showBtn]);
+        var undoBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: undo }, '↶ בטלו');
+        var actions = el('div', { class: 'g-actions kk-actions' }, [undoBtn, noteBtn, hintBtn, showBtn]);
         var tip = el('p', { class: 'kk-tip', 'aria-live': 'polite', hidden: true });
         root.appendChild(grid); root.appendChild(tip); root.appendChild(pad); root.appendChild(actions);
-        ctx.setStatus('מלאו מספרים מ-1 עד ' + P.dmax);
-        sel = P.cells.filter(function (k) { return !val[k]; })[0];
+        ctx.setStatus('בחרו משבצת, ואז מספר');
+        sel = -1; // the player picks where to start
         render();
 
         function clash(k) {
@@ -315,11 +317,13 @@
           });
           [].forEach.call(pad.children, function (b) { b.disabled = done || sel < 0; });
           hintBtn.disabled = showBtn.disabled = done;
+          undoBtn.disabled = done || !undoStack.length;
         }
         function pick(k) { if (done || P.fixed[k]) return; ctx.sound('tap'); sel = k; render(); }
         function put(v) {
           if (done || sel < 0) return;
           ctx.sound('tap');
+          undoStack.push({ val: Object.assign({}, val), notes: JSON.parse(JSON.stringify(notes)), sel: sel });
           if (noteMode && !val[sel]) { // small numbers: write or erase one, or clear them all with ⌫
             if (!v) delete notes[sel];
             else { notes[sel] = notes[sel] || {}; notes[sel][v] = !notes[sel][v]; }
@@ -330,11 +334,16 @@
           if (v) { // the number is now used in this row and column: drop it from their small numbers
             P.map[sel].forEach(function (ri) { P.runs[ri].cells.forEach(function (x) { if (notes[x]) notes[x][v] = false; }); });
           }
-          if (v && !noteMode) { // move on to the next empty cell
-            var i = P.cells.indexOf(sel);
-            for (var s = 1; s < P.cells.length; s++) { var k = P.cells[(i + s) % P.cells.length]; if (!val[k]) { sel = k; break; } }
-          }
+          // the same cell stays picked: the player chooses where to go next
           render(); check();
+        }
+        function undo() {
+          if (done || !undoStack.length) return;
+          ctx.sound('tap');
+          var u = undoStack.pop();
+          val = u.val; notes = u.notes; sel = u.sel;
+          if (focus && val[focus.k] && !focus.bad) { focus = null; tip.hidden = true; }
+          render();
         }
         /* ---------- hints that teach: point at one cell and explain how to work it out, never fill it in ---------- */
         var NAME = { a: 'בשורה', d: 'בטור' };

@@ -304,7 +304,16 @@
     '.cw-key.is-back{grid-column:span 2;font-size:1.05rem;white-space:nowrap;}',
     '.cw-acts{display:flex;gap:.5rem;justify-content:center;width:100%;}',
     '.cw-acts .btn{min-height:2.9rem;padding-block:.3rem;}',
-    '.play-board.cw-board{gap:.55rem;padding-block:.6rem;}'
+    '.play-board.cw-board{gap:.55rem;padding-block:.6rem;}',
+    /* a computer screen: the keyboard goes beside the grid, so the squares can be big */
+    '@media (min-width:900px){',
+    '.cw-playing .app{max-width:72rem;}',
+    '.play-board.cw-board{display:grid;grid-template-columns:auto minmax(20rem,28rem);grid-template-rows:auto auto auto;',
+    'grid-template-areas:"grid clue" "grid kbd" "grid acts";justify-content:center;align-content:center;align-items:center;column-gap:2rem;row-gap:.8rem;}',
+    '.cw-board .cw-grid{grid-area:grid;--cs:min(calc((72rem - 36rem) / var(--cols)), calc((100svh - 12.5rem) / var(--rows)), 6rem);}',
+    '.cw-board .cw-clue{grid-area:clue;}.cw-board .cw-kbd{grid-area:kbd;}.cw-board .cw-acts{grid-area:acts;}',
+    '.cw-board .cw-key{min-height:3.2rem;}',
+    '}'
   ].join('');
 
   BrainGames.register({
@@ -331,6 +340,7 @@
       var keyHandler = null;
       var board = root.closest ? root.closest('.play-board') : null;
       if (board) board.classList.add('cw-board');
+      document.body.classList.add('cw-playing');
 
       function nextRound() {
         round++;
@@ -594,7 +604,7 @@
       }
 
       nextRound();
-      return function cleanup() { if (keyHandler) document.removeEventListener('keydown', keyHandler); if (board) board.classList.remove('cw-board'); };
+      return function cleanup() { if (keyHandler) document.removeEventListener('keydown', keyHandler); if (board) board.classList.remove('cw-board'); document.body.classList.remove('cw-playing'); };
     }
   });
 })();
