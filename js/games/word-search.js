@@ -134,7 +134,10 @@
     '@media (min-width:900px){',
     '.g-split .wsr-wrap{width:min(calc(100svh - 12.5rem),40rem);flex:none;}',
     '.g-split .wsr-cell{font-size:calc(min(100svh - 12.5rem,40rem) / var(--n) * .6);}',
-    '.g-split .wsr-words{margin:0;gap:.45rem;}.g-split .wsr-words li{font-size:1.25rem;padding:.1rem .7rem;}',
+    // the words one under the other, in a narrow column beside the board
+    '.g-split .wsr-words{margin:0;gap:.35rem;flex-direction:column;flex-wrap:nowrap;align-items:stretch;text-align:center;}',
+    '.g-split .wsr-words li{font-size:1.2rem;padding:.05rem .9rem;}',
+    '.play-board.g-split:has(.wsr-wrap) > .g-side{width:auto;min-width:11rem;}',
     '.g-split .wsr-actions{margin-top:0;}',
     '}'
   ].join('');
