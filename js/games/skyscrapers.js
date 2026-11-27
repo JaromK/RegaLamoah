@@ -85,7 +85,11 @@
   }
 
   var css = [
-    '.sk-grid{display:grid;grid-template-columns:repeat(calc(var(--n) + 2),var(--cs));grid-auto-rows:var(--cs);gap:3px;direction:ltr;justify-content:center;}',
+    /* the edge numbers take a narrow strip (0.6 of a square), so the buildings get the room */
+    '.sk-grid{--cl:calc(var(--cs) * .5);display:grid;grid-template-columns:var(--cl) repeat(var(--n),var(--cs)) var(--cl);',
+    'grid-template-rows:var(--cl) repeat(var(--n),var(--cs)) var(--cl);gap:2px;direction:ltr;justify-content:center;}',
+    '@media (min-width:900px){.g-split .sk-grid{--cs:min(calc((100svh - 13rem) / (var(--n) + 1)), 7rem) !important;flex:none;}',
+    '.g-split .sk-pad{width:min(24rem,100%);}}',
     '.sk-cell{border:2px solid var(--line);border-radius:8px;padding:0;cursor:pointer;position:relative;overflow:hidden;background:var(--surface);',
     'font-family:var(--font-display);font-weight:900;font-size:calc(var(--cs) * .5);color:var(--ink);display:grid;place-items:center;line-height:1;}',
     /* a filled square is drawn as a building: the taller the number, the higher the blue */
@@ -96,8 +100,8 @@
     '.sk-cell.is-bad .num{color:var(--c-red);}',
     '.sk-cell.is-tip{box-shadow:0 0 0 4px var(--c-purple);}',
     '.sk-cell.is-wrong{box-shadow:0 0 0 4px var(--c-red);}',
-    '.sk-clue{display:grid;place-items:center;font-weight:900;font-size:calc(var(--cs) * .42);color:var(--c-red);line-height:1;}',
-    '.sk-clue small{font-size:.6em;color:var(--ink-soft);}',
+    '.sk-clue{display:grid;place-items:center;font-weight:900;font-size:calc(var(--cs) * .46);color:var(--c-red);line-height:1;}',
+    '.sk-clue small{display:none;}', // the narrow strip leaves no room for the little arrows; the number is what matters
     '.sk-clue.is-ok{color:var(--c-green);}',
     '.sk-pad{display:grid;grid-template-columns:repeat(calc(var(--n) + 1),minmax(0,1fr));gap:.4rem;width:100%;max-width:22rem;}',
     '.sk-pad .g-choice{min-height:3.2rem;font-size:1.5rem;padding:.2rem;}',
@@ -138,7 +142,7 @@
         root.innerHTML = '';
         root.__sk = P; // read by the automated tests
         var n = P.n, g = P.fixed.slice(), sel = -1, done = false, hints = 0, past = [], tip = null;
-        var cs = 'min(calc((100vw - 3rem) / ' + (n + 2) + ' - 3px), calc((100svh - 24rem) / ' + (n + 2) + '), 4rem)';
+        var cs = 'min(calc((100vw - 3.2rem - ' + (n + 1) * 2 + 'px) / ' + (n + 1) + '), calc((100svh - 23.5rem) / ' + (n + 1) + '), 5.5rem)';
         var grid = el('div', { class: 'sk-grid', style: { '--n': n, '--cs': cs } });
         var cellEls = [], clueEls = { top: [], bottom: [], left: [], right: [] };
         function clueEl(side, k, arrow) {
@@ -167,7 +171,9 @@
         var undoBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: undo }, '↶ בטלו');
         var clearBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: clearAll }, 'נקו');
         var acts = el('div', { class: 'g-actions sk-acts' }, [hintBtn, undoBtn, clearBtn]);
-        root.appendChild(grid); root.appendChild(pad); root.appendChild(acts);
+        // on a computer the number pad and buttons sit beside the city (shared .g-split layout)
+        root.classList.add('g-split');
+        root.appendChild(grid); root.appendChild(el('div', { class: 'g-side' }, [pad, acts]));
         ctx.setStatus('לחצו על משבצת, ואז על גובה הבניין');
         draw();
 
