@@ -143,9 +143,15 @@
 
   var css = [
     '.sp-wrap{display:flex;flex-direction:column;align-items:center;gap:.6rem;width:100%;}',
-    '.sp-top{display:flex;align-items:center;gap:.7rem;justify-content:center;}',
-    '.sp-top p{margin:0;font-weight:800;font-size:1.1rem;line-height:1.35;}',
+    '.sp-top{display:flex;align-items:center;gap:.7rem;justify-content:center;order:-1;}', // above the board on a phone
+    '.sp-info{display:flex;flex-direction:column;gap:.2rem;}',
+    '.sp-top p{margin:0;font-weight:800;font-size:1.1rem;line-height:1.3;}',
     '.sp-peek{height:4.6rem;border-radius:var(--radius-sm);border:2px solid var(--line);background-size:cover;background-position:center;flex:none;}',
+    /* the numbers target: as tall as the photo (4.6rem) whatever the number of rows */
+    '.sp-goal{--g:calc((4.4rem - (var(--r) + 1) * 2px) / var(--r));display:grid;grid-template-columns:repeat(var(--c),var(--g));gap:2px;padding:2px;',
+    'background:var(--ink);border-radius:6px;direction:ltr;flex:none;}',
+    '.sp-goal span{height:var(--g);display:grid;place-items:center;background:var(--surface);color:var(--c-blue);border-radius:3px;font-weight:900;font-size:calc(var(--g) * .62);line-height:1;}',
+    '.sp-goal span.is-blank{background:var(--ink-soft);}',
     '.sp-count{font-weight:700;color:var(--ink-soft);font-size:1.05rem;}',
     '.sp-board{display:grid;grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:4px;padding:4px;background:var(--ink);border-radius:var(--radius-sm);',
     'width:min(100%,calc((100svh - var(--room)) * var(--c) / var(--r)),24rem);direction:ltr;}',
@@ -161,7 +167,20 @@
     '.sp-done .sp-t{border-radius:0;box-shadow:none;}',
     '.sp-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;width:100%;}',
     '.sp-row .btn{min-height:3.2rem;padding-inline:.7rem;font-size:1.1rem;flex:0 1 auto;white-space:nowrap;}',
-    '.sp-actions{flex-wrap:nowrap;gap:.4rem;}'
+    '.sp-actions{flex-wrap:nowrap;gap:.4rem;}',
+    /* a computer: the board as big as the screen allows, the target big beside it */
+    '@media (min-width:900px){',
+    '.app:has(.sp-wrap){max-width:72rem;}',
+    '.sp-wrap{flex-direction:row;justify-content:center;align-items:center;gap:2.5rem;}',
+    '.sp-wrap .sp-board{width:min(calc((100svh - 12.5rem) * var(--c) / var(--r)),38rem);flex:none;}',
+    '.sp-wrap .sp-t{font-size:calc(min((100svh - 12.5rem) * var(--c) / var(--r),38rem) / var(--c) * .45);}',
+    '.sp-wrap .sp-t.is-photo{font-size:1.2rem;}',
+    '.sp-side{display:flex;flex-direction:column;align-items:center;gap:1.2rem;width:min(24rem,40%);}',
+    '.sp-side .sp-top{flex-direction:column;text-align:center;}',
+    '.sp-side .sp-peek{width:auto;height:min(18rem,calc(100svh - 26rem));}',
+    '.sp-side .sp-goal{--g:2.6rem;}',
+    '.sp-side .sp-top p{font-size:1.2rem;}',
+    '}'
   ].join('');
 
   BrainGames.register({
@@ -202,17 +221,21 @@
         var R = P.R, C = P.C, N = R * C, a = P.tiles.slice(), trail = P.trail.slice(), moves = 0, hints = 0, done = false;
         var budget = P.opt !== null ? budgetOf(sp, P.opt) : budgetOf(sp, trail.length - 1);
         var M = Math.max(R, C), ox = (M - C) / 2, oy = (M - R) / 2;
-        var top = null;
-        if (photo) {
-          top = el('div', { class: 'sp-top' }, [
-            el('div', { class: 'sp-peek', style: { backgroundImage: 'url(' + photo.src + ')', aspectRatio: C + ' / ' + R }, 'aria-hidden': 'true' }),
-            el('p', null, 'סדרו את התמונה: ' + photo.w)]);
+        // the target is always shown: the whole photo, or the numbers in order
+        var target;
+        if (photo) target = el('div', { class: 'sp-peek', style: { backgroundImage: 'url(' + photo.src + ')', aspectRatio: C + ' / ' + R }, 'aria-hidden': 'true' });
+        else {
+          target = el('div', { class: 'sp-goal', style: { '--c': C, '--r': R }, 'aria-hidden': 'true' });
+          for (var g0 = 1; g0 <= N; g0++) target.appendChild(el('span', { class: g0 === N ? 'is-blank' : '' }, g0 === N ? '' : String(g0)));
         }
         var countEl = el('div', { class: 'sp-count' });
-        var board = el('div', { class: 'sp-board', style: { '--c': C, '--r': R, '--room': photo ? '26.5rem' : '19rem' } });
+        var top = el('div', { class: 'sp-top' }, [target, el('div', { class: 'sp-info' }, [
+          el('p', null, photo ? 'המטרה: ' + photo.w : 'המטרה: המספרים לפי הסדר'), countEl])]);
+        var board = el('div', { class: 'sp-board', style: { '--c': C, '--r': R, '--room': '22rem' } });
         var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
         var actions = el('div', { class: 'sp-row' }, [hintBtn]);
-        var wrap = el('div', { class: 'sp-wrap' }, [top, countEl, board, actions]);
+        // the board first; the target, the count and the button in a side part (beside the board on a computer)
+        var wrap = el('div', { class: 'sp-wrap' }, [board, el('div', { class: 'g-side sp-side' }, [top, actions])]);
         root.appendChild(wrap);
         var baseStatus = photo && !sp.numbers ? 'לחצו על חלק ליד המקום הריק' : 'לחצו על משבצת ליד המקום הריק';
         ctx.setStatus(baseStatus);
