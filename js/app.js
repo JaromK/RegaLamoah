@@ -173,27 +173,29 @@
   var screenGame = null;    // the game on screen (intro, play, result): settings opens on its levels
 
   /* ---------- phone "back" button ----------
-     Away from home, one extra history entry is kept. The phone's back button then pops it, and instead of
-     leaving the site we go back inside it: settings closes, a game asks "leave?", other screens go home.
-     On the home screen the entry is removed again, so back leaves the site as usual. */
-  var backGuard = false;   // the extra entry is in the history
-  var skipPop = 0;         // pops we caused ourselves (history.back from renderHome)
-  function guardBack() {
-    if (backGuard) return;
-    try { history.pushState({ rl: 1 }, ''); backGuard = true; } catch (e) { /* ignore */ }
-  }
-  function dropBackGuard() {
-    if (!backGuard) return;
-    backGuard = false;
-    skipPop++;
-    history.back();
+     Each screen keeps some extra history entries above the site's own one, so the phone's back button walks
+     back inside the site: instructions / results: 1 (back → home); a game: 3 (back → "leave?", back again →
+     the instructions, back again → home); the settings dialog adds 1 (back → it closes). Home has none, so
+     back there leaves the site as usual.
+     The entries are added when the player taps (opening a game, starting it, opening settings): Chrome on
+     phones skips entries that a page adds without a tap, which made the second back leave the whole site. */
+  var depth = 0;        // our entries in the history right now
+  var want = 0;         // entries the screen on show should have
+  var dialogEntry = 0;  // 1 while the settings dialog has its own entry
+  var skipPop = 0;      // pops we caused ourselves (history.go)
+  function setDepth(n) {
+    want = n;
+    n += dialogEntry;
+    if (skipPop) return; // a jump back is under way: the popstate handler finishes the job
+    if (depth > n) { var d = depth - n; depth = n; skipPop++; history.go(-d); return; }
+    while (depth < n) { try { history.pushState({ rl: depth + 1 }, ''); depth++; } catch (e) { return; } }
   }
   window.addEventListener('popstate', function () {
-    if (skipPop) { skipPop--; return; }
-    backGuard = false;
+    if (skipPop) { skipPop--; setDepth(want); return; }
+    depth = Math.max(0, depth - 1);
     var dialog = document.querySelector('dialog.settings[open]');
-    if (dialog) { dialog.close(); guardBack(); return; }
-    if (current && current.active && current.onBack) { current.onBack(); guardBack(); return; }
+    if (dialog && dialogEntry) { dialogEntry = 0; dialog.__byBack = true; dialog.close(); return; }
+    if (current && current.active && current.onBack) { current.onBack(depth); return; }
     if (!document.body.classList.contains('on-home')) renderHome();
   });
 
@@ -308,10 +310,12 @@
     dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); }); // backdrop
     dialog.addEventListener('close', function () {
       dialog.remove();
+      if (dialogEntry && !dialog.__byBack) { dialogEntry = 0; setDepth(want); } // closed by a tap: drop its entry
       if (dirty && refreshScreen) refreshScreen();
     });
     document.body.appendChild(dialog);
     dialog.showModal();
+    dialogEntry = 1; setDepth(want); // opened by a tap: back closes it
     if (opts.gameId || screenGame) levelSection.scrollIntoView({ block: 'start' });
   }
 
@@ -437,7 +441,7 @@
   function renderHome() {
     endCurrent();
     if (!BG.state.welcomed) { renderWelcome(); return; }
-    dropBackGuard();
+    setDepth(0);
     clear();
     document.body.classList.add('on-home');
     refreshScreen = renderHome;
@@ -601,7 +605,7 @@
     clear();
     document.body.classList.add('on-intro');
     screenGame = game;
-    guardBack();
+    setDepth(1);
     refreshScreen = function () { renderIntro(game, daily); };
     var level = getLevel(game.id);
     var speakText = game.name + '. ' + game.instructions.join(' ');
@@ -719,7 +723,7 @@
     endCurrent();
     clear();
     screenGame = game;
-    guardBack();
+    setDepth(3); // back → "leave?", back → instructions, back → home
     refreshScreen = null;
     level = clampLevel(level || getLevel(game.id), game.id);
     var timed = !!BG.state.prefs.timer;
@@ -742,9 +746,13 @@
     // both leave the round, so both ask first; "exit" goes back to the instructions, the house to home
     var leaveTo = null;
     function askLeave(target) { leaveTo = target; confirmBox.hidden = false; exitBtn.hidden = true; homeBtn.hidden = true; }
-    function keepPlaying() { confirmBox.hidden = true; exitBtn.hidden = false; homeBtn.hidden = false; }
-    // the phone's back button: ask before leaving; pressed again while asking, it keeps playing
-    session.onBack = function () { if (confirmBox.hidden) askLeave('intro'); else keepPlaying(); };
+    function keepPlaying() { confirmBox.hidden = true; exitBtn.hidden = false; homeBtn.hidden = false; setDepth(3); }
+    // the phone's back button: first it asks "leave?"; pressed again, it leaves the game for its instructions
+    session.onBack = function (left) {
+      if (confirmBox.hidden && left >= 1) askLeave('intro');
+      else if (left >= 1) renderIntro(game, daily);
+      else renderHome();
+    };
     var exitBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { askLeave('intro'); } }, 'יציאה');
     var homeBtn = el('button', {
       class: 'btn btn-quiet btn-sm play-settings', type: 'button', 'aria-label': 'לדף הבית', title: 'לדף הבית',
@@ -975,7 +983,7 @@
   function renderResult(game, daily, playedLevel, result, elapsedMs) {
     clear();
     screenGame = game;
-    guardBack();
+    setDepth(Math.max(1, depth - dialogEntry)); // back → home (the game's entries are reused; nothing is added without a tap)
     refreshScreen = null;
     var correct = Math.max(0, result.correct | 0);
     var total = Math.max(0, result.total | 0);
