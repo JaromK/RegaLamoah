@@ -172,6 +172,7 @@
       var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level)) || 1));
       var sp = spec(level);
       var ROUNDS = 3, round = 0, good = 0;
+      var seenRiddle = {}, seenJugs = {};
 
       function nextRound() {
         round++;
@@ -180,9 +181,18 @@
           return;
         }
         ctx.setProgress(round, ROUNDS);
-        var P = null;
-        for (var t = 0; t < 5 && !P; t++) P = makePuzzle(sp, ctx);
-        play(P);
+        // never the same riddle twice in one game: same jugs, same start and same goal count as the same
+        var P = null, fallback = null;
+        for (var t = 0; t < 30 && !P; t++) {
+          var Q = makePuzzle(sp, ctx);
+          if (!Q) continue;
+          fallback = fallback || Q;
+          var k = Q.caps.join(',') + '|' + Q.start.join(',') + '|' + Q.target.T + '@' + Q.target.jug;
+          var jugs = Q.caps.join(',');
+          if (seenRiddle[k] || (t < 20 && seenJugs[jugs])) continue; // a different set of jugs when possible
+          seenRiddle[k] = true; seenJugs[jugs] = true; P = Q;
+        }
+        play(P || fallback);
       }
 
       function play(P) {
