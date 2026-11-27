@@ -6,3 +6,7 @@ desktop.ini
 # Local tool settings
 .claude/
 .vscode/
+
+# Pages saved from the browser ("Save page as"): local copies, not part of the site
+רגע למוח*.html
+רגע למוח*_files/
