@@ -214,9 +214,10 @@
           var cat = P.cats[ci];
           rows.forEach(function (r, i) { r.row.classList.toggle('is-now', i === ci); });
           rows[ci].ans.innerHTML = '';
-          input.value = '';
+          // the letter is already written in the box and cannot be deleted (user request): the player types the rest
+          input.value = P.letter;
           input.setAttribute('aria-label', cat.name + ' שמתחיל באות ' + P.letter);
-          input.placeholder = P.letter + '…';
+          input.placeholder = '';
           rows[ci].ans.appendChild(input);
           ctx.setStatus(cat.name + ' באות ' + P.letter);
           msg.textContent = '';
@@ -227,8 +228,21 @@
           var mineBtn = el('button', { class: 'btn btn-secondary', type: 'button', hidden: true, onclick: mine }, 'התשובה שלי נכונה');
           actions.innerHTML = '';
           [checkBtn, hintBtn, mineBtn, skipBtn].forEach(function (b) { actions.appendChild(b); });
-          input.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); check(); } };
-          try { input.focus({ preventScroll: true }); } catch (e) { /* old browsers */ }
+          function keepCaret() { // never before the letter
+            try { if (input.selectionStart < 1 || input.selectionEnd < 1) input.setSelectionRange(Math.max(1, input.selectionStart), Math.max(1, input.selectionEnd)); } catch (e) { /* not a text box */ }
+          }
+          input.onkeydown = function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); check(); return; }
+            if (e.key === 'Backspace' && input.selectionStart <= 1 && input.selectionEnd <= 1) e.preventDefault();
+          };
+          input.oninput = function () {
+            if (input.value.charAt(0) !== P.letter) {
+              input.value = P.letter + input.value.replace(/^\s+/, '');
+              try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { /* not a text box */ }
+            }
+          };
+          input.onclick = input.onkeyup = input.onfocus = keepCaret;
+          try { input.focus({ preventScroll: true }); input.setSelectionRange(1, 1); } catch (e) { /* old browsers */ }
 
           function settle(text, cls, ok, note) {
             if (settled) return;
@@ -245,7 +259,9 @@
           function check() {
             if (settled) return;
             var typed = input.value.trim();
-            if (!typed) { msg.textContent = 'הקלידו מילה, או לחצו "דלגו"'; return; }
+            if (typed.length <= 1) { msg.textContent = 'הקלידו את המשך המילה, או לחצו "דלגו"'; return; }
+            // typed the first letter again out of habit ("בבננה"): drop the extra letter when that makes a word we know
+            if (typed.charAt(1) === P.letter && !match(cat, typed) && match(cat, typed.slice(1))) typed = typed.slice(1);
             if (norm(typed).charAt(0) !== P.letter) {
               ctx.sound('bad');
               msg.textContent = '"' + typed + '" לא מתחיל באות ' + P.letter + '. נסו שוב';
@@ -262,7 +278,7 @@
               : 'לא מצאנו את "' + typed + '" ברשימה שלנו. בדקו את הכתיב, או לחצו "התשובה שלי נכונה"';
             mineBtn.hidden = !!other;
           }
-          function mine() { if (!settled) settle(input.value.trim(), 'is-ok', hints <= 1, 'קיבלנו את התשובה שלכם'); }
+          function mine() { if (!settled && input.value.trim().length > 1) settle(input.value.trim(), 'is-ok', hints <= 1, 'קיבלנו את התשובה שלכם'); }
           /* "רמז": one answer we know, given a little at a time: first how long it is and how it starts, then one more
              letter. The player still types it. */
           function hint() {
