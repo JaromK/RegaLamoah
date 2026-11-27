@@ -220,12 +220,13 @@
           rows[ci].ans.appendChild(input);
           ctx.setStatus(cat.name + ' באות ' + P.letter);
           msg.textContent = '';
-          var tries = 0, settled = false;
+          var tries = 0, settled = false, hints = 0, hintWord = null;
           var checkBtn = el('button', { class: 'btn btn-primary', type: 'button', onclick: check }, 'בדיקה');
+          var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
           var skipBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: skip }, 'דלגו');
           var mineBtn = el('button', { class: 'btn btn-secondary', type: 'button', hidden: true, onclick: mine }, 'התשובה שלי נכונה');
           actions.innerHTML = '';
-          [checkBtn, mineBtn, skipBtn].forEach(function (b) { actions.appendChild(b); });
+          [checkBtn, hintBtn, mineBtn, skipBtn].forEach(function (b) { actions.appendChild(b); });
           input.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); check(); } };
           try { input.focus({ preventScroll: true }); } catch (e) { /* old browsers */ }
 
@@ -251,7 +252,8 @@
               return;
             }
             var hit = match(cat, typed);
-            if (hit) { settle(hit, 'is-ok', tries === 0, hit !== typed ? 'נכון! (' + hit + ')' : ''); return; }
+            // right at the first try counts; one hint is fine, more is help
+            if (hit) { settle(hit, 'is-ok', tries === 0 && hints <= 1, hit !== typed ? 'נכון! (' + hit + ')' : ''); return; }
             tries++;
             ctx.sound('bad');
             // maybe it is a real answer we do not know: let the player decide
@@ -260,7 +262,24 @@
               : 'לא מצאנו את "' + typed + '" ברשימה שלנו. בדקו את הכתיב, או לחצו "התשובה שלי נכונה"';
             mineBtn.hidden = !!other;
           }
-          function mine() { if (!settled) settle(input.value.trim(), 'is-ok', true, 'קיבלנו את התשובה שלכם'); }
+          function mine() { if (!settled) settle(input.value.trim(), 'is-ok', hints <= 1, 'קיבלנו את התשובה שלכם'); }
+          /* "רמז": one answer we know, given a little at a time: first how long it is and how it starts, then one more
+             letter. The player still types it. */
+          function hint() {
+            if (settled) return;
+            if (!hintWord) { // a one-word answer when there is one
+              var pool = startsWith(cat, P.letter), single = pool.filter(function (w) { return w.indexOf(' ') === -1; });
+              hintWord = ctx.pick(single.length ? single : pool);
+            }
+            hints++;
+            var letters = hintWord.split(''), len = letters.filter(function (c) { return c !== ' '; }).length;
+            var show = Math.min(len - 1, (len <= 3 ? 1 : 2) + (hints - 1)); // never the whole word
+            var shown = 0;
+            var pat = letters.map(function (c) { if (c === ' ') return ' '; shown++; return shown <= show ? c : '_'; }).join(' ');
+            msg.textContent = 'רמז: למשל מילה של ' + len + ' אותיות: ' + pat + (show >= len - 1 ? '' : ' (לחיצה נוספת תגלה עוד אות)');
+            if (show >= len - 1) hintBtn.disabled = true;
+            try { input.focus({ preventScroll: true }); } catch (e) { /* old browsers */ }
+          }
           function skip() {
             var ex = ctx.shuffle(startsWith(cat, P.letter)).slice(0, 2);
             settle(ex[0], 'is-skip', false, 'דוגמאות: ' + ex.join(', '));
