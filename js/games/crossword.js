@@ -144,15 +144,17 @@
      hardClue = chance of the harder clue, rare = less common words allowed. */
   function spec(level) {
     var L = Math.max(1, Math.min(50, level));
+    // harder sooner (the user found it too easy): bigger grids and more words every 8 levels, the free letters
+    // gone by level 21, the harder clues fully in by level 20, less common words from 10, fewer hints allowed later
     return {
-      n: Math.min(8, 5 + Math.floor((L - 1) / 13)),
-      rows: Math.min(7, 5 + Math.floor((L - 1) / 13)), // at most 7 rows, so the squares stay big above the keyboard
-      target: Math.min(10, 3 + Math.floor((L - 1) / 7)),
-      free: Math.max(0, 0.35 - 0.0075 * (L - 1)),
-      hardClue: L <= 10 ? 0 : Math.min(1, (L - 10) / 35),
-      rare: L >= 16,
+      n: Math.min(8, 5 + Math.floor((L - 1) / 8)),
+      rows: Math.min(7, 5 + Math.floor((L - 1) / 8)), // at most 7 rows, so the squares stay big above the keyboard
+      target: Math.min(12, 4 + Math.floor((L - 1) / 5)),
+      free: Math.max(0, 0.3 - 0.015 * (L - 1)),
+      hardClue: L <= 4 ? 0 : Math.min(1, (L - 4) / 16),
+      rare: L >= 10,
       boards: L <= 30 ? 2 : 1,
-      maxHints: 3
+      maxHints: L <= 15 ? 3 : L <= 30 ? 2 : 1
     };
   }
 
@@ -345,7 +347,7 @@
       function nextRound() {
         round++;
         if (round > ROUNDS) {
-          ctx.finish({ correct: good, total: ROUNDS, note: 'פתרתם ' + good + ' מתוך ' + ROUNDS + ' תשבצים עם עד שלושה רמזים' });
+          ctx.finish({ correct: good, total: ROUNDS, note: 'פתרתם ' + good + ' מתוך ' + ROUNDS + ' תשבצים עם עד ' + (sp.maxHints === 1 ? 'רמז אחד' : sp.maxHints === 2 ? 'שני רמזים' : 'שלושה רמזים') });
           return;
         }
         ctx.setProgress(round, ROUNDS);
