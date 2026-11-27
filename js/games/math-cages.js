@@ -261,6 +261,8 @@
       var level = Math.max(1, Math.min(50, LEVELS.length, Math.round(Number(ctx.level)) || 1));
       var spec = LEVELS[level - 1];
       var ROUNDS = spec.n <= 3 ? 4 : 3;
+      var move = null; // the arrow keys, for the board on show
+      ctx.arrows(function (dx, dy) { if (move) move(dx, dy); });
       var round = 0, solved = 0;
 
       function nextRound() {
@@ -369,6 +371,19 @@
           render();
         }
 
+        // the arrow keys move the picked square (skipping squares that cannot be picked)
+        function stepTo(r0, c0, dr, dc, R, Cn, ok) {
+          var r = r0, c = c0;
+          for (var k = 0; k < Math.max(R, Cn); k++) { r += dr; c += dc; if (r < 0 || c < 0 || r >= R || c >= Cn) return -1; if (ok(r, c)) return r * Cn + c; }
+          return -1;
+        }
+        move = function (dx, dy) {
+          if (done) return;
+          var free = function (r, c) { return !pz.fixed[r][c]; };
+          if (sel < 0) { for (var q = 0; q < n * n; q++) if (free(Math.floor(q / n), q % n)) { sel = q; break; } render(); return; }
+          var to = stepTo(Math.floor(sel / n), sel % n, dy, -dx, n, n, free); // the board reads right to left
+          if (to >= 0) { sel = to; render(); }
+        };
         function select(k) {
           if (done || pz.fixed[Math.floor(k / n)][k % n]) return;
           ctx.sound('tap');

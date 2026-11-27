@@ -227,6 +227,8 @@
       var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level)) || 1));
       var sp = spec(level);
       var ROUNDS = sp.h <= 4 ? 3 : sp.h <= 5 ? 2 : 1;
+      var move = null; // the arrow keys, for the board on show
+      ctx.arrows(function (dx, dy) { if (move) move(dx, dy); });
       var round = 0, solved = 0;
       // clue cells show each sum with an arrow (see css)
 
@@ -321,6 +323,19 @@
           undoBtn.disabled = done || !undoStack.length;
           clearBtn.disabled = done || !P.cells.some(function (k) { return (val[k] && !P.fixed[k]) || notes[k]; });
         }
+        // the arrow keys move the picked square (skipping squares that cannot be picked)
+        function stepTo(r0, c0, dr, dc, R, Cn, ok) {
+          var r = r0, c = c0;
+          for (var k = 0; k < Math.max(R, Cn); k++) { r += dr; c += dc; if (r < 0 || c < 0 || r >= R || c >= Cn) return -1; if (ok(r, c)) return r * Cn + c; }
+          return -1;
+        }
+        move = function (dx, dy) {
+          if (done) return;
+          var isCell = function (r, c) { var k = r * P.C + c; return P.cells.indexOf(k) !== -1 && !P.fixed[k]; };
+          if (sel < 0) { sel = P.cells.filter(function (k) { return !P.fixed[k]; })[0]; render(); return; }
+          var to = stepTo(Math.floor(sel / P.C), sel % P.C, dy, -dx, P.R, P.C, isCell); // the board reads right to left
+          if (to >= 0) { sel = to; render(); }
+        };
         function pick(k) { if (done || P.fixed[k]) return; ctx.sound('tap'); sel = k; render(); }
         function put(v) {
           if (done || sel < 0) return;

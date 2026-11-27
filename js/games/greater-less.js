@@ -81,9 +81,11 @@
     '.gl-cell.is-bad{color:var(--c-red);}',
     '.gl-cell.is-tip{box-shadow:0 0 0 4px var(--c-purple);}',
     '.gl-cell.is-wrong{box-shadow:0 0 0 4px var(--c-red);}',
-    '.gl-sign{width:1rem;height:var(--cs);display:grid;place-items:center;font-weight:900;font-size:1.15rem;color:var(--c-red);}',
+    '.gl-sign{width:.7rem;height:var(--cs);display:grid;place-items:center;font-weight:900;font-size:1.15rem;color:var(--c-red);}',
     '.gl-vsign{width:var(--cs);height:1.05rem;display:grid;place-items:center;font-weight:900;font-size:1.05rem;color:var(--c-red);line-height:1;}',
-    '.gl-gap{width:1rem;height:1.05rem;}',
+    '.gl-gap{width:.7rem;height:1.05rem;}',
+    '@media (min-width:900px){.g-split .gl-grid{--cs:min(calc((100svh - 13rem) / (var(--n) * 1.2)), 6.5rem) !important;flex:none;}.g-split .gl-pad{width:min(24rem,100%);}',
+    '.g-split .gl-sign,.g-split .gl-vsign{font-size:1.6rem;}.g-split .gl-sign,.g-split .gl-gap{width:1.1rem;}}',
     '.gl-pad{display:grid;grid-template-columns:repeat(calc(var(--n) + 1),minmax(0,1fr));gap:.4rem;width:100%;max-width:24rem;}',
     '.gl-pad .g-choice{min-height:3.2rem;font-size:1.5rem;padding:.2rem;}',
     '.gl-acts{flex-wrap:nowrap;gap:.3rem;width:100%;max-width:24rem;}.gl-acts .btn{flex:1 1 auto;min-width:0;padding-inline:.4rem;font-size:.95rem;white-space:nowrap;}',
@@ -110,6 +112,8 @@
       var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level)) || 1));
       var sp = spec(level);
       var ROUNDS = sp.n === 4 ? 3 : 2, round = 0, good = 0;
+      var move = null; // the arrow keys, for the board on show
+      ctx.arrows(function (dx, dy) { if (move) move(dx, dy); });
 
       function nextRound() {
         round++;
@@ -127,7 +131,7 @@
         var less = {}; P.signs.forEach(function (s) { less[s.a + '<' + s.b] = true; });
         function signBetween(i, j) { return less[i + '<' + j] ? '<' : less[j + '<' + i] ? '>' : ''; }
         // the board: squares with sign slots between them (left to right, top to bottom)
-        var cs = 'min(calc((100vw - 3rem - ' + (n - 1) + 'rem) / ' + n + '), calc((100svh - 25rem) / ' + n + '), 3.6rem)';
+        var cs = 'min(calc((100vw - 3rem - ' + (n - 1) * 0.7 + 'rem) / ' + n + '), calc((100svh - 24rem) / ' + n + '), 4.4rem)';
         var grid = el('div', { class: 'gl-grid', style: { '--n': n, '--cs': cs } });
         var cellEls = [];
         for (var r = 0; r < n; r++) {
@@ -152,7 +156,8 @@
         var undoBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: undo }, '↶ בטלו');
         var clearBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: clearAll }, 'נקו');
         var acts = el('div', { class: 'g-actions gl-acts' }, [hintBtn, undoBtn, clearBtn]);
-        root.appendChild(grid); root.appendChild(pad); root.appendChild(acts);
+        root.classList.add('g-split');
+        root.appendChild(grid); root.appendChild(el('div', { class: 'g-side' }, [pad, acts]));
         ctx.setStatus('לחצו על משבצת ריקה, ואז על מספר');
         draw();
 
@@ -174,6 +179,18 @@
           clearBtn.disabled = done || !g.some(function (v, i) { return v && !P.fixed[i]; });
           hintBtn.disabled = done;
         }
+        // the arrow keys move the picked square (skipping squares that cannot be picked)
+        function stepTo(r0, c0, dr, dc, R, Cn, ok) {
+          var r = r0, c = c0;
+          for (var k = 0; k < Math.max(R, Cn); k++) { r += dr; c += dc; if (r < 0 || c < 0 || r >= R || c >= Cn) return -1; if (ok(r, c)) return r * Cn + c; }
+          return -1;
+        }
+        move = function (dx, dy) {
+          if (done) return;
+          if (sel < 0) { sel = P.fixed.findIndex(function (v) { return !v; }); draw(); return; }
+          var to = stepTo(Math.floor(sel / n), sel % n, dy, dx, n, n, function (r, c) { return !P.fixed[r * n + c]; }); // the board reads left to right
+          if (to >= 0) { sel = to; draw(); }
+        };
         function pick(i) { if (done || P.fixed[i]) return; ctx.sound('tap'); sel = i; draw(); }
         function put(v) {
           if (done || sel < 0 || g[sel] === v) return;

@@ -987,6 +987,20 @@
         return out;
       },
       isActive: function () { return session.active; },
+      /* the arrow keys of a keyboard: fn(dx, dy) with dx = +1 for right on the screen, dy = +1 for down. Register once
+         per game; it stops by itself when the game ends. */
+      arrows: function (fn) {
+        var h = function (e) {
+          if (!session.active) { document.removeEventListener('keydown', h); return; }
+          var d = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+          if (!d || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('dialog[open]')) return;
+          var ae = document.activeElement;
+          if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+          e.preventDefault();
+          fn(d[0], d[1]);
+        };
+        document.addEventListener('keydown', h);
+      },
       wait: function (ms) {
         return new Promise(function (resolve) {
           setTimeout(function () { if (session.active) resolve(); }, ms);
