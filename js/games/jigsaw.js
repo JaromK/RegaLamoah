@@ -22,6 +22,9 @@
     '.jg-p.jg-lifted{opacity:.3;}',
     '.jg-p.is-sel{outline:5px solid var(--sun);outline-offset:-5px;z-index:1;}',
     '.jg-p.is-home::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 3px var(--c-green);pointer-events:none;}',
+    '.jg-p.is-tip{outline:6px solid var(--c-purple);outline-offset:-6px;z-index:2;}',
+    '.jg-p.is-tiprow{box-shadow:inset 0 0 0 4px var(--c-purple);}',
+    '.jg-p.is-tiprow::before{content:"";position:absolute;inset:0;background:var(--c-purple);opacity:.18;pointer-events:none;}',
     '.jg-done .jg-board{gap:0;}',
     '.jg-done .jg-p.is-home::after{box-shadow:none;}',
     '.jg-peek{width:5.5rem;height:5.5rem;border-radius:var(--radius-sm);border:2px solid var(--line);background-size:100% 100%;flex:none;}',
@@ -40,7 +43,8 @@
       'תמונה אמיתית נחתכה לריבועים וכל החלקים התערבבו.',
       'גררו חלק אל המקום שלו, או לחצו על חלק אחד ואז על חלק אחר. שני החלקים יתחלפו במקום.',
       'בהמשך יש חלקים הפוכים: לחצו על חלק ואז על "סיבוב" כדי לסובב אותו.',
-      'התמונה הקטנה למעלה מראה איך זה צריך להיראות. אין שעון.'
+      'התמונה הקטנה למעלה מראה איך זה צריך להיראות. אין שעון.',
+      'תקועים? "רמז" מסמן חלק אחד ואומר לאיזה חלק של התמונה הוא שייך. לחיצה נוספת מסמנת את השורה שלו.'
     ],
     css: css,
     _model: { spec: spec },
@@ -68,6 +72,7 @@
         do { at = ctx.shuffle(at); } while (at.every(function (p, i) { return p === i; }));
         ctx.shuffle(at.slice()).slice(0, Math.round(N * sp.turn)).forEach(function (p) { rot[p] = ctx.randInt(1, 3); });
         var sel = -1, done = false, helps = 0;
+        var tip = null; // { p, step }: the piece the last hint was about
         // pieces that look the same (plain sky, plain wall) may swap places: found by comparing small copies
         var looks = null;
         (function () {
@@ -135,6 +140,7 @@
             ctx.sound('tap');
             var t = at[from]; at[from] = at[to]; at[to] = t;
             sel = -1;
+            clearTip();
             draw(); check();
           }
           document.addEventListener('pointermove', move, { passive: false });
@@ -163,6 +169,8 @@
             b.style.transform = 'rotate(' + rot[p] * 90 + 'deg)';
             b.classList.toggle('is-sel', c === sel && !done);
             b.classList.toggle('is-home', sp.mark && home(c));
+            b.classList.toggle('is-tip', !!tip && at[c] === tip.p && !done);
+            b.classList.toggle('is-tiprow', !!tip && tip.step === 2 && Math.floor(c / g) === Math.floor(tip.p / g) && !done);
             b.disabled = done;
           });
           turnBtn.disabled = done || sel < 0;
@@ -175,19 +183,55 @@
           if (sel === c) { sel = -1; draw(); return; }
           var t = at[sel]; at[sel] = at[c]; at[c] = t;
           sel = -1;
+          clearTip();
           draw(); check();
         }
-        function turn() { if (done || sel < 0) return; ctx.sound('tap'); rot[at[sel]] = (rot[at[sel]] + 1) % 4; draw(); check(); }
+        // the hint marks go away once its piece is in place
+        function clearTip() { if (tip && placed(tip.p)) tip = null; }
+        function turn() { if (done || sel < 0) return; ctx.sound('tap'); rot[at[sel]] = (rot[at[sel]] + 1) % 4; clearTip(); draw(); check(); }
+        /* A hint that teaches where to look, never moves a piece: it marks one piece and says which part of the
+           picture it comes from; a second tap marks the row it belongs in. A turned piece is pointed out. */
+        function rowWords(p) {
+          var r = Math.floor(p / g);
+          if (g === 2) return r === 0 ? 'לחצי העליון של התמונה' : 'לחצי התחתון של התמונה';
+          if (r === 0) return 'לשורה העליונה של התמונה';
+          if (r === g - 1) return 'לשורה התחתונה של התמונה';
+          return 'לאמצע התמונה (לא לשורה העליונה ולא לתחתונה)';
+        }
+        function where(p) { return at.indexOf(p); }
+        function placed(p) { var c = where(p); return alike(at[c], c) && !rot[p]; }
         function hint() {
           if (done) return;
+          // the row is marked already: say it again, it is not another hint
+          if (tip && tip.step === 2 && !placed(tip.p)) { ctx.setStatus('רמז: החלק המסומן שייך לשורה המסומנת. באיזה מקום בשורה? גררו אותו לשם'); return; }
           helps++;
-          // put one piece in its place (and turn it right)
-          for (var c = 0; c < N; c++) if (!home(c)) {
-            var j = at.indexOf(c);
-            at[j] = at[c]; at[c] = c; rot[c] = 0; sel = -1;
-            ctx.setStatus('רמז: חלק אחד חזר למקומו');
-            draw(); check(); return;
+          var look = sp.preview ? ' השוו לתמונה הקטנה.' : ' חשבו מה רואים בו.';
+          // the same piece again: mark the row it belongs in
+          if (tip && tip.step === 1 && !placed(tip.p)) {
+            tip.step = 2;
+            if (alike(at[where(tip.p)], where(tip.p)) && rot[tip.p]) {
+              ctx.setStatus('רמז: החלק המסומן כבר במקום, אבל הפוך. לחצו עליו ואז על "סיבוב ↻" עד שהוא נראה נכון');
+            } else {
+              ctx.setStatus('רמז: החלק המסומן שייך לשורה המסומנת. באיזה מקום בשורה? גררו אותו לשם' + (rot[tip.p] ? ', ואז סובבו אותו' : ''));
+            }
+            draw(); return;
           }
+          // a new piece: the one picked, or else a corner piece (the easiest to place), or else any piece not in place
+          var todo = [];
+          for (var p = 0; p < N; p++) if (!placed(p)) todo.push(p);
+          if (!todo.length) return;
+          var corner = function (x) { return (x % g === 0 || x % g === g - 1) && (x < g || x >= N - g); };
+          var pick = sel >= 0 && todo.indexOf(at[sel]) !== -1 ? at[sel] : todo.filter(corner)[0];
+          if (pick === undefined) pick = todo[0];
+          tip = { p: pick, step: 1 }; sel = -1;
+          var c0 = where(pick);
+          if (alike(at[c0], c0) && rot[pick]) {
+            ctx.setStatus('רמז: החלק המסומן בסגול נמצא במקום הנכון, אבל הוא הפוך. לחצו עליו ואז על "סיבוב ↻"');
+          } else {
+            ctx.setStatus('רמז: החלק המסומן בסגול שייך ' + rowWords(pick) + '.' + look + (rot[pick] ? ' הוא גם הפוך: אחרי שתזיזו אותו, סובבו אותו.' : '') +
+              ' (לחיצה נוספת על "רמז" תסמן את השורה שלו)');
+          }
+          draw();
         }
         function peek() {
           if (done) return;
@@ -199,7 +243,7 @@
         function check() {
           for (var c = 0; c < N; c++) if (!home(c)) return;
           done = true;
-          var ok = helps <= (g >= 5 ? 2 : 1);
+          var ok = helps <= (g >= 5 ? 3 : 2);
           if (ok) good++;
           wrap.classList.add('jg-done');
           draw();

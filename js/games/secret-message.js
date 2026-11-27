@@ -83,7 +83,7 @@
       'מסר קצר כתוב בקוד: כל אות הוחלפה בסימן, במספר או באות אחרת.',
       'לחצו על משבצת ואז על האות הנכונה. אותה אות תתמלא בכל המקומות שבהם מופיע אותו קוד.',
       'בהתחלה יש מפתח מלא. בהמשך רק חלק ממנו, ובשלבים המתקדמים רק כלל ("כל אות הוחלפה באות שאחריה").',
-      'אין שעון. תקועים? לחצו "רמז".'
+      'אין שעון. תקועים? "רמז" מסביר איך לפענח אחד הקודים, בלי לגלות את האות.'
     ],
     css: css,
     _model: { spec: spec, codeFor: codeFor },
@@ -103,6 +103,7 @@
 
       function play(text) {
         root.innerHTML = '';
+        root.__sm = text; // read by the automated tests
         var map = {};
         var sym = ctx.shuffle(SYMBOLS);
         ABC.forEach(function (l, i) { map[l] = sym[i]; });
@@ -111,6 +112,7 @@
         var guess = {};      // base letter → guessed letter
         var given = {};      // letters filled in for the player (hints)
         var sel = null, hints = 0, done = false;
+        var tip = null, badL = null; // tip = { l, step }: the letter the last hint was about; badL = a guess marked wrong
 
         // the key on screen: code above, letter below
         var keyItems = null;
@@ -164,7 +166,7 @@
             var g = guess[x.base] || '';
             x.b.querySelector('.l').textContent = g && x.last && FINAL[g] ? FINAL[g] : g;
             x.b.classList.toggle('is-sel', x.base === sel && !done);
-            x.b.classList.toggle('is-bad', full && g !== x.base);
+            x.b.classList.toggle('is-bad', (full || x.base === badL) && !!g && g !== x.base);
             x.b.classList.toggle('is-given', !!given[x.base]);
             x.b.disabled = done;
           });
@@ -174,28 +176,88 @@
         function put(l) {
           if (done || !sel) return;
           ctx.sound('tap');
+          if (sel === badL) badL = null;
           if (l) guess[sel] = l; else delete guess[sel];
           if (l) { var nx = used.filter(function (x) { return !guess[x]; })[0]; if (nx) sel = nx; }
           render();
           check();
         }
+        /* A hint that teaches how to read one code, never fills in the letter: first how the code works for it,
+           then a word it is in, with the letters already found. A wrong guess is pointed out, not corrected. */
+        var keyHas = {};
+        (keyItems || []).forEach(function (kv) { keyHas[kv[1]] = true; if (sp.mode === 'atbash') keyHas[kv[0]] = true; });
+        function q(s) { return '"' + s + '"'; }
+        function codeHow(l) {
+          var i = ABC.indexOf(l), code = codeFor(sp, map, l);
+          if (sp.mode === 'symbol') {
+            if (keyHas[l]) return 'חפשו את הסימן ' + code + ' במפתח למעלה. האות שמתחתיו היא התשובה';
+            var miss = ABC.filter(function (x) { return !keyHas[x] && !(guess[x] === x && x !== l); });
+            return 'הסימן ' + code + ' לא מופיע במפתח, אז האות שלו היא אחת מהאותיות שחסרות במפתח: ' + miss.join(' ') + '. איזו מהן מתאימה למילה?';
+          }
+          if (sp.mode === 'number') {
+            if (keyHas[l]) return 'חפשו את המספר ' + code + ' במפתח למעלה. האות שמתחתיו היא התשובה';
+            var anchors = [[1, 'א'], [5, 'ה'], [10, 'י'], [15, 'ס'], [20, 'ר']].filter(function (a) { return a[0] < i + 1; });
+            if (!anchors.length) return 'המספר 1 הוא האות הראשונה באלף-בית';
+            var a = anchors[anchors.length - 1], more = i + 1 - a[0];
+            return 'המספר ' + code + ' הוא האות ה-' + code + ' באלף-בית. עזרה: ' + a[1] + ' היא ' + a[0] + ', אז ספרו מ-' + a[1] + ' עוד ' + (more === 1 ? 'אות אחת' : more + ' אותיות') + ' קדימה';
+          }
+          if (sp.mode === 'shift') {
+            var wrap = i + sp.shift >= ABC.length ? ' (האלף-בית חוזר על עצמו: לפני א באה ת)' : '';
+            return 'כאן כתוב ' + q(code) + '. האות האמיתית היא ' + (sp.shift === 1 ? 'האות שבאה לפני ' : 'שתי אותיות לפני ') + code + ' באלף-בית' + wrap;
+          }
+          if (keyHas[l]) return 'חפשו את ' + code + ' במפתח למעלה. האות שאיתה בזוג היא התשובה';
+          var ci = ABC.indexOf(code);
+          if (ci < 11) return 'כאן כתוב ' + q(code) + '. ' + code + ' היא האות ה-' + (ci + 1) + ' מההתחלה, אז התשובה היא האות ה-' + (ci + 1) + ' מהסוף (ת היא הראשונה מהסוף, ש השנייה…)';
+          return 'כאן כתוב ' + q(code) + '. ' + code + ' היא האות ה-' + (22 - ci) + ' מהסוף, אז התשובה היא האות ה-' + (22 - ci) + ' מההתחלה (א היא הראשונה, ב השנייה…)';
+        }
+        // the word with the target letter that has the most letters found already, as a pattern: ש ? _ ם
+        function wordTip(l) {
+          var best = null;
+          text.split(' ').forEach(function (w) {
+            var bs = w.split('').map(function (ch) { return BASE[ch] || ch; });
+            if (bs.indexOf(l) === -1) return;
+            var found = bs.filter(function (b) { return b !== l && guess[b] === b; }).length;
+            if (!best || found > best.found) best = { w: w, found: found };
+          });
+          var pat = best.w.split('').map(function (ch) {
+            var b = BASE[ch] || ch;
+            return b === l ? '?' : guess[b] === b ? ch : '_';
+          }).join(' ');
+          if (!best.found) return 'הוא מופיע במילה של ' + best.w.length + ' אותיות: ' + pat + '. פענחו קודם עוד אות במילה הזאת, ואז נסו לנחש את כל המילה';
+          return 'הסתכלו על המילה ' + pat + '. איזו אות מתאימה במקום הסימן ?';
+        }
         function hint() {
           if (done) return;
-          var wrong = used.filter(function (l) { return guess[l] && guess[l] !== l; })[0];
-          var l = wrong || (sel && guess[sel] !== sel ? sel : used.filter(function (x) { return guess[x] !== x; })[0]);
-          if (!l) return;
+          // 1. a wrong guess comes first: mark it, without saying what is right
+          var wrong = used.filter(function (l) { return guess[l] && guess[l] !== l && !given[l]; })[0];
+          if (wrong) {
+            if (wrong !== badL) hints++; // the same mark again is not another hint
+            badL = wrong; sel = wrong; tip = null;
+            ctx.setStatus('רמז: הקוד ' + codeFor(sp, map, wrong) + ' הוא לא ' + guess[wrong] + ' (מסומן באדום). ' + codeHow(wrong));
+            render(); return;
+          }
+          var todo = used.filter(function (x) { return guess[x] !== x; });
+          if (!todo.length) return;
+          if (tip && tip.step === 2 && guess[tip.l] !== tip.l) { sel = tip.l; ctx.setStatus('רמז: ' + wordTip(tip.l)); render(); return; } // said already
           hints++;
-          guess[l] = l; given[l] = true;
-          var nx = used.filter(function (x) { return !guess[x]; })[0];
-          if (nx) sel = nx;
-          ctx.setStatus('רמז: מילאנו אות אחת');
-          render(); check();
+          // 2. pressing again on the same letter: a word it is in
+          if (tip && tip.step === 1 && guess[tip.l] !== tip.l) {
+            tip.step = 2; sel = tip.l;
+            ctx.setStatus('רמז: ' + wordTip(tip.l));
+            render(); return;
+          }
+          // 3. a new letter: the one picked, or else the one that appears most often in the message
+          var count = function (x) { return letters.filter(function (y) { return y === x; }).length; };
+          var l = sel && todo.indexOf(sel) !== -1 ? sel : todo.slice().sort(function (a, b) { return count(b) - count(a); })[0];
+          tip = { l: l, step: 1 }; sel = l;
+          ctx.setStatus('רמז: ' + codeHow(l) + '. (לחיצה נוספת על "רמז" תראה מילה שבה הוא מופיע)');
+          render();
         }
         function check() {
           if (!used.every(function (l) { return guess[l]; })) return;
           if (!used.every(function (l) { return guess[l] === l; })) { ctx.setStatus('יש אותיות שלא מתאימות. האדומות צריכות תיקון'); return; }
           done = true;
-          var ok = hints <= Math.max(1, Math.floor(used.length / 6));
+          var ok = hints <= Math.max(2, Math.floor(used.length / 6) + 1);
           if (ok) good++;
           msg.classList.add('sm-done');
           render();

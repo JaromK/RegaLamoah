@@ -152,7 +152,7 @@
       hardClue: L <= 10 ? 0 : Math.min(1, (L - 10) / 35),
       rare: L >= 16,
       boards: L <= 30 ? 2 : 1,
-      maxHints: 2
+      maxHints: 3
     };
   }
 
@@ -241,7 +241,9 @@
     var words = best.placed.map(function (p) {
       var cells = [];
       for (var i = 0; i < p.e.b.length; i++) cells.push([p.r - minR + (p.d === 'down' ? i : 0), p.c - minC + (p.d === 'down' ? 0 : i)]);
-      return { answer: p.e.w, b: p.e.b, d: p.d, cells: cells, clue: rnd.randInt(1, 100) <= sp.hardClue * 100 ? p.e.hard : p.e.easy };
+      var useHard = rnd.randInt(1, 100) <= sp.hardClue * 100;
+      // alt = the other clue of the word, offered by "רמז" as a second way to think of it
+      return { answer: p.e.w, b: p.e.b, d: p.d, cells: cells, clue: useHard ? p.e.hard : p.e.easy, alt: useHard ? p.e.easy : p.e.hard };
     });
     // numbering in reading order (top row first, right to left)
     var num = 0, numbers = {};
@@ -316,7 +318,7 @@
       'לחצו על משבצת כדי לבחור מילה. ההגדרה שלה מופיעה למעלה.',
       'הקלידו את המילה במקלדת. מילים לרוחב נכתבות מימין לשמאל, מילים לאורך מלמעלה למטה.',
       'כשמילה מלאה, אות לא נכונה נצבעת באדום.',
-      'אין שעון. תקועים? לחצו "רמז" ונגלה לכם אות.'
+      'אין שעון. תקועים? "רמז" נותן הגדרה נוספת ומראה אילו אותיות כבר ידועות, ולחיצה נוספת אומרת באיזו אות המילה מתחילה.'
     ],
     css: css,
     _model: { spec: spec, makePuzzle: makePuzzle, words: WORDS, base: base, tryPlace: tryPlace },
@@ -333,7 +335,7 @@
       function nextRound() {
         round++;
         if (round > ROUNDS) {
-          ctx.finish({ correct: good, total: ROUNDS, note: 'פתרתם ' + good + ' מתוך ' + ROUNDS + ' תשבצים עם עד שני רמזים' });
+          ctx.finish({ correct: good, total: ROUNDS, note: 'פתרתם ' + good + ' מתוך ' + ROUNDS + ' תשבצים עם עד שלושה רמזים' });
           return;
         }
         ctx.setProgress(round, ROUNDS);
@@ -347,6 +349,7 @@
         root.__cw = P; // read by the automated tests
         var rows = P.rows, cols = P.cols;
         var val = {}, fixed = {}, cellEls = {}, hints = 0, done = false;
+        var tip = null, badK = null; // tip = { w, step }: the word the last hint was about; badK = a letter marked wrong
         var curW = P.words[0], curI = 0;
         Object.keys(P.given).forEach(function (k) { var rc = k.split(','); val[k] = P.grid[+rc[0]][+rc[1]]; fixed[k] = true; });
 
@@ -417,7 +420,7 @@
             b.classList.toggle('is-cur', !done && key(curW.cells[curI]) === k);
             // a letter is checked once a word through it is full
             var checked = wordsAt(k).some(wordFull);
-            b.classList.toggle('is-wrong', !!val[k] && checked && val[k] !== P.grid[r][c]);
+            b.classList.toggle('is-wrong', !!val[k] && (checked || k === badK) && val[k] !== P.grid[r][c]);
             b.setAttribute('aria-label', val[k] ? shown(P, r, c, val[k]) : 'משבצת ריקה');
           });
           clueText.innerHTML = '';
@@ -471,6 +474,7 @@
             curI = j; k = key(curW.cells[curI]);
           }
           ctx.sound('tap');
+          if (k === badK) badK = null;
           val[k] = l;
           var nx = curI + 1;
           while (nx < curW.cells.length && fixed[key(curW.cells[nx])]) nx++;
@@ -481,7 +485,7 @@
         function back() {
           if (done) return;
           var k = key(curW.cells[curI]);
-          if (val[k] && !fixed[k]) { delete val[k]; render(); return; }
+          if (val[k] && !fixed[k]) { if (k === badK) badK = null; delete val[k]; render(); return; }
           var j = curI - 1;
           while (j >= 0 && fixed[key(curW.cells[j])]) j--;
           if (j < 0) return;
@@ -508,21 +512,59 @@
           render();
         }
 
+        /* A hint that helps think of the word, never types it: first a second clue and the letters already known,
+           then the first letter (told, not filled in). A wrong letter is pointed out, not corrected. */
+        function wname(w) { return w.num + ' ' + (w.d === 'across' ? 'מאוזן' : 'מאונך'); }
+        function rightAt(x) { return val[key(x)] && val[key(x)] === P.grid[x[0]][x[1]]; }
+        function pattern(w) {
+          return w.cells.map(function (x) { return rightAt(x) ? shown(P, x[0], x[1], val[key(x)]) : '_'; }).join(' ');
+        }
         function hint() {
           if (done) return;
+          // 1. a wrong letter comes first: mark it, without saying what is right
+          var bad = null;
+          P.words.forEach(function (w) {
+            w.cells.forEach(function (x, i) { if (!bad && val[key(x)] && !fixed[key(x)] && !rightAt(x)) bad = { w: w, i: i, k: key(x) }; });
+          });
+          if (bad) {
+            if (bad.k !== badK) hints++; // the same mark again is not another hint
+            badK = bad.k; tip = null;
+            select(bad.w, bad.i);
+            ctx.setStatus('רמז: האות במשבצת האדומה לא נכונה. מחקו אותה (⌫) וחשבו שוב על ההגדרה');
+            return;
+          }
           var w = !wordRight(curW) ? curW : P.words.filter(function (x) { return !wordRight(x); })[0];
           if (!w) return;
-          var i = firstOpen(w), x = w.cells[i], k = key(x);
+          var len = w.cells.length + ' אותיות';
+          if (tip && tip.w === w && tip.step === 2) { select(w); ctx.setStatus(tip.text); return; } // said already: not another hint
           hints++;
-          val[k] = P.grid[x[0]][x[1]]; fixed[k] = true;
-          ctx.setStatus(hints <= sp.maxHints ? 'גילינו לכם אות (' + hints + ' רמזים)' : 'גילינו לכם עוד אות');
-          select(w, Math.min(w.cells.length - 1, i + 1));
-          afterChange();
+          // 2. pressing again on the same word: the first letter, unless it is known already
+          if (tip && tip.w === w && tip.step === 1) {
+            tip.step = 2;
+            if (!rightAt(w.cells[0])) {
+              ctx.setStatus('רמז ל-' + wname(w) + ': המילה מתחילה באות ' + P.grid[w.cells[0][0]][w.cells[0][1]] + ' (' + len + ': ' + pattern(w) + ')');
+            } else {
+              // the first letter is there: a word that crosses this one gives more letters
+              var cross = P.words.filter(function (o) {
+                return o !== w && !wordRight(o) && o.cells.some(function (x) { return !rightAt(x) && w.cells.some(function (y) { return key(y) === key(x); }); });
+              })[0];
+              ctx.setStatus(cross ? 'רמז: נסו קודם את ' + wname(cross) + '. היא חוצה את המילה הזאת ותיתן לה עוד אות'
+                : 'רמז ל-' + wname(w) + ': ' + pattern(w) + '. חשבו על מילה של ' + len + ' שמתאימה להגדרה. אפשר גם ללחוץ "הראו פתרון"');
+            }
+            tip.text = (document.querySelector('.play-status') || {}).textContent;
+            select(w);
+            return;
+          }
+          // 3. a new word: another clue for it, and the letters already known
+          tip = { w: w, step: 1 };
+          select(w);
+          var other = w.alt && w.alt !== w.clue ? 'הגדרה נוספת: ' + w.alt + '. ' : '';
+          ctx.setStatus('רמז ל-' + wname(w) + ': ' + other + 'יש בה ' + len + ': ' + pattern(w) + (other ? '' : '. מילים שחוצות אותה ייתנו עוד אותיות'));
         }
 
         function reveal() {
           if (done) return;
-          hints = 99;
+          hints = 99; tip = null; badK = null;
           Object.keys(cellEls).forEach(function (k) { var rc = k.split(','); val[k] = P.grid[+rc[0]][+rc[1]]; });
           finishBoard(true);
         }
