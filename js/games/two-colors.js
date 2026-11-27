@@ -9,8 +9,12 @@
     if (L <= 6) return { n: 4, keep: 0.5 - (L - 1) * 0.03 };
     if (L <= 12) return { n: 6, keep: 0.55 - (L - 7) * 0.03 };
     if (L <= 25) return { n: 6, keep: 0.4 - (L - 13) * 0.012 };
-    if (L <= 38) return { n: 8, keep: 0.48 - (L - 26) * 0.012 };
-    return { n: 8, keep: 0.33 - (L - 39) * 0.008 };
+    if (L <= 30) return { n: 8, keep: 0.48 - (L - 26) * 0.012 };
+    // 31–50 harder (user request): fewer squares at the start, and boards that the three obvious rules alone would
+    // finish are mostly thrown away (hard = share of boards that need more than those rules)
+    if (L <= 35) return { n: 8, keep: 0.28 - (L - 31) * 0.01, hard: 0.6 };
+    if (L <= 40) return { n: 8, keep: 0.23 - (L - 36) * 0.008, hard: 0.8 };
+    return { n: 8, keep: 0.19 - (L - 41) * 0.003, hard: 1 };
   }
 
   // can value v go at (r, c) of grid g (0 empty, 1 red, 2 blue) without breaking a rule?
@@ -39,7 +43,39 @@
     return found;
   }
   function empty(n) { return Array.apply(null, { length: n }).map(function () { return Array.apply(null, { length: n }).map(function () { return 0; }); }); }
+  /* Do the three obvious rules alone (two in a row, between two, half already there) fill the board? */
+  function obvious(given, n) {
+    var g = given.map(function (r) { return r.slice(); }), changed = true, lines = [];
+    for (var i = 0; i < n; i++) {
+      lines.push(Array.apply(null, { length: n }).map(function (_, j) { return [i, j]; }));
+      lines.push(Array.apply(null, { length: n }).map(function (_, j) { return [j, i]; }));
+    }
+    while (changed) {
+      changed = false;
+      lines.forEach(function (L) {
+        var v = L.map(function (p) { return g[p[0]][p[1]]; });
+        for (var k = 0; k < n; k++) if (!v[k]) {
+          for (var col = 1; col <= 2; col++) {
+            if ((k >= 2 && v[k - 1] === col && v[k - 2] === col) || (k + 2 < n && v[k + 1] === col && v[k + 2] === col) ||
+                (k >= 1 && k + 1 < n && v[k - 1] === col && v[k + 1] === col)) { g[L[k][0]][L[k][1]] = 3 - col; v[k] = 3 - col; changed = true; break; }
+          }
+        }
+        for (var c2 = 1; c2 <= 2; c2++) if (v.filter(function (x) { return x === c2; }).length === n / 2) {
+          L.forEach(function (p, k) { if (!v[k]) { g[p[0]][p[1]] = 3 - c2; v[k] = 3 - c2; changed = true; } });
+        }
+      });
+    }
+    return g.every(function (r) { return r.every(Boolean); });
+  }
   function makePuzzle(sp, rnd) {
+    var wantHard = rnd.randInt(1, 100) <= (sp.hard || 0) * 100;
+    for (var tries = 0; tries < 40; tries++) {
+      var P = makeOne(sp, rnd);
+      if (P && (!wantHard || !obvious(P.given, P.n))) return P;
+    }
+    return makeOne(sp, rnd);
+  }
+  function makeOne(sp, rnd) {
     var n = sp.n, g = empty(n);
     // a random full grid
     var ok = (function go(i) {
@@ -93,7 +129,7 @@
       'שבירת כלל מסומנת בצהוב. יש "רמז", "↶ בטלו" ו"נקו". אין שעון.'
     ],
     css: css,
-    _model: { spec: spec, makePuzzle: makePuzzle, count: count, fits: fits },
+    _model: { spec: spec, makePuzzle: makePuzzle, count: count, fits: fits, obvious: obvious },
     start: function (root, ctx) {
       var el = ctx.el;
       var level = Math.max(1, Math.min(50, Math.round(Number(ctx.level)) || 1));
@@ -141,8 +177,10 @@
             if (r + 2 < n && g[r + 1][c] === v && g[r + 2][c] === v) { bad[r * n + c] = bad[(r + 1) * n + c] = bad[(r + 2) * n + c] = true; }
           }
           for (k = 0; k < n; k++) for (var v2 = 1; v2 <= 2; v2++) {
-            var rowN = 0, colN = 0;
-            for (var j = 0; j < n; j++) { if (g[k][j] === v2) rowN++; if (g[j][k] === v2) colN++; }
+            var rowN = 0, colN = 0, rowFull = true, colFull = true;
+            for (var j = 0; j < n; j++) { if (g[k][j] === v2) rowN++; if (g[j][k] === v2) colN++; if (!g[k][j]) rowFull = false; if (!g[j][k]) colFull = false; }
+            // from level 41 too many of one colour shows only when the line is full (no free warning while guessing)
+            if (level >= 41) { if (!rowFull) rowN = 0; if (!colFull) colN = 0; }
             if (rowN > n / 2) for (j = 0; j < n; j++) if (g[k][j] === v2) bad[k * n + j] = true;
             if (colN > n / 2) for (j = 0; j < n; j++) if (g[j][k] === v2) bad[j * n + k] = true;
           }
