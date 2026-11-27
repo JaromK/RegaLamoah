@@ -34,12 +34,13 @@
     if (L <= 10) return { kinds: ['basic'], same: 1 };
     if (L <= 14) return { kinds: ['basic'], same: 2 };
     if (L <= 20) return { kinds: ['basic'], same: 3 };
-    if (L <= 26) return { kinds: ['mirror', 'basic'], same: 3 };
-    if (L <= 32) return { kinds: ['turn', 'mirror'], same: 3 };
-    if (L <= 36) return { kinds: ['reverse', 'turn'], same: 3 };
-    if (L <= 40) return { kinds: ['reverse', 'reverseFlip', 'turn'], same: 3 };
-    if (L <= 45) return { kinds: ['combo', 'reverseFlip'], same: 3 };
-    return { kinds: ['combo', 'comboFlip', 'reverseFlip', 'turn'], same: 3 };
+    // from level 21 the harder kinds join: an outline only, a shadow partly covered, two shadows on top of each other
+    if (L <= 26) return { kinds: ['mirror', 'basic', 'outline'], same: 3 };
+    if (L <= 32) return { kinds: ['turn', 'mirror', 'outline', 'partial'], same: 3 };
+    if (L <= 36) return { kinds: ['reverse', 'turn', 'partial', 'outlineOpt'], same: 3 };
+    if (L <= 40) return { kinds: ['reverse', 'reverseFlip', 'partial', 'partialOpt', 'overlap'], same: 3 };
+    if (L <= 45) return { kinds: ['combo', 'reverseFlip', 'overlap', 'partialOpt', 'outlineOpt'], same: 3 };
+    return { kinds: ['comboFlip', 'reverseFlip', 'overlap', 'partial', 'partialOpt', 'outline', 'turn'], same: 3 };
   }
 
   /* A picture = list of parts { e, flip, rot, pos } (+ sil: shown as a shadow). key() tells pictures apart. */
@@ -53,6 +54,36 @@
 
   function makeQuestion(sp, rnd) {
     var kind = rnd.pick(sp.kinds), it, opts, show, ans, flipM;
+    var big = function (x) { return GROUPS[x.g].length >= 4; };
+    if (kind === 'outline' || kind === 'partial') {
+      // an outline, or a shadow partly behind a curtain: which object is it? (look-alikes to choose from)
+      it = rnd.pick(ALL.filter(big));
+      show = { parts: [part(it)], sil: kind === 'outline' ? 'outline' : true, cover: kind === 'partial' ? rnd.pick(['l', 'r', 't', 'b']) : null };
+      ans = { parts: [part(it)] };
+      opts = [ans].concat(others(it, rnd, 3, true).map(function (d) { return { parts: [part(d)] }; }));
+      return done(kind, show, ans, opts, rnd);
+    }
+    if (kind === 'outlineOpt' || kind === 'partialOpt') {
+      // the object is shown; the four answers are outlines, or shadows all covered on the same side
+      it = rnd.pick(ALL.filter(big));
+      var side = rnd.pick(['l', 'r', 't', 'b']), mk = function (x) {
+        return kind === 'outlineOpt' ? { parts: [part(x)], sil: 'outline' } : { parts: [part(x)], sil: true, cover: side };
+      };
+      show = { parts: [part(it)] };
+      ans = mk(it);
+      opts = [ans].concat(others(it, rnd, 3, true).map(mk));
+      return done(kind, show, ans, opts, rnd);
+    }
+    if (kind === 'overlap') {
+      // two shadows on top of each other: which two objects make them? Each answer is a pair of pictures
+      var A = rnd.pick(ALL.filter(big)), B = rnd.pick(ALL.filter(function (x) { return big(x) && x.g !== A.g; }));
+      var A2 = others(A, rnd, 1, true)[0], B2 = others(B, rnd, 1, true)[0];
+      show = { parts: [part(A, { pos: 'ovA' }), part(B, { pos: 'ovB' })], sil: true, lay: 'ovl' };
+      var pair = function (x, y) { return { parts: [part(x, { pos: 'pa' }), part(y, { pos: 'pb' })], lay: 'pair' }; };
+      ans = pair(A, B);
+      opts = [ans, pair(A, B2), pair(A2, B), pair(A2, B2)];
+      return done(kind, show, ans, opts, rnd);
+    }
     if (kind === 'basic') {
       it = rnd.pick(ALL);
       var same = Math.min(sp.same, GROUPS[it.g].length - 1);
@@ -105,12 +136,14 @@
   function done(kind, show, ans, opts, rnd) {
     // four different pictures, exactly one equal to the answer
     var seen = {}, out = [];
-    opts.forEach(function (o) { var k = key(o) + (o.sil ? 's' : ''); if (!seen[k]) { seen[k] = true; out.push(o); } });
+    opts.forEach(function (o) { var k = key(o) + (o.sil ? 's' + o.sil : ''); if (!seen[k]) { seen[k] = true; out.push(o); } });
     for (var guard = 0; out.length < 4 && guard < 200; guard++) {
       // fill up with another object (in a pair: the small one swapped for another)
       var d = rnd.pick(ALL);
-      var o = ans.parts.length === 1 ? { parts: [part(d)], sil: ans.sil } : { parts: [ans.parts[0], part(d, { pos: 'top' })], sil: ans.sil };
-      var k = key(o) + (o.sil ? 's' : '');
+      var o = ans.parts.length === 1 ? { parts: [part(d)], sil: ans.sil, cover: ans.cover }
+        : ans.lay === 'pair' ? { parts: [ans.parts[0], part(d, { pos: 'pb' })], lay: 'pair' }
+        : { parts: [ans.parts[0], part(d, { pos: 'top' })], sil: ans.sil };
+      var k = key(o) + (o.sil ? 's' + o.sil : '');
       if (!seen[k]) { seen[k] = true; out.push(o); }
     }
     out = rnd.shuffle(out);
@@ -127,14 +160,28 @@
     '.sh-pic.two .big{position:absolute;left:0;bottom:0;font-size:.82em;}',
     '.sh-pic.two .top{position:absolute;right:0;top:0;font-size:.6em;}',
     '.sh-show .sh-pic{font-size:5.2rem;}',
-    '.sh-opts{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;width:100%;max-width:24rem;}',
-    '.sh-opt{display:grid;place-items:center;min-height:7.3rem;padding:.3rem;border-radius:var(--radius);border:3px solid var(--line);background:var(--surface);cursor:pointer;}',
+    '.sh-opts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.7rem;width:100%;max-width:24rem;}',
+    '.sh-opt{display:grid;place-items:center;min-width:0;min-height:7.3rem;padding:.3rem;border-radius:var(--radius);border:3px solid var(--line);background:var(--surface);cursor:pointer;}',
     '.sh-opt.is-sil{background:var(--c-yellow-soft);}',
     '.sh-opt .sh-pic{font-size:4.2rem;}',
     '.sh-opt.is-correct{border-color:var(--good);box-shadow:0 0 0 3px var(--good);}',
     '.sh-opt.is-wrong{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad);opacity:.8;}',
     '.sh-opt:disabled{cursor:default;}',
     '.sh-sil .sh-pic{filter:brightness(0);}',
+    /* an outline only: the shape filled like the card, with a dark line around it */
+    '.sh-show.is-outline,.sh-opt.is-outline{background:#fff;}',
+    '.is-outline .sh-pic{filter:brightness(0) invert(1) drop-shadow(2px 0 0 #1b1b1b) drop-shadow(-2px 0 0 #1b1b1b) drop-shadow(0 2px 0 #1b1b1b) drop-shadow(0 -2px 0 #1b1b1b);}',
+    /* a curtain over part of a shadow (drawn outside the darkened picture, so it keeps its stripes) */
+    '.sh-frame{position:relative;display:inline-grid;place-items:center;}',
+    '.sh-cover{position:absolute;background:repeating-linear-gradient(45deg,var(--surface-2) 0 7px,var(--line) 7px 10px);border:2px solid var(--ink-soft);border-radius:6px;}',
+    '.sh-cover.l{left:-.5rem;top:-.4rem;bottom:-.4rem;width:52%;}.sh-cover.r{right:-.5rem;top:-.4rem;bottom:-.4rem;width:52%;}',
+    '.sh-cover.t{top:-.4rem;left:-.5rem;right:-.5rem;height:52%;}.sh-cover.b{bottom:-.4rem;left:-.5rem;right:-.5rem;height:52%;}',
+    /* two shadows on top of each other; and a pair of pictures as an answer */
+    '.sh-pic.ovl{width:1.75em;height:1.2em;}',
+    '.sh-pic.ovl .ovA{position:absolute;left:0;top:.1em;font-size:.95em;}.sh-pic.ovl .ovB{position:absolute;right:0;top:0;font-size:.95em;}',
+    '.sh-show .sh-pic.ovl{font-size:4.6rem;}',
+    '.sh-pic.pair{display:flex;gap:.15em;width:auto;height:auto;}',
+    '.sh-opt .sh-pic.pair{font-size:2.5rem;}',
     /* dark mode: the shadows turn light so they stay visible on the dark cards */
     '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .sh-sil .sh-pic{filter:brightness(0) invert(1);}}',
     ':root[data-theme="dark"] .sh-sil .sh-pic{filter:brightness(0) invert(1);}'
@@ -151,7 +198,7 @@
       'למעלה יש ציור. למטה ארבעה צללים שחורים.',
       'בחרו את הצל שיש לו בדיוק אותה צורה. שימו לב לפרטים הקטנים: אוזניים, ידיות, זנבות.',
       'ברמות גבוהות יש צללים הפוכים או מסובבים. הצל הנכון פונה לאותו צד כמו הציור.',
-      'אחר כך זה מתהפך: רואים צל ובוחרים את הציור, ובסוף שני חפצים יחד. אין שעון.'
+      'אחר כך זה מתהפך: רואים צל ובוחרים את הציור. בהמשך: רק קו מתאר, צל שחלק ממנו מוסתר, ושני צללים זה על זה. אין שעון.'
     ],
     css: css,
     _model: { spec: spec, makeQuestion: makeQuestion, key: key, GROUPS: GROUPS },
@@ -162,12 +209,14 @@
       var Q = 8, q = 0, good = 0;
 
       function picEl(pic) {
-        var two = pic.parts.length > 1;
-        return el('span', { class: 'sh-pic ' + (two ? 'two' : 'one'), 'aria-hidden': 'true' }, pic.parts.map(function (p) {
+        var lay = pic.lay || (pic.parts.length > 1 ? 'two' : 'one');
+        var img = el('span', { class: 'sh-pic ' + lay, 'aria-hidden': 'true' }, pic.parts.map(function (p) {
           var tr = (p.flip ? 'scaleX(-1) ' : '') + (p.rot ? 'rotate(' + p.rot + 'deg)' : '');
           return el('span', { class: p.pos, style: tr ? { transform: tr } : null }, p.e);
         }));
+        return pic.cover ? el('span', { class: 'sh-frame' }, [img, el('span', { class: 'sh-cover ' + pic.cover })]) : img;
       }
+      function silClass(pic) { return pic.sil === 'outline' ? ' is-outline' : pic.sil ? ' is-sil sh-sil' : ''; }
 
       function nextQ() {
         if (q >= Q) { ctx.finish({ correct: good, total: Q, note: 'מצאתם ' + good + ' מתוך ' + Q + ' התאמות' }); return; }
@@ -176,13 +225,17 @@
         var it = makeQuestion(sp, ctx);
         root.innerHTML = '';
         var rev = !it.options[0].sil;
-        root.appendChild(el('div', { class: 'sh-show' + (it.show.sil ? ' is-sil sh-sil' : '') }, picEl(it.show)));
-        ctx.setStatus(rev ? 'של מי הצל הזה?' : it.show.parts.length > 1 ? 'איזה צל מתאים לשניהם יחד?' : 'איזה צל מתאים לציור?');
+        root.appendChild(el('div', { class: 'sh-show' + silClass(it.show) }, picEl(it.show)));
+        var ASK = {
+          outline: 'של מי קו המתאר הזה?', partial: 'של מי הצל? חלק ממנו מוסתר', overlap: 'שני צללים זה על זה. של מי הם?',
+          outlineOpt: 'איזה קו מתאר מתאים לציור?', partialOpt: 'איזה צל מתאים? בכל צל חלק מוסתר'
+        };
+        ctx.setStatus(ASK[it.kind] || (rev ? 'של מי הצל הזה?' : it.show.parts.length > 1 ? 'איזה צל מתאים לשניהם יחד?' : 'איזה צל מתאים לציור?'));
         var box = el('div', { class: 'sh-opts' });
         box._ans = it.answer; // read by automated tests only
         var answered = false;
         it.options.forEach(function (o, i) {
-          var b = el('button', { class: 'sh-opt' + (o.sil ? ' is-sil sh-sil' : ''), type: 'button', 'aria-label': 'אפשרות ' + (i + 1), onclick: function () { answer(i, b); } }, picEl(o));
+          var b = el('button', { class: 'sh-opt' + silClass(o), type: 'button', 'aria-label': 'אפשרות ' + (i + 1), onclick: function () { answer(i, b); } }, picEl(o));
           box.appendChild(b);
         });
         root.appendChild(box);
@@ -196,7 +249,10 @@
           if (ok) good++;
           [].forEach.call(box.children, function (x, j) { x.disabled = true; if (j === it.answer) x.classList.add('is-correct'); });
           if (!ok) b.classList.add('is-wrong');
-          var msg = ok ? undefined : it.kind === 'mirror' || it.kind === 'turn' || it.kind === 'reverseFlip' || it.kind === 'comboFlip' ? 'הנכון מסומן בירוק. שימו לב לאיזה צד הוא פונה' : 'הנכון מסומן בירוק';
+          var msg = ok ? undefined : it.kind === 'partial' || it.kind === 'partialOpt' ? 'הנכון מסומן בירוק. הסתכלו על החלק שרואים'
+            : it.kind === 'overlap' ? 'הנכון מסומן בירוק. חפשו בצל את הצורה של כל אחד'
+            : it.kind === 'outline' || it.kind === 'outlineOpt' ? 'הנכון מסומן בירוק. עקבו אחרי הקו מסביב'
+            : it.kind === 'mirror' || it.kind === 'turn' || it.kind === 'reverseFlip' || it.kind === 'comboFlip' ? 'הנכון מסומן בירוק. שימו לב לאיזה צד הוא פונה' : 'הנכון מסומן בירוק';
           ctx.feedback(ok, msg).then(function () {
             if (ok) { nextQ(); return; }
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextQ(); } }, q >= Q ? 'לסיכום' : 'לשאלה הבאה');
