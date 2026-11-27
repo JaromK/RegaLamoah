@@ -230,7 +230,7 @@
     '.wl-clues.is-many{gap:.12rem;}.wl-clues.is-many .wl-clue{font-size:1.02rem;min-height:1.55rem;padding-block:.08rem;}',
     '.wl-clue.is-done .ck{background:var(--good);border-color:var(--good);color:var(--surface);}',
     '.wl-clue.is-tip{opacity:1;background:var(--c-purple-soft);box-shadow:inset 0 0 0 3px var(--c-purple);}',
-    '.wl-acts .btn{min-height:3.2rem;padding-inline:1rem;}',
+    '.wl-acts{flex-wrap:nowrap;gap:.3rem;width:100%;max-width:28rem;}.wl-acts .btn{min-height:3.2rem;padding-inline:.5rem;font-size:.95rem;white-space:nowrap;flex:1 1 auto;min-width:0;}',
     /* the chooser opens over the bottom of the screen */
     '.wl-sheet{position:fixed;inset-inline:0;bottom:0;z-index:15;background:var(--surface);border-top:3px solid var(--c-blue);box-shadow:var(--shadow);',
     'padding:.8rem .8rem 1rem;display:flex;flex-direction:column;gap:.6rem;align-items:center;}',
@@ -289,6 +289,7 @@
         var at = [];   // at[x] = house of entity x, or -1
         for (var x = 0; x < E; x++) at.push(-1);
         var wrong = 0, hints = 0, done = false, marks = {}, showWrong = false, open = null;
+        var past = []; // earlier states of `at`, for "בטלו"
 
         var street = el('div', { class: 'wl-street', style: { '--n': n } });
         street._wl = { sol: P.sol, n: n, clues: P.clues.length }; // read by automated tests only
@@ -301,10 +302,12 @@
         var checkBtn = el('button', { class: 'btn btn-primary', type: 'button', onclick: check }, 'בדיקה');
         var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
         var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'פתרון');
-        var actions = el('div', { class: 'g-actions wl-acts' }, [checkBtn, hintBtn, showBtn]);
+        var undoBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: undo }, '↶ בטלו');
+        var clearBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: clearAll }, 'נקו הכול');
+        var actions = el('div', { class: 'g-actions wl-acts' }, [checkBtn, hintBtn, undoBtn, clearBtn, showBtn]);
         var lg = legend(P);
         // inside the list: no extra gap on the page; each explanation stays on one line
-        if (lg.length) clueList.appendChild(el('li', { class: 'wl-legend' }, lg.map(function (t, i) { return el('span', null, (i ? ' · ' : '') + t); })));
+        if (lg.length) clueList.appendChild(el('li', { class: 'wl-legend' }, [].concat.apply([], lg.map(function (t, i) { return (i ? [' · '] : []).concat([el('span', null, t)]); }))));
         [street, clueList, actions].forEach(function (nd) { root.appendChild(nd); });
         var baseStatus = 'לחצו על בית ובחרו מי גר שם';
         ctx.setStatus(baseStatus);
@@ -339,6 +342,8 @@
             b.firstChild.textContent = marks[i] ? '✓' : '';
           });
           checkBtn.disabled = hintBtn.disabled = showBtn.disabled = done;
+          undoBtn.disabled = done || !past.length;
+          clearBtn.disabled = done || at.every(function (v) { return v < 0; });
         }
         function closeSheet() { if (sheet) sheet.remove(); sheet = null; open = null; }
         function openSheet(h, pets) {
@@ -363,8 +368,25 @@
           root.appendChild(sheet);
           render();
         }
+        // "בטלו" goes back one step; "נקו הכול" empties every house (and can be undone too)
+        function undo() {
+          if (done || !past.length) return;
+          ctx.sound('tap'); closeSheet();
+          at = past.pop(); showWrong = false;
+          ctx.setStatus('הצעד האחרון בוטל');
+          render();
+        }
+        function clearAll() {
+          if (done || at.every(function (v) { return v < 0; })) return;
+          ctx.sound('tap'); closeSheet();
+          past.push(at.slice());
+          at = at.map(function () { return -1; }); showWrong = false;
+          ctx.setStatus('כל הבתים ריקים. אפשר להתחיל מחדש (או "בטלו")');
+          render();
+        }
         function place(x, h) {
           ctx.sound('tap');
+          past.push(at.slice());
           if (tipFocus) { tipFocus = null; showTipClue(-1); }
           var pets = open ? open.pets : x >= n;
           var old = who(h, pets);
