@@ -60,7 +60,8 @@
     var base = {
       version: STATE_VERSION, name: '', welcomed: false,
       levels: {}, best: {}, trophies: {}, history: {}, prefs: { sound: true, bigText: false, timer: false },
-      recent: {} // names, animals and stories each game used lately (ctx.fresh), so the next rounds bring others
+      recent: {}, // names, animals and stories each game used lately (ctx.fresh), so the next rounds bring others
+      moved: { 'shadow-match-10': true } // level renumberings already applied (a new player needs none)
     };
     try {
       var raw = window.localStorage.getItem(STORE_KEY);
@@ -73,6 +74,13 @@
         base.trophies = parsed.trophies || {};
         base.history = parsed.history || {};
         base.recent = parsed.recent && typeof parsed.recent === 'object' ? parsed.recent : {};
+        // one-time moves of saved levels when a game's levels were renumbered
+        base.moved = parsed.moved && typeof parsed.moved === 'object' ? parsed.moved : {};
+        if (!base.moved['shadow-match-10']) { // "איזה צל?": old level 11 is the new level 1
+          if (base.levels['shadow-match']) base.levels['shadow-match'] = Math.max(1, base.levels['shadow-match'] - 10);
+          if (base.best['shadow-match']) base.best['shadow-match'] = Math.max(1, base.best['shadow-match'] - 10);
+          base.moved['shadow-match-10'] = true;
+        }
         base.prefs = Object.assign(base.prefs, parsed.prefs || {});
         if ((parsed.version || 1) < 2) {
           // v1 used levels 1–10; the same difficulty now sits on a 1–20 scale

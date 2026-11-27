@@ -28,12 +28,18 @@
   var ALL = [].concat.apply([], GROUPS);
 
   /* Level 1–50: which kinds of question, and how many wrong shadows come from the same group (look-alikes). */
+  /* The first ten levels were too easy (user request): level 1 is what used to be level 11, and so on up to 40;
+     41–50 are new and harder (a partly hidden shadow or an outline, with the object's own mirror image among the
+     answers). Players' saved levels moved down by 10 once (core.js), so nobody jumps ten levels. */
   function spec(level) {
-    var L = level;
-    if (L <= 6) return { kinds: ['basic'], same: 0 };
-    if (L <= 10) return { kinds: ['basic'], same: 1 };
-    // from level 11 the harder kinds join (user request): an outline only (11), a shadow partly covered (15),
-    // two shadows on top of each other (21)
+    var L = Math.max(1, Math.min(50, level));
+    if (L > 40) return L <= 45
+      ? { kinds: ['comboFlip', 'overlap', 'partialFlip', 'outlineFlip', 'reverseFlip'], same: 3 }
+      : { kinds: ['partialFlip', 'outlineFlip', 'overlap', 'comboFlip', 'partial'], same: 3 };
+    return oldSpec(L + 10);
+  }
+  function oldSpec(L) {
+    // an outline only (11), a shadow partly covered (15), two shadows on top of each other (21)
     if (L <= 14) return { kinds: ['basic', 'outline'], same: 2 };
     if (L <= 20) return { kinds: ['basic', 'outline', 'partial'], same: 3 };
     if (L <= 26) return { kinds: ['mirror', 'basic', 'partial', 'overlap', 'outline'], same: 3 };
@@ -73,6 +79,17 @@
       show = { parts: [part(it)] };
       ans = mk(it);
       opts = [ans].concat(others(it, rnd, 3, true).map(mk));
+      return done(kind, show, ans, opts, rnd);
+    }
+    if (kind === 'outlineFlip' || kind === 'partialFlip') {
+      // the object is shown; the answers are outlines (or partly hidden shadows) and one of them is its mirror image
+      it = rnd.pick(ALL.filter(function (x) { return x.m && GROUPS[x.g].filter(function (y) { return y.m; }).length >= 3; }));
+      var side2 = rnd.pick(['l', 'r', 't', 'b']), mk2 = function (x, flip) {
+        return kind === 'outlineFlip' ? { parts: [part(x, { flip: flip })], sil: 'outline' } : { parts: [part(x, { flip: flip })], sil: true, cover: side2 };
+      };
+      show = { parts: [part(it)] };
+      ans = mk2(it, false);
+      opts = [ans, mk2(it, true)].concat(others(it, rnd, 2, true, true).map(function (d) { return mk2(d, rnd.randInt(0, 1) === 1); }));
       return done(kind, show, ans, opts, rnd);
     }
     if (kind === 'overlap') {
@@ -229,7 +246,8 @@
         root.appendChild(el('div', { class: 'sh-show' + silClass(it.show) }, picEl(it.show)));
         var ASK = {
           outline: 'של מי קו המתאר הזה?', partial: 'של מי הצל? חלק ממנו מוסתר', overlap: 'שני צללים זה על זה. של מי הם?',
-          outlineOpt: 'איזה קו מתאר מתאים לציור?', partialOpt: 'איזה צל מתאים? בכל צל חלק מוסתר'
+          outlineOpt: 'איזה קו מתאר מתאים לציור?', partialOpt: 'איזה צל מתאים? בכל צל חלק מוסתר',
+          outlineFlip: 'איזה קו מתאר מתאים? שימו לב לאיזה צד הוא פונה', partialFlip: 'איזה צל מתאים? חלק מוסתר, ושימו לב לצד'
         };
         ctx.setStatus(ASK[it.kind] || (rev ? 'של מי הצל הזה?' : it.show.parts.length > 1 ? 'איזה צל מתאים לשניהם יחד?' : 'איזה צל מתאים לציור?'));
         var box = el('div', { class: 'sh-opts' });
@@ -252,6 +270,7 @@
           if (!ok) b.classList.add('is-wrong');
           var msg = ok ? undefined : it.kind === 'partial' || it.kind === 'partialOpt' ? 'הנכון מסומן בירוק. הסתכלו על החלק שרואים'
             : it.kind === 'overlap' ? 'הנכון מסומן בירוק. חפשו בצל את הצורה של כל אחד'
+            : it.kind === 'outlineFlip' || it.kind === 'partialFlip' ? 'הנכון מסומן בירוק. שימו לב לאיזה צד הציור פונה'
             : it.kind === 'outline' || it.kind === 'outlineOpt' ? 'הנכון מסומן בירוק. עקבו אחרי הקו מסביב'
             : it.kind === 'mirror' || it.kind === 'turn' || it.kind === 'reverseFlip' || it.kind === 'comboFlip' ? 'הנכון מסומן בירוק. שימו לב לאיזה צד הוא פונה' : 'הנכון מסומן בירוק';
           ctx.feedback(ok, msg).then(function () {
