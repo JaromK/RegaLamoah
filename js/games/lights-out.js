@@ -1,12 +1,12 @@
 /* כבו את האורות — a grid of lamps; pressing a lamp switches it and its neighbours. Turn all the lamps off
-   (later: all on, or neighbours on the diagonals). Logic, planning. Every board is made by pressing lamps of a
+   (later: neighbours on the diagonals). Logic, planning. Every board is made by pressing lamps of a
    solved board, so it can always be solved; the fewest presses is found by solving the equations over GF(2).
    Untimed. */
 (function () {
   'use strict';
 
   /* Level 1–50: R × C lamps, lo…hi = fewest presses needed, shape 'plus' (up, down, right, left) or 'x'
-     (the four diagonals), on = the goal is all lamps on, slack = extra presses still counted as success. */
+     (the four diagonals), on = the goal is all lamps on (no longer used: always off), slack = extra presses still counted as success. */
   function spec(level) {
     var L = Math.max(1, Math.min(50, level));
     var s;
@@ -20,7 +20,7 @@
     else if (L <= 44) s = { R: 4, C: 4, lo: 3, hi: 6 };
     else s = { R: 5, C: 5, lo: 4, hi: 8 };
     s.shape = L >= 41 ? 'x' : 'plus';
-    s.on = (L >= 33 && L <= 40 && L % 2 === 1) || (L >= 45 && L % 2 === 0);
+    s.on = false; // the goal is always the same: all lamps off
     s.slack = L <= 10 ? 3 : 2;
     return s;
   }
@@ -131,7 +131,7 @@
     instructions: [
       'לחיצה על מנורה מדליקה או מכבה אותה, וגם את המנורות שצמודות אליה: למעלה, למטה, ימין ושמאל.',
       'המטרה: לכבות את כל האורות, בכמה שפחות לחיצות.',
-      'בהמשך יש לוחות שבהם צריך להדליק את כולן, או שהשכנות הן באלכסון. הכלל כתוב תמיד מעל הלוח.',
+      'בהמשך יש לוחות שבהם השכנות הן באלכסון. הכלל כתוב תמיד מעל הלוח.',
       'אין שעון. יש "בטלו", "התחלה מחדש" ו"רמז".'
     ],
     css: css,
@@ -213,11 +213,15 @@
         function check() {
           for (var i = 0; i < N; i++) if (cur[i] !== P.goal) return;
           done = true;
-          var ok = hist.length <= budget && hints <= 1;
+          var fewPresses = hist.length <= budget, ok = fewPresses && hints <= 1;
           if (ok) good++;
           draw();
-          ctx.setStatus(ok ? (P.goal ? 'מצוין! כל האורות דולקים' : 'מצוין! כל האורות כבויים') : hints > 1 ? 'פתרתם, בעזרת רמזים' : 'פתרתם, אבל אפשר בפחות לחיצות');
-          ctx.feedback(ok, ok ? (hist.length <= P.opt ? 'במספר הלחיצות הקטן ביותר!' : 'כל הכבוד!') : 'אפשר היה ב-' + P.opt + ' לחיצות').then(function () {
+          // the message says the real reason: too many presses, or too many hints (never "could be done in N" when it was)
+          var msg = ok ? (hist.length <= P.opt ? 'במספר הלחיצות הקטן ביותר!' : 'כל הכבוד!')
+            : !fewPresses ? 'פתרתם ב-' + hist.length + ' לחיצות. אפשר היה ב-' + P.opt
+            : 'פתרתם ב-' + hist.length + ' לחיצות, אבל בעזרת ' + hints + ' רמזים';
+          ctx.setStatus(ok ? (P.goal ? 'מצוין! כל האורות דולקים' : 'מצוין! כל האורות כבויים') : msg);
+          ctx.feedback(ok, msg).then(function () {
             actions.innerHTML = '';
             { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
