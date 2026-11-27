@@ -135,8 +135,9 @@
         // a friend's "בום" is explained too (unless the numbers are hidden on this level)
         if (!s.hide) ctx.setStatus(say(v, s) === String(v) ? 'החברים סופרים…' : seats[i].f.name + ': ' + why(v, s));
         ctx.sound('note', 440 + i * 60);
-        // a friend's בום stays a little longer, so its reason can be read
-        ctx.wait(!s.hide && say(v, s) !== String(v) ? 2400 : 1100).then(function () {
+        // a friend's בום: the game waits on its reason until the player taps, so there is time to read it
+        var explained = !s.hide && say(v, s) !== String(v);
+        (explained ? ctx.wait(500).then(function () { return ctx.next('הבנתי, ממשיכים'); }) : ctx.wait(1100)).then(function () {
           if (s.hide) setBubble(seats[i], '');
           friendsSpeak(i + 1);
         });
@@ -191,7 +192,8 @@
           ctx.setStatus((ok ? 'נכון! ' : 'לא בדיוק. ') + text);
           // the toast is short; the full reason stays in the status line. After a mistake the game waits for a tap.
           ctx.feedback(ok, ok ? undefined : 'אומרים: ' + right).then(function () {
-            return ok ? ctx.wait(right === String(v) ? 300 : 1500) : ctx.next();
+            // a right בום keeps its reason on screen a while before going on (a plain number moves on quickly)
+            return ok ? ctx.wait(right === String(v) ? 300 : 3500) : ctx.next();
           }).then(function () {
             delete choices.dataset.done;
             seats.forEach(function (st) { setBubble(st, ''); });
