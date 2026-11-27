@@ -278,7 +278,8 @@
         var hintBtn = el('button', { class: 'btn btn-secondary btn-sm', type: 'button', onclick: hint }, 'רמז');
         var showBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: reveal }, 'פתרון');
         var undoBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: undo }, '↶ בטלו');
-        var actions = el('div', { class: 'g-actions kk-actions' }, [undoBtn, noteBtn, hintBtn, showBtn]);
+        var clearBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', 'aria-label': 'נקו הכול', onclick: clearAll }, 'נקו');
+        var actions = el('div', { class: 'g-actions kk-actions' }, [undoBtn, clearBtn, noteBtn, hintBtn, showBtn]);
         var tip = el('p', { class: 'kk-tip', 'aria-live': 'polite', hidden: true });
         root.appendChild(grid); root.appendChild(tip); root.appendChild(pad); root.appendChild(actions);
         ctx.setStatus('בחרו משבצת, ואז מספר');
@@ -318,6 +319,7 @@
           [].forEach.call(pad.children, function (b) { b.disabled = done || sel < 0; });
           hintBtn.disabled = showBtn.disabled = done;
           undoBtn.disabled = done || !undoStack.length;
+          clearBtn.disabled = done || !P.cells.some(function (k) { return (val[k] && !P.fixed[k]) || notes[k]; });
         }
         function pick(k) { if (done || P.fixed[k]) return; ctx.sound('tap'); sel = k; render(); }
         function put(v) {
@@ -336,6 +338,16 @@
           }
           // the same cell stays picked: the player chooses where to go next
           render(); check();
+        }
+        // every number and small number the player wrote goes; the given numbers stay (can be undone)
+        function clearAll() {
+          if (done) return;
+          ctx.sound('tap');
+          undoStack.push({ val: Object.assign({}, val), notes: JSON.parse(JSON.stringify(notes)), sel: sel });
+          val = Object.assign({}, P.fixed); notes = {};
+          focus = null; tip.hidden = true;
+          ctx.setStatus('הלוח נוקה. אפשר להתחיל מחדש (או "בטלו")');
+          render();
         }
         function undo() {
           if (done || !undoStack.length) return;
