@@ -1038,8 +1038,27 @@
     // "play again" uses the saved level, so a level picked in settings after the round counts
     var againBtn = el('button', { class: 'btn ' + (actions.length ? 'btn-secondary' : 'btn-primary btn-lg'), type: 'button',
       onclick: function () { startGame(game, daily, getLevel(game.id)); } }, 'לשחק שוב (רמה ' + newLevel + ')');
+    // the player may pick the next level here: − / + change the saved level, "play again" uses it
+    var pickNum = el('span', { class: 'result-pick-num', 'aria-live': 'polite' });
+    var minusBtn = el('button', { class: 'btn btn-secondary result-pick-btn', type: 'button', 'aria-label': 'רמה אחת פחות', onclick: function () { stepLevel(-1); } }, '−');
+    var plusBtn = el('button', { class: 'btn btn-secondary result-pick-btn', type: 'button', 'aria-label': 'רמה אחת יותר', onclick: function () { stepLevel(1); } }, '+');
+    function showPick() {
+      var lv = getLevel(game.id);
+      pickNum.textContent = String(lv);
+      minusBtn.disabled = lv <= BG.MIN_LEVEL; plusBtn.disabled = lv >= top;
+      againBtn.textContent = 'לשחק שוב (רמה ' + lv + ')';
+    }
+    function stepLevel(d) {
+      var lv = Math.max(BG.MIN_LEVEL, Math.min(top, getLevel(game.id) + d));
+      BG.state.levels[game.id] = lv; BG.save();
+      showPick();
+    }
+    actions.push(el('div', { class: 'result-pick', role: 'group', 'aria-label': 'בחירת הרמה הבאה' }, [
+      el('span', { class: 'result-pick-label' }, 'הרמה הבאה:'), plusBtn, pickNum, minusBtn
+    ]));
     actions.push(againBtn);
-    refreshScreen = function () { againBtn.textContent = 'לשחק שוב (רמה ' + getLevel(game.id) + ')'; };
+    showPick();
+    refreshScreen = showPick;
     actions.push(el('button', { class: 'btn btn-quiet', type: 'button', onclick: renderHome }, 'לדף הבית'));
 
     app.appendChild(el('section', { class: 'result' }, [
