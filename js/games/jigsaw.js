@@ -29,7 +29,20 @@
     '.jg-done .jg-p.is-home::after{box-shadow:none;}',
     '.jg-peek{width:5.5rem;height:5.5rem;border-radius:var(--radius-sm);border:2px solid var(--line);background-size:100% 100%;flex:none;}',
     '.jg-top{display:flex;align-items:center;gap:.7rem;}',
-    '.jg-top p{margin:0;font-weight:700;max-width:14rem;}'
+    '.jg-top p{margin:0;font-weight:700;max-width:14rem;}',
+    '.jg-top{order:-1;}', // on a phone the picture stays above the board
+    '.jg-peek-now{width:9rem;height:9rem;}',
+    /* a computer: the picture, big, right beside the puzzle */
+    '@media (min-width:900px){',
+    '.app:has(.jg-wrap){max-width:72rem;}',
+    '.jg-wrap{flex-direction:row;justify-content:center;align-items:center;gap:2.5rem;}',
+    '.jg-wrap .jg-board{width:min(calc(100svh - 12.5rem),38rem);flex:none;}',
+    '.jg-side{display:flex;flex-direction:column;align-items:center;gap:1rem;width:min(24rem,40%);}',
+    '.jg-side .jg-top{flex-direction:column;}',
+    '.jg-side .jg-peek{width:min(20rem,calc(100svh - 22rem));height:auto;aspect-ratio:1;}',
+    '.jg-side .jg-peek-now{width:min(20rem,calc(100svh - 22rem));height:auto;}',
+    '.jg-side .jg-top p{max-width:none;text-align:center;font-size:1.15rem;}',
+    '}'
   ].join('');
 
   BrainGames.register({
@@ -152,10 +165,14 @@
         var peekBtn = el('button', { class: 'btn btn-quiet', type: 'button', hidden: sp.preview, onclick: peek }, 'הצצה בתמונה');
         var hintBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: hint }, 'רמז');
         var actions = el('div', { class: 'g-actions' }, [turnBtn, hintBtn, peekBtn]);
+        // the board first; the picture and the buttons in a side part (beside the board on a computer, above/below on a phone)
         var wrap = el('div', { class: 'jg-wrap' }, [
-          sp.preview ? el('div', { class: 'jg-top' }, [el('div', { class: 'jg-peek', style: { backgroundImage: 'url(' + photo.src + ')' }, 'aria-hidden': 'true' }),
-            el('p', null, 'כך התמונה צריכה להיראות: ' + photo.w)]) : null,
-          board, actions
+          board,
+          el('div', { class: 'g-side jg-side' }, [
+            sp.preview ? el('div', { class: 'jg-top' }, [el('div', { class: 'jg-peek', style: { backgroundImage: 'url(' + photo.src + ')' }, 'aria-hidden': 'true' }),
+              el('p', null, 'כך התמונה צריכה להיראות: ' + photo.w)]) : null,
+            actions
+          ])
         ]);
         root.appendChild(wrap);
         ctx.setStatus('גררו חלק למקומו, או לחצו על שני חלקים כדי להחליף');
@@ -236,8 +253,10 @@
         function peek() {
           if (done) return;
           helps++;
-          var img = el('div', { class: 'jg-peek', style: { backgroundImage: 'url(' + photo.src + ')', width: '9rem', height: '9rem' } });
-          root.insertBefore(img, wrap);
+          // shown in the side part: beside the puzzle on a computer, above it on a phone
+          var img = el('div', { class: 'jg-peek jg-peek-now', style: { backgroundImage: 'url(' + photo.src + ')', order: '-1' } });
+          var side = wrap.querySelector('.jg-side');
+          side.insertBefore(img, side.firstChild);
           ctx.wait(2500).then(function () { img.remove(); });
         }
         function check() {
