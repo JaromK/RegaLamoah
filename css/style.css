@@ -1,19 +1,19 @@
 /* רגע למוח
    Layout: one calm column (max ~46rem), big type, generous tap targets.
-   Palette: a quiet sea-glass ground, deep ink, one deep-teal accent and a warm
-   sunflower highlight. Each skill has its own hue for icons and chips only. */
+   Palette: a warm cream ground, deep warm ink, one terracotta accent and a sunflower
+   highlight (inviting, not clinical). Each skill has its own hue for icons, chips and tiles. */
 
 :root {
-  --bg: #edf2f0;
+  --bg: #fbf5ec;
   --surface: #ffffff;
-  --surface-2: #e2eae7;
-  --ink: #17282b;
-  --ink-soft: #4a5d60;
-  --line: #c9d6d2;
-  --accent: #0d6b66;
-  --accent-hover: #0a5753;
+  --surface-2: #f5ecdf;
+  --ink: #2b2420;
+  --ink-soft: #6a5b52;
+  --line: #e8d9c5;
+  --accent: #c2410c;
+  --accent-hover: #9a3412;
   --accent-ink: #ffffff;
-  --accent-soft: #d3ebe8;
+  --accent-soft: #fde3d3;
   --sun: #f2b33d;
   --sun-soft: #fbedd0;
   --good: #1f7a3a;
@@ -56,8 +56,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #101a1c; --surface: #18262a; --surface-2: #213236; --ink: #e8f0ee; --ink-soft: #a9bbb8;
-    --line: #34484c; --accent: #4fc0b6; --accent-hover: #6fd2c9; --accent-ink: #0b1a1b; --accent-soft: #173d3b;
+    --bg: #1d1714; --surface: #2a211c; --surface-2: #352a23; --ink: #f6ede6; --ink-soft: #c9b8ab;
+    --line: #4a3b31; --accent: #ff9b66; --accent-hover: #ffb48a; --accent-ink: #2b1408; --accent-soft: #45261a;
     --sun: #f2be5c; --sun-soft: #3d3220; --good: #6fd08a; --good-soft: #193a24; --bad: #f08a72; --bad-soft: #43231c;
     --focus: #f2be5c; --silver: #c4cfd6; --silver-soft: #2a3438;
     --platinum: #a9c6e2; --platinum-soft: #22303d; --diamond: #5fd8f2; --diamond-soft: #133740;
@@ -71,8 +71,8 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg: #101a1c; --surface: #18262a; --surface-2: #213236; --ink: #e8f0ee; --ink-soft: #a9bbb8;
-  --line: #34484c; --accent: #4fc0b6; --accent-hover: #6fd2c9; --accent-ink: #0b1a1b; --accent-soft: #173d3b;
+  --bg: #1d1714; --surface: #2a211c; --surface-2: #352a23; --ink: #f6ede6; --ink-soft: #c9b8ab;
+  --line: #4a3b31; --accent: #ff9b66; --accent-hover: #ffb48a; --accent-ink: #2b1408; --accent-soft: #45261a;
   --sun: #f2be5c; --sun-soft: #3d3220; --good: #6fd08a; --good-soft: #193a24; --bad: #f08a72; --bad-soft: #43231c;
   --focus: #f2be5c; --silver: #c4cfd6; --silver-soft: #2a3438;
   --platinum: #a9c6e2; --platinum-soft: #22303d; --diamond: #5fd8f2; --diamond-soft: #133740;
@@ -620,3 +620,42 @@ button.path-dot:hover { background: var(--accent-soft); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ---------- home: one thing to do (the daily practice), one other way in (choose a game) ---------- */
+.on-home .hero { background: linear-gradient(160deg, #fff4e2 0%, #ffe3cf 100%); border-radius: 22px; padding: 1.1rem 1.1rem 1.2rem;
+  box-shadow: var(--shadow); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .on-home .hero { background: linear-gradient(160deg, #3a2a20, #2c2019); } }
+:root[data-theme="dark"] .on-home .hero { background: linear-gradient(160deg, #3a2a20, #2c2019); }
+.on-home .hero-go { max-width: none; }
+.today-games { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .45rem; }
+.today-game { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; gap: .25rem; padding: .45rem .2rem;
+  border-radius: 14px; border: 2px solid transparent; background: rgba(255, 255, 255, .7); color: var(--ink); font: inherit; cursor: pointer; }
+.today-game .skill-icon { width: 2.6rem; height: 2.6rem; font-size: 1.45rem; }
+.today-name { font-size: .85rem; font-weight: 800; line-height: 1.15; text-align: center; }
+.today-game.is-done { opacity: .75; }
+.today-check { position: absolute; top: .15rem; inset-inline-end: .2rem; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--good);
+  color: #fff; font-weight: 900; font-size: .85rem; display: grid; place-items: center; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .today-game { background: rgba(0, 0, 0, .2); } }
+:root[data-theme="dark"] .today-game { background: rgba(0, 0, 0, .2); }
+.choose-btn { width: 100%; display: flex; align-items: center; gap: .9rem; text-align: start; padding: .8rem 1.2rem; min-height: 4.6rem;
+  background: var(--surface); color: var(--ink); border: 3px solid var(--sun); border-radius: 22px; box-shadow: var(--shadow); }
+.choose-btn:hover { border-color: var(--accent); }
+.choose-icon { flex: none; width: 2.8rem; height: 2.8rem; border-radius: 50%; background: var(--sun-soft); display: grid; place-items: center; font-size: 1.5rem; }
+.choose-btn .hero-go-sub { color: var(--ink-soft); opacity: 1; }
+.home-streak { margin: 0; text-align: center; font-weight: 800; color: var(--ink-soft); font-size: 1.05rem; }
+.on-home .thought { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; }
+.tips-summary { cursor: pointer; font-weight: 800; font-size: 1.15rem; list-style: none; }
+.tips-summary::-webkit-details-marker { display: none; }
+details.tips[open] .tips-summary { margin-bottom: .6rem; }
+
+/* ---------- choose a game ---------- */
+.games-head { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; }
+.games-title { display: flex; align-items: center; gap: .6rem; font-size: clamp(1.8rem, 5vw, 2.4rem); font-weight: 900; }
+.cat-tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
+@media (min-width: 640px) { .cat-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.cat-tile { width: 100%; min-height: 8rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem;
+  border-radius: 20px; border: 3px solid currentColor; font: inherit; cursor: pointer; padding: .8rem .5rem; box-shadow: var(--shadow); }
+.cat-tile:hover { transform: translateY(-2px); }
+.cat-emoji { font-size: 2.6rem; line-height: 1; }
+.cat-name { font-size: 1.2rem; font-weight: 900; color: var(--ink); text-align: center; line-height: 1.2; }
+.cat-count { font-size: .95rem; font-weight: 700; color: var(--ink-soft); }

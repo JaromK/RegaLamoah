@@ -44,7 +44,7 @@
   function clear() {
     U.stopSpeaking();
     screenGame = null;
-    document.body.classList.remove('is-playing', 'on-home', 'on-intro');
+    document.body.classList.remove('is-playing', 'on-home', 'on-intro', 'on-games');
     app.innerHTML = '';
     window.scrollTo(0, 0);
   }
@@ -202,12 +202,17 @@
     if (depth > n) { var d = depth - n; depth = n; skipPop++; history.go(-d); return; }
     while (depth < n) { try { history.pushState({ rl: depth + 1 }, ''); depth++; } catch (e) { return; } }
   }
+  /* Screens below home: home (0) → choose a game (1) → one category (2); a game's instructions are one deeper than
+     the screen it was opened from (origin), the game two more. Back walks up the same way. */
+  var origin = { depth: 0, back: function () { renderHome(); } }; // where the instructions were opened from
+  var screenBack = null; // what back does on the screen on show (outside a game)
   window.addEventListener('popstate', function () {
     if (skipPop) { skipPop--; setDepth(want); return; }
     depth = Math.max(0, depth - 1);
     var dialog = document.querySelector('dialog.settings[open]');
     if (dialog && dialogEntry) { dialogEntry = 0; dialog.__byBack = true; dialog.close(); return; }
     if (current && current.active && current.onBack) { current.onBack(depth); return; }
+    if (screenBack) { screenBack(); return; }
     if (!document.body.classList.contains('on-home')) renderHome();
   });
 
@@ -393,31 +398,6 @@
   }
 
   /* ---------- home ---------- */
-  function weekStrip() {
-    var today = new Date();
-    var start = new Date(today);
-    start.setDate(today.getDate() - today.getDay()); // Sunday
-    var days = [];
-    for (var i = 0; i < 7; i++) {
-      var d = new Date(start); d.setDate(start.getDate() + i);
-      var key = U.dateKey(d);
-      var done = !!BG.state.history[key];
-      var isToday = key === U.dateKey(today);
-      var future = d > today && !isToday;
-      days.push(el('li', {
-        class: 'week-day' + (done ? ' is-done' : '') + (isToday ? ' is-today' : '') + (future ? ' is-future' : '')
-      }, [
-        el('span', { class: 'week-name' }, WEEKDAYS[i]),
-        el('span', { class: 'week-dot', 'aria-hidden': 'true' }, done ? '✓' : String(d.getDate())),
-        el('span', { class: 'sr-only' }, done ? 'התאמנתם' : 'לא התאמנתם')
-      ]));
-    }
-    return el('div', { class: 'week' }, [
-      el('h2', { class: 'week-title' }, 'השבוע שלי'),
-      el('ol', { class: 'week-days' }, days)
-    ]);
-  }
-
   /* One card in the "all games" list (also used by the search results). */
   /* Games that live in their own app: the card opens that site. */
   var LINKED_GAMES = [
@@ -557,6 +537,8 @@
     setDepth(0);
     clear();
     document.body.classList.add('on-home');
+    origin = { depth: 0, back: function () { renderHome(); } };
+    screenBack = null;
     refreshScreen = renderHome;
     var daily = BG.dailyGames();
     var done = todayRecord();
@@ -567,9 +549,9 @@
     var thoughtRng = U.makeRng(U.hashString('thought:' + U.dateKey()));
 
     var lead = doneCount === 0
-      ? 'האימון של היום מחכה לכם. מחר יחכו לכם משחקים אחרים.'
+      ? 'כמה דקות של משחק טוב למוח. מתחילים כאן:'
       : nextGame
-        ? 'כבר שיחקתם ' + doneCount + ' מתוך ' + daily.length + ' משחקים היום. נשארו עוד קצת.'
+        ? 'כבר שיחקתם ' + doneCount + ' מתוך ' + daily.length + ' משחקים היום. ממשיכים כאן:'
         : 'השלמתם את האימון של היום. כל הכבוד!';
 
     var hero = el('section', { class: 'hero' }, [
@@ -583,11 +565,11 @@
               el('span', { class: 'hero-go-text' }, [
                 el('span', { class: 'hero-go-main' }, doneCount === 0 ? 'לחצו כאן להתחיל את האימון של היום' : 'לחצו כאן להמשיך את האימון'),
                 el('span', { class: 'hero-go-sub' }, doneCount === 0
-                  ? daily.length + ' משחקים קצרים בזה אחר זה, כשלוש דקות כל אחד'
+                  ? daily.length + ' משחקים קצרים, אחד אחרי השני'
                   : 'המשחק הבא: ' + nextGame.name + ' (' + (doneCount + 1) + ' מתוך ' + daily.length + ')')
               ])
             ])
-          : el('div', { class: 'done-banner' }, 'נתראה מחר עם משחקים חדשים. בינתיים אפשר לשחק בחופשיות למטה.')
+          : el('div', { class: 'done-banner' }, 'נתראה מחר עם משחקים חדשים. בינתיים אפשר לבחור עוד משחק למטה.')
       ]),
       el('dl', { class: 'stats' }, [
         el('div', { class: 'stat' }, [el('dt', null, 'ימים ברצף'), el('dd', null, String(streak))]),
@@ -596,95 +578,122 @@
       ])
     ]);
 
-    var dailyList = el('ol', { class: 'daily-list' }, daily.map(function (g, i) {
+    // today's games as small pictures under the button (✓ when played); a tap opens that one
+    var today = el('ol', { class: 'today-games', 'aria-label': 'המשחקים של היום' }, daily.map(function (g, i) {
       var isDone = !!done[g.id];
-      return el('li', null, el('button', {
-        class: 'daily-item' + (isDone ? ' is-done' : ''), type: 'button',
-        onclick: function () { renderIntro(g, true); }
-      }, [
-        el('span', { class: 'daily-num', 'aria-hidden': 'true' }, isDone ? '✓' : String(i + 1)),
-        gameIcon(g),
-        el('span', { class: 'daily-text' }, [
-          el('span', { class: 'daily-name' }, g.name),
-          el('span', { class: 'daily-tag' }, g.tagline)
-        ]),
-        el('span', { class: 'daily-meta' }, [
-          skillChip(g.skill),
-          levelPill(getLevel(g.id)),
-          isDone ? el('span', { class: 'sr-only' }, 'הושלם') : null
-        ])
+      return el('li', null, el('button', { class: 'today-game' + (isDone ? ' is-done' : ''), type: 'button',
+        'aria-label': (i + 1) + '. ' + g.name + (isDone ? ' (שיחקתם)' : ''), onclick: function () { renderIntro(g, true); } }, [
+        gameIcon(g), el('span', { class: 'today-name' }, g.name), isDone ? el('span', { class: 'today-check', 'aria-hidden': 'true' }, '✓') : null
       ]));
     }));
+    hero.insertBefore(today, hero.querySelector('.stats'));
+    var statsEl = hero.querySelector('.stats');
+    if (statsEl) statsEl.remove();
 
-    var allSection = el('section', { class: 'section' }, [
-      el('h2', { class: 'section-title' }, 'כל המשחקים'),
-      el('p', { class: 'section-lead' }, 'רוצים לשחק עוד? בחרו כל משחק שתרצו. בכל משחק יש ' + BG.MAX_LEVEL + ' רמות או יותר.'),
-      el('div', { class: 'skill-groups' }, Object.keys(BG.SKILLS).map(function (skill) {
-        // every game in its own skill group; new games (isNew) come first there and carry a "חדש" label
-        var games = BG.all().filter(function (g) { return g.skill === skill; });
-        games = games.filter(function (g) { return g.isNew; }).concat(games.filter(function (g) { return !g.isNew; }));
-        if (!games.length) return null;
-        var links = LINKED_GAMES.filter(function (g) { return g.skill === skill; });
-        return el('div', { class: 'skill-group' }, [
-          el('h3', { class: 'skill-group-title' }, [skillIcon(skill), BG.SKILLS[skill].label]),
-          el('ul', { class: 'game-grid' }, links.map(linkCard).concat(games.map(gameCard)))
-        ]);
-      }))
+    // the other way in: choose a game yourself
+    var choose = el('section', { class: 'choose' }, [
+      el('button', { class: 'btn choose-btn', type: 'button', onclick: function () { renderGames(); } }, [
+        el('span', { class: 'choose-icon', 'aria-hidden': 'true' }, '🎮'),
+        el('span', { class: 'hero-go-text' }, [
+          el('span', { class: 'hero-go-main' }, 'או בחרו משחק בעצמכם'),
+          el('span', { class: 'hero-go-sub' }, BG.all().length + ' משחקים לפי נושאים: זיכרון, שפה, חשבון ועוד')
+        ])
+      ])
     ]);
 
     app.appendChild(hero);
-    app.appendChild(searchSection());
-    app.appendChild(el('section', { class: 'section' }, [
-      el('h2', { class: 'section-title' }, 'האימון של היום'),
-      dailyList
-    ]));
-    app.appendChild(el('div', { class: 'home-pair' }, [
-      weekStrip(),
-      el('aside', { class: 'thought' }, [
-        el('h2', { class: 'thought-title' }, 'מחשבה ליום'),
-        el('p', { class: 'thought-text' }, U.pick(DAILY_THOUGHTS, thoughtRng))
-      ])
-    ]));
-    // Best trophies first; each game shows its best trophy once.
-    var won = BG.all().filter(function (g) { return trophyKind(g.id); }).sort(function (a, b) {
-      return TROPHY_RANK[trophyKind(b.id)] - TROPHY_RANK[trophyKind(a.id)];
-    });
-    if (won.length) {
-      // how many games reached each trophy (a game with diamond also counts for the trophies below it)
-      var counts = BG.TROPHIES.slice().reverse().map(function (tr) {
-        var n = BG.all().filter(function (g) {
-          var k = trophyKind(g.id);
-          return k && TROPHY_RANK[k] >= TROPHY_RANK[tr.kind] && (tr.kind === 'gold' || BG.maxLevelOf(g.id) >= tr.level);
-        }).length;
-        return el('span', null, [el('span', { class: 'trophy-icon' + trophyClass(tr.kind), html: TROPHY_SVG }), tr.label + ': ' + n]);
-      });
-      var atTop = won.some(function (g) { return trophyKind(g.id) === trophyForLevel(g.id, BG.maxLevelOf(g.id)); });
-      app.appendChild(el('section', { class: 'section trophies' }, [
-        el('h2', { class: 'section-title' }, 'הגביעים שלי'),
-        el('p', { class: 'trophy-counts' }, counts),
-        el('ul', { class: 'trophy-list' }, won.map(function (g) {
-          var k = trophyKind(g.id);
-          return el('li', { class: 'trophy-item' + trophyClass(k) }, [
-            el('span', { class: 'trophy-icon' + trophyClass(k), html: TROPHY_SVG }),
-            el('span', null, g.name),
-            el('span', { class: 'trophy-kind' }, trophyInfo(k).label)
-          ]);
-        })),
-        atTop ? el('p', { class: 'trophy-call' }, 'רוצים עוד רמות? התקשרו לירון.') : null
+    app.appendChild(choose);
+    // a little progress, in one line
+    if (totalDays) {
+      app.appendChild(el('p', { class: 'home-streak' }, [
+        streak > 1 ? '🔥 ' + streak + ' ימים ברצף · ' : '',
+        totalDays === 1 ? '🌱 יום אימון אחד' : '🌱 ' + totalDays + ' ימי אימון',
+        won0() ? ' · 🏆 ' + (won0() === 1 ? 'גביע אחד' : won0() + ' גביעים') : ''
       ]));
     }
-    app.appendChild(allSection);
-    app.appendChild(el('section', { class: 'section tips' }, [
-      el('h2', { class: 'section-title' }, 'איך זה עובד'),
+    app.appendChild(el('aside', { class: 'thought' }, [
+      el('h2', { class: 'thought-title' }, '💭 מחשבה ליום'),
+      el('p', { class: 'thought-text' }, U.pick(DAILY_THOUGHTS, thoughtRng))
+    ]));
+    app.appendChild(el('details', { class: 'section tips' }, [
+      el('summary', { class: 'tips-summary' }, '❓ איך זה עובד?'),
       el('ul', { class: 'tips-list' }, [
+        el('li', null, [el('strong', null, 'כל יום אימון קצר. '), 'לחצו על הכפתור הגדול למעלה: ' + daily.length + ' משחקים קצרים, אחד אחרי השני. מחר יחכו משחקים אחרים.']),
         el('li', null, [el('strong', null, 'אין שעון. '), 'קחו את הזמן לחשוב. הדיוק חשוב יותר מהמהירות. מי שרוצה אתגר יכול להפעיל את השעון ב"הגדרות" למעלה.']),
-        el('li', null, [el('strong', null, 'גביעים לאלופים. '), 'מי שמנצח במשחק ברמה 20 מקבל גביע כסף, ברמה 30 גביע זהב, ברמה 40 גביע פלטינה וברמה 50 גביע יהלום.']),
-        el('li', null, [el('strong', null, BG.MAX_LEVEL + ' רמות בכל משחק, ובחלק מהמשחקים יותר. '), 'כשמצליחים עולים רמה, וכשקשה יורדים רמה. אפשר גם לבחור רמה בעצמכם ב"הגדרות".']),
-        el('li', null, [el('strong', null, 'קצת בכל יום. '), 'עשר דקות ביום עדיפות על שעה פעם בשבוע.'])
+        el('li', null, [el('strong', null, BG.MAX_LEVEL + ' רמות בכל משחק. '), 'כשמצליחים עולים רמה, וכשקשה יורדים רמה. אפשר גם לבחור רמה בעצמכם ב"הגדרות".']),
+        el('li', null, [el('strong', null, 'גביעים לאלופים. '), 'מי שמנצח במשחק ברמה 20 מקבל גביע כסף, ברמה 30 זהב, ברמה 40 פלטינה וברמה 50 יהלום.'])
       ]),
       el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { openSettings(); } },
         'הגדרות: שם, טקסט, צלילים, שעון ורמות')
     ]));
+  }
+  function won0() { return BG.all().filter(function (g) { return trophyKind(g.id); }).length; }
+
+  /* ---------- choose a game: search, the categories, then the games of one category ---------- */
+  function renderGames(skill) {
+    endCurrent();
+    clear();
+    document.body.classList.add('on-games');
+    setDepth(skill ? 2 : 1);
+    origin = { depth: skill ? 2 : 1, back: function () { renderGames(skill); } };
+    screenBack = skill ? function () { renderGames(); } : function () { renderHome(); };
+    refreshScreen = function () { renderGames(skill); };
+    var backBtn = el('button', { class: 'btn btn-quiet btn-sm games-back', type: 'button', onclick: function () { history.back(); } },
+      skill ? '→ לכל הנושאים' : '→ לדף הבית');
+    if (!skill) {
+      app.appendChild(el('section', { class: 'games-head' }, [el('h1', { class: 'games-title' }, 'בחרו משחק')])); // the top bar has the way home
+      app.appendChild(searchSection());
+      app.appendChild(el('section', { class: 'section' }, [
+        el('h2', { class: 'section-title' }, 'או בחרו נושא'),
+        el('ul', { class: 'cat-tiles' }, Object.keys(BG.SKILLS).map(function (sk) {
+          var n = BG.all().filter(function (g) { return g.skill === sk; }).length + LINKED_GAMES.filter(function (g) { return g.skill === sk; }).length;
+          return el('li', null, el('button', { class: 'cat-tile skill-' + sk, type: 'button', onclick: function () { renderGames(sk); } }, [
+            el('span', { class: 'cat-emoji', 'aria-hidden': 'true' }, SKILL_EMOJI[sk]),
+            el('span', { class: 'cat-name' }, BG.SKILLS[sk].label),
+            el('span', { class: 'cat-count' }, n + ' משחקים')
+          ]));
+        }))
+      ]));
+      var tr = trophiesSection();
+      if (tr) app.appendChild(tr);
+      return;
+    }
+    var games = BG.all().filter(function (g) { return g.skill === skill; });
+    games = games.filter(function (g) { return g.isNew; }).concat(games.filter(function (g) { return !g.isNew; }));
+    app.appendChild(el('section', { class: 'games-head' }, [backBtn,
+      el('h1', { class: 'games-title' }, [skillIcon(skill), BG.SKILLS[skill].label])]));
+    app.appendChild(el('ul', { class: 'game-grid' }, LINKED_GAMES.filter(function (g) { return g.skill === skill; }).map(linkCard).concat(games.map(gameCard))));
+    window.scrollTo(0, 0);
+  }
+
+  function trophiesSection() {
+    // Best trophies first; each game shows its best trophy once.
+    var won = BG.all().filter(function (g) { return trophyKind(g.id); }).sort(function (a, b) {
+      return TROPHY_RANK[trophyKind(b.id)] - TROPHY_RANK[trophyKind(a.id)];
+    });
+    if (!won.length) return null;
+    // how many games reached each trophy (a game with diamond also counts for the trophies below it)
+    var counts = BG.TROPHIES.slice().reverse().map(function (tr) {
+      var n = BG.all().filter(function (g) {
+        var k = trophyKind(g.id);
+        return k && TROPHY_RANK[k] >= TROPHY_RANK[tr.kind] && (tr.kind === 'gold' || BG.maxLevelOf(g.id) >= tr.level);
+      }).length;
+      return el('span', null, [el('span', { class: 'trophy-icon' + trophyClass(tr.kind), html: TROPHY_SVG }), tr.label + ': ' + n]);
+    });
+    var atTop = won.some(function (g) { return trophyKind(g.id) === trophyForLevel(g.id, BG.maxLevelOf(g.id)); });
+    return el('section', { class: 'section trophies' }, [
+      el('h2', { class: 'section-title' }, 'הגביעים שלי'),
+      el('p', { class: 'trophy-counts' }, counts),
+      el('ul', { class: 'trophy-list' }, won.map(function (g) {
+        var k = trophyKind(g.id);
+        return el('li', { class: 'trophy-item' + trophyClass(k) }, [
+          el('span', { class: 'trophy-icon' + trophyClass(k), html: TROPHY_SVG }),
+          el('span', null, g.name),
+          el('span', { class: 'trophy-kind' }, trophyInfo(k).label)
+        ]);
+      })),
+      atTop ? el('p', { class: 'trophy-call' }, 'רוצים עוד רמות? התקשרו לירון.') : null
+    ]);
   }
 
   /* ---------- level path ---------- */
@@ -721,11 +730,12 @@
 
   /* ---------- instructions ---------- */
   function renderIntro(game, daily) {
+    screenBack = origin.back;
     endCurrent();
     clear();
     document.body.classList.add('on-intro');
     screenGame = game;
-    setDepth(1);
+    setDepth(origin.depth + 1);
     refreshScreen = function () { renderIntro(game, daily); };
     var level = getLevel(game.id);
     var speakText = game.name + '. ' + game.instructions.join(' ');
@@ -843,7 +853,7 @@
     endCurrent();
     clear();
     screenGame = game;
-    setDepth(3); // back → "leave?", back → instructions, back → home
+    setDepth(origin.depth + 3); // back → "leave?", back → instructions, back → where the game was chosen
     refreshScreen = null;
     level = clampLevel(level || getLevel(game.id), game.id);
     var timed = !!BG.state.prefs.timer;
@@ -866,12 +876,12 @@
     // both leave the round, so both ask first; "exit" goes back to the instructions, the house to home
     var leaveTo = null;
     function askLeave(target) { leaveTo = target; confirmBox.hidden = false; exitBtn.hidden = true; homeBtn.hidden = true; }
-    function keepPlaying() { confirmBox.hidden = true; exitBtn.hidden = false; homeBtn.hidden = false; setDepth(3); }
+    function keepPlaying() { confirmBox.hidden = true; exitBtn.hidden = false; homeBtn.hidden = false; setDepth(origin.depth + 3); }
     // the phone's back button: first it asks "leave?"; pressed again, it leaves the game for its instructions
     session.onBack = function (left) {
-      if (confirmBox.hidden && left >= 1) askLeave('intro');
-      else if (left >= 1) renderIntro(game, daily);
-      else renderHome();
+      if (confirmBox.hidden && left > origin.depth + 1) askLeave('intro');
+      else if (left >= origin.depth + 1) renderIntro(game, daily);
+      else origin.back();
     };
     var exitBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: function () { askLeave('intro'); } }, 'יציאה');
     var homeBtn = el('button', {
@@ -1118,7 +1128,8 @@
   function renderResult(game, daily, playedLevel, result, elapsedMs) {
     clear();
     screenGame = game;
-    setDepth(Math.max(1, depth - dialogEntry)); // back → home (the game's entries are reused; nothing is added without a tap)
+    setDepth(Math.max(origin.depth + 1, depth - dialogEntry)); // back → where the game was chosen (nothing is added without a tap)
+    screenBack = origin.back;
     refreshScreen = null;
     var correct = Math.max(0, result.correct | 0);
     var total = Math.max(0, result.total | 0);
