@@ -77,10 +77,11 @@
     name: 'פענוח מסר',
     skill: 'executive',
     isNew: true,
-    tagline: 'מסר סודי בקוד: פענחו מה כתוב',
+    tagline: 'הגיעה הודעה מוצפנת: עזרו לפענח אותה',
     benefit: 'קשב, זיכרון עבודה וחשיבה',
     instructions: [
-      'מסר קצר כתוב בקוד: כל אות הוחלפה בסימן, במספר או באות אחרת.',
+      'הגיעה הודעה, אבל היא מוצפנת: כל אות הוחלפה בסימן, במספר או באות אחרת. עזרו לפענח אותה!',
+      'כדי להתחיל, אות או שתיים כבר מפוענחות (באפור). הן מראות איך הקוד עובד.',
       'לחצו על משבצת ואז על האות הנכונה. אותה אות תתמלא בכל המקומות שבהם מופיע אותו קוד.',
       'בהתחלה יש מפתח מלא. בהמשך רק חלק ממנו, ובשלבים המתקדמים רק כלל ("כל אות הוחלפה באות שאחריה").',
       'אין שעון. תקועים? "רמז" מסביר איך לפענח אחד הקודים, בלי לגלות את האות.'
@@ -96,7 +97,7 @@
 
       function nextRound() {
         round++;
-        if (round > ROUNDS) { ctx.finish({ correct: good, total: ROUNDS, note: 'פענחתם ' + good + ' מתוך ' + ROUNDS + ' מסרים' }); return; }
+        if (round > ROUNDS) { ctx.finish({ correct: good, total: ROUNDS, note: 'פענחתם ' + good + ' מתוך ' + ROUNDS + ' הודעות' }); return; }
         ctx.setProgress(round, ROUNDS);
         play(msgs[(round - 1) % msgs.length]);
       }
@@ -156,8 +157,14 @@
         root.appendChild(kb);
         var actions = el('div', { class: 'g-actions' });
         root.appendChild(actions);
-        ctx.setStatus('לחצו על משבצת ואז על אות');
-        sel = used[0];
+        // one or two letters are decoded for the player at the start: they show how the code works
+        var starters = used.slice().sort(function (a, b) {
+          return letters.filter(function (x) { return x === b; }).length - letters.filter(function (x) { return x === a; }).length;
+        }).slice(0, used.length >= 8 ? 2 : 1);
+        starters.forEach(function (l) { guess[l] = l; given[l] = true; });
+        var from = ctx.pick(['הנכדה', 'הנכד', 'השכנה', 'חבר ותיק', 'הבת', 'הבן', 'חברה מהחוג']);
+        ctx.setStatus('📩 הגיעה הודעה מ' + from + ', אבל היא מוצפנת! עזרו לפענח אותה');
+        sel = used.filter(function (l) { return !given[l]; })[0];
         render();
 
         function render() {
@@ -261,7 +268,7 @@
           if (ok) good++;
           msg.classList.add('sm-done');
           render();
-          ctx.setStatus('המסר: ' + text);
+          ctx.setStatus('ההודעה: ' + text);
           ctx.feedback(ok, ok ? undefined : 'פענחתם, בעזרת רמזים').then(function () {
             { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
