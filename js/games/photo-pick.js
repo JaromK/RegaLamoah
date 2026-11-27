@@ -103,7 +103,7 @@
     '.pp-words.pp-many .pp-word{font-size:1.45rem;padding:.15rem .8rem}',
     '.pp-word.is-found{background:var(--good-soft);border-color:var(--good);color:var(--good)}',
     '.pp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;width:100%}',
-    '.pp-grid.pp-odd>:last-child{grid-column:1 / -1;justify-self:center;width:calc(50% - .275rem)}',
+    '.app:has(.pp-grid){max-width:68rem}',
     '.pp-photo{position:relative;aspect-ratio:1;padding:0;border-radius:var(--radius);overflow:hidden;cursor:pointer;',
     'border:3px solid var(--line);background:var(--surface)}',
     '.pp-photo img{width:100%;height:100%;display:block;object-fit:cover;transform-origin:var(--pp-ox,50%) var(--pp-oy,50%);',
@@ -161,10 +161,19 @@
         var found = [];
         var done = false;
         var words = r.targets.map(function (t) { return el('span', { class: 'pp-word' }, t.w); });
-        var rows = Math.ceil(r.photos.length / 2);
-        var grid = el('div', { class: 'pp-grid' + (r.photos.length % 2 ? ' pp-odd' : ''),
-          // square photos as big as the free height allows: header, status, words and gaps take about 300px
-          style: { maxWidth: 'min(26rem, calc((100svh - ' + (find > 2 ? 340 : find > 1 ? 300 : 290) + 'px) * 2 / ' + rows + '))' } });
+        // the photos as big as the screen allows: try every number of columns and keep the one with the biggest
+        // squares (2 photos on a phone: one above the other; 6 on a computer: three in a row)
+        var nP = r.photos.length, gap = 9;
+        var availW = Math.min(root.clientWidth || window.innerWidth - 40, 1000) - 8;
+        var availH = window.innerHeight - (find > 2 ? 340 : find > 1 ? 300 : 290);
+        var best = { cols: 2, size: 0 };
+        for (var cols = 1; cols <= Math.min(nP, 4); cols++) {
+          var rowsN = Math.ceil(nP / cols);
+          var size = Math.min((availW - gap * (cols - 1)) / cols, (availH - gap * (rowsN - 1)) / rowsN);
+          if (size > best.size + 4) best = { cols: cols, size: size };
+        }
+        var side = Math.max(110, Math.floor(best.size));
+        var grid = el('div', { class: 'pp-grid', style: { gridTemplateColumns: 'repeat(' + best.cols + ', ' + side + 'px)', width: 'auto', justifyContent: 'center' } });
         var btns = r.photos.map(function (o) {
           var b = el('button', { class: 'pp-photo', type: 'button', 'aria-label': 'תמונה', onclick: function () { tap(o, b); } },
             el('img', { src: o.src, alt: '', draggable: 'false' }));
@@ -209,9 +218,9 @@
             x.b.disabled = true;
             x.b.setAttribute('aria-label', x.o.w);
             if (r.targets.indexOf(x.o) !== -1 && found.indexOf(x.o) === -1) x.b.classList.add('is-missed');
-            x.b.appendChild(el('span', { class: 'pp-name' }, x.o.w));
+            if (!ok) x.b.appendChild(el('span', { class: 'pp-name' }, x.o.w)); // the names help after a miss only
           });
-          ctx.setStatus(ok ? 'מצוין! כך קוראים לכל התמונות' : 'התמונה הנכונה מסומנת במסגרת ירוקה');
+          ctx.setStatus(ok ? 'מצוין!' : 'התמונה הנכונה מסומנת במסגרת ירוקה');
           ctx.feedback(ok, ok ? undefined : 'בחרתם: ' + last.w).then(function () {
             if (ok) return ctx.wait(1200).then(nextRound);
             // after a miss the player looks at the names as long as they like

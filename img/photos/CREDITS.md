@@ -2,6 +2,7 @@
 
 The photos in this folder were taken from Wikimedia Commons and reduced to about 400px. Each is in the public
 domain or under a Creative Commons licence (CC0, CC BY or CC BY-SA); the resized copies keep the same licence.
+A few (ספה, שולחן) were also placed on a white square so the whole object shows in the square game frames.
 Click a file name for its page, author and full licence.
 
 | Name | Source | Author | Licence |
@@ -121,9 +122,9 @@ Click a file name for its page, author and full licence.
 | פנקייק | [Foodiesfeed.com_pouring-honey-on-pancakes-with-walnuts.jpg](https://commons.wikimedia.org/wiki/File:Foodiesfeed.com_pouring-honey-on-pancakes-with-walnuts.jpg) | Mae Mu | CC0 |
 | דלת | [Dorfkirche Sanitz (main door), 2025-04-20.jpg](https://commons.wikimedia.org/wiki/File:Dorfkirche_Sanitz_(main_door),_2025-04-20.jpg) | Radomianin | CC BY-SA 4.0 |
 | מיטה | [2008-04-12_Freilichtmuseum_Detmold_(11).jpg](https://commons.wikimedia.org/wiki/File:2008-04-12_Freilichtmuseum_Detmold_(11).jpg) | R-E-AL (talk / contribs / Gallery) (German Wikipedia) | CC BY-SA 3.0 |
-| ספה | [2009-05-16_Main_office_lobby_at_Hampton_Forest_Apartments.jpg](https://commons.wikimedia.org/wiki/File:2009-05-16_Main_office_lobby_at_Hampton_Forest_Apartments.jpg) | Ildar Sagdejev (Specious) | CC BY-SA 4.0 |
+| ספה | [Chaise_Longue_Confort_Online.jpg](https://commons.wikimedia.org/wiki/File:Chaise_Longue_Confort_Online.jpg) | Confortonline | CC BY-SA 4.0 |
 | כיסא | [Set_of_fourteen_side_chairs_MET_DP110780.jpg](https://commons.wikimedia.org/wiki/File:Set_of_fourteen_side_chairs_MET_DP110780.jpg) | Thomas Chippendale | CC0 |
-| שולחן | [Beautiful_Baroque_gilded_table_from_the_Cinquantenaire_Museum_(Bruxelles,_Belgium).jpg](https://commons.wikimedia.org/wiki/File:Beautiful_Baroque_gilded_table_from_the_Cinquantenaire_Museum_(Bruxelles,_Belgium).jpg) | Neoclassicism Enthusiast | CC BY-SA 4.0 |
+| שולחן | [Table_(AM_1991.193-1).jpg](https://commons.wikimedia.org/wiki/File:Table_(AM_1991.193-1).jpg) | Rex Chapman Taylor | CC BY 4.0 |
 | שעון | [2010-07-20_Black_windup_alarm_clock_face.jpg](https://commons.wikimedia.org/wiki/File:2010-07-20_Black_windup_alarm_clock_face.jpg) | Sun Ladder | CC BY-SA 3.0 |
 | טלוויזיה | [1990s Television Set.jpg](https://commons.wikimedia.org/wiki/File:1990s_Television_Set.jpg) | ProtoKiwi | CC BY 4.0 |
 | טלפון | [Telefon_BW_2012-02-18_13-44-32.JPG](https://commons.wikimedia.org/wiki/File:Telefon_BW_2012-02-18_13-44-32.JPG) | Berthold Werner | CC BY-SA 3.0 |
