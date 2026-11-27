@@ -204,6 +204,7 @@
     '.ng-done .ng-cell.is-on{background:var(--good);border-color:var(--good);}',
     '.ng-done .ng-cell.is-x::after{content:"";}',
     '.ng-line-ok{opacity:.45;}',
+    '.ng-actions{flex-wrap:nowrap;gap:.3rem;width:100%;max-width:26rem;}.ng-actions .btn{flex:1 1 auto;min-width:0;padding-inline:.45rem;font-size:.95rem;white-space:nowrap;}',
     '.ng-tip{opacity:1;background:var(--c-purple-soft);outline:3px solid var(--c-purple);border-radius:6px;}',
     '.ng-cell.is-tipline{box-shadow:0 0 0 2px var(--c-purple);}',
     '.ng-cell.is-bad{box-shadow:inset 0 0 0 4px var(--c-red);}',
@@ -274,9 +275,11 @@
           el('div', { class: 'ng-grid' }, cells)
         ]);
         var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
-        var clearBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: clearAll }, 'ניקוי');
-        var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'הראו את הציור');
-        var actions = el('div', { class: 'g-actions' }, [hintBtn, clearBtn, showBtn]);
+        var clearBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: clearAll }, 'נקו הכול');
+        var undoBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: undo }, '↶ בטלו');
+        var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'פתרון');
+        var actions = el('div', { class: 'g-actions ng-actions' }, [hintBtn, undoBtn, clearBtn, showBtn]);
+        var past = []; // earlier boards, for "בטלו"
         root.appendChild(wrap);
         root.appendChild(actions);
         ctx.setStatus('צבעו את המשבצות לפי המספרים');
@@ -292,6 +295,8 @@
             b.classList.toggle('is-x', state[r][c] === 2);
             b.disabled = done;
           }
+          undoBtn.disabled = done || !past.length;
+          clearBtn.disabled = done || state.every(function (row) { return row.every(function (v) { return !v; }); });
           // dim the clues of lines that are already right (not from level 36: less help)
           if (spec.noDim) return;
           for (r = 0; r < R; r++) {
@@ -320,15 +325,27 @@
           if (done) return;
           ctx.sound('tap');
           if (tip || cellBtns[r][c].classList.contains('is-bad')) clearTip();
+          snapshot();
           state[r][c] = (state[r][c] + 1) % 3;
           if (state[r][c] === 1) autoCross();
           render();
           checkDone();
         }
 
+        function snapshot() { past.push(state.map(function (row) { return row.slice(); })); }
+        function undo() {
+          if (done || !past.length) return;
+          ctx.sound('tap'); clearTip();
+          state = past.pop();
+          ctx.setStatus('הצעד האחרון בוטל');
+          render();
+        }
         function clearAll() {
           if (done) return;
+          ctx.sound('tap'); clearTip();
+          snapshot(); // "בטלו" brings the board back
           state.forEach(function (row) { for (var c = 0; c < C; c++) row[c] = 0; });
+          ctx.setStatus('הלוח נוקה. אפשר להתחיל מחדש (או "בטלו")');
           render();
         }
 
