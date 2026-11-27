@@ -32,13 +32,14 @@
     var L = level;
     if (L <= 6) return { kinds: ['basic'], same: 0 };
     if (L <= 10) return { kinds: ['basic'], same: 1 };
-    if (L <= 14) return { kinds: ['basic'], same: 2 };
-    if (L <= 20) return { kinds: ['basic'], same: 3 };
-    // from level 21 the harder kinds join: an outline only, a shadow partly covered, two shadows on top of each other
-    if (L <= 26) return { kinds: ['mirror', 'basic', 'outline'], same: 3 };
-    if (L <= 32) return { kinds: ['turn', 'mirror', 'outline', 'partial'], same: 3 };
-    if (L <= 36) return { kinds: ['reverse', 'turn', 'partial', 'outlineOpt'], same: 3 };
-    if (L <= 40) return { kinds: ['reverse', 'reverseFlip', 'partial', 'partialOpt', 'overlap'], same: 3 };
+    // from level 11 the harder kinds join (user request): an outline only (11), a shadow partly covered (15),
+    // two shadows on top of each other (21)
+    if (L <= 14) return { kinds: ['basic', 'outline'], same: 2 };
+    if (L <= 20) return { kinds: ['basic', 'outline', 'partial'], same: 3 };
+    if (L <= 26) return { kinds: ['mirror', 'basic', 'partial', 'overlap', 'outline'], same: 3 };
+    if (L <= 32) return { kinds: ['turn', 'mirror', 'outlineOpt', 'partialOpt', 'overlap'], same: 3 };
+    if (L <= 36) return { kinds: ['reverse', 'turn', 'partial', 'outlineOpt', 'overlap'], same: 3 };
+    if (L <= 40) return { kinds: ['reverse', 'reverseFlip', 'partialOpt', 'overlap', 'outline'], same: 3 };
     if (L <= 45) return { kinds: ['combo', 'reverseFlip', 'overlap', 'partialOpt', 'outlineOpt'], same: 3 };
     return { kinds: ['comboFlip', 'reverseFlip', 'overlap', 'partial', 'partialOpt', 'outline', 'turn'], same: 3 };
   }
