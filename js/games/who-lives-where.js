@@ -179,13 +179,29 @@
       case 'notwith': return 'ל' + X + ' אין ' + ent(c.y).name;
       case 'more': return flip ? Y + ' ' + verb(c.y) + ' לפני ' + X : X + ' ' + V + ' אחרי ' + Y;
       case 'plus1': return flip ? Y + ' ' + verb(c.y) + ' מיד לפני ' + X : X + ' ' + V + ' מיד אחרי ' + Y;
-      case 'end': return X + ' ' + V + ' בקצה הרחוב';
-      case 'notend': return X + ' לא ' + V + ' בקצה הרחוב';
+      // "the end of the street" is both ends: say which houses
+      case 'end': return X + ' ' + V + ' בקצה: בית 1 או ' + n;
+      case 'notend': return X + ' לא ' + V + ' בקצה (בית 1 או ' + n + ')';
     }
     return '';
   }
 
+  /* the words of this puzzle's clues, explained in one line under them */
+  function legend(P) {
+    var seen = {}, out = [];
+    P.clues.forEach(function (c) {
+      var flip = c.y !== undefined && (c.x + c.y) % 2 === 1;
+      var k = c.t === 'next' || c.t === 'notnext' ? 'next' : c.t === 'more' ? (flip ? 'less' : 'more') : c.t === 'plus1' ? (flip ? 'minus1' : 'plus1') : null;
+      if (k && !seen[k]) { seen[k] = true; out.push(k); }
+    });
+    var T = { next: 'ליד = בבית צמוד', more: 'אחרי = מספר גדול יותר', less: 'לפני = מספר קטן יותר',
+      plus1: 'מיד אחרי = הבית הבא', minus1: 'מיד לפני = הבית הקודם' };
+    return out.map(function (k) { return T[k]; });
+  }
+
   var css = [
+    '.wl-legend span{white-space:nowrap;}',
+    '.wl-legend{margin:0;padding-top:.1rem;text-align:center;font-size:.92rem;font-weight:700;color:var(--ink-soft);line-height:1.25;}',
     '.wl-street{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:.35rem;width:100%;max-width:28rem;direction:rtl;}',
     '.wl-house{display:flex;flex-direction:column;align-items:stretch;min-width:0;}',
     '.wl-roof{height:1.7rem;clip-path:polygon(50% 0,100% 100%,0 100%);background:var(--hc);display:flex;align-items:flex-end;justify-content:center;',
@@ -195,7 +211,10 @@
     'gap:.2rem;padding:.2rem .15rem;}',
     '.wl-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;height:3rem;overflow:hidden;width:100%;padding:0;border-radius:6px;line-height:1.05;',
     'border:3px solid transparent;background:var(--surface-2);color:var(--ink);font:inherit;cursor:pointer;}',
-    '.wl-slot.is-empty{border:3px dashed var(--ink-soft);font-size:1.5rem;font-weight:900;color:var(--ink-soft);}',
+    '.wl-slot.is-empty{border:3px dashed var(--ink-soft);}',
+    '.wl-ghost{font-size:1.75rem;line-height:1;filter:grayscale(1) brightness(0);opacity:.28;}',
+    '@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .wl-ghost{filter:grayscale(1) brightness(0) invert(1);opacity:.35;}}',
+    ':root[data-theme="dark"] .wl-ghost{filter:grayscale(1) brightness(0) invert(1);opacity:.35;}',
     '.wl-slot .e{font-size:1.35rem;line-height:1.1;}',
     '.wl-slot .nm{font-size:1.05rem;font-weight:800;white-space:nowrap;}',
     '.wl-slot.is-open{border:3px solid var(--c-blue);background:var(--c-blue-soft);}',
@@ -208,6 +227,7 @@
     'color:var(--ink);font:inherit;font-size:1.1rem;font-weight:700;line-height:1.25;cursor:pointer;min-height:1.75rem;}',
     '.wl-clue .ck{flex:none;width:1.4rem;height:1.4rem;border:2px solid var(--ink-soft);border-radius:4px;display:grid;place-items:center;font-size:.95rem;}',
     '.wl-clue.is-done{opacity:.55;}',
+    '.wl-clues.is-many{gap:.12rem;}.wl-clues.is-many .wl-clue{font-size:1.02rem;min-height:1.55rem;padding-block:.08rem;}',
     '.wl-clue.is-done .ck{background:var(--good);border-color:var(--good);color:var(--surface);}',
     '.wl-clue.is-tip{opacity:1;background:var(--c-purple-soft);box-shadow:inset 0 0 0 3px var(--c-purple);}',
     '.wl-acts .btn{min-height:3.2rem;padding-inline:1rem;}',
@@ -233,7 +253,7 @@
     instructions: [
       'ברחוב יש בתים עם מספרים וצבעים. מתחת לבתים כתובים רמזים. לחצו על משבצת בבית ובחרו מי גר שם.',
       '"ליד" = בבית הצמוד. "אחרי" = בבית עם מספר גדול יותר, ו"מיד אחרי" = בבית הבא. "לפני" = מספר קטן יותר.',
-      '"בקצה הרחוב" = בבית הראשון או בבית האחרון.',
+      '"קצות הרחוב" = הבית הראשון והבית האחרון. מתחת לרמזים כתוב מה פירוש המילים שבהם.',
       'כשכולם במקום, לחצו "בדיקה". אפשר לסמן ✓ על רמז שכבר השתמשתם בו. אין שעון.'
     ],
     css: css,
@@ -272,7 +292,7 @@
 
         var street = el('div', { class: 'wl-street', style: { '--n': n } });
         street._wl = { sol: P.sol, n: n, clues: P.clues.length }; // read by automated tests only
-        var clueList = el('ul', { class: 'wl-clues' });
+        var clueList = el('ul', { class: 'wl-clues' + (P.clues.length >= 7 ? ' is-many' : '') }); // many clues: a little smaller, so all fit
         P.clues.forEach(function (c, i) {
           clueList.appendChild(el('li', null, el('button', { class: 'wl-clue', type: 'button', onclick: function () {
             marks[i] = !marks[i]; ctx.sound('tap'); render();
@@ -282,6 +302,9 @@
         var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
         var showBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: reveal }, 'פתרון');
         var actions = el('div', { class: 'g-actions wl-acts' }, [checkBtn, hintBtn, showBtn]);
+        var lg = legend(P);
+        // inside the list: no extra gap on the page; each explanation stays on one line
+        if (lg.length) clueList.appendChild(el('li', { class: 'wl-legend' }, lg.map(function (t, i) { return el('span', null, (i ? ' · ' : '') + t); })));
         [street, clueList, actions].forEach(function (nd) { root.appendChild(nd); });
         var baseStatus = 'לחצו על בית ובחרו מי גר שם';
         ctx.setStatus(baseStatus);
@@ -297,7 +320,8 @@
           if (open && open.h === h && open.pets === pets) cls += ' is-open';
           if (x >= 0 && showWrong && at[x] !== P.sol[x]) cls += ' is-wrong';
           if (x >= 0 && done) cls += ' is-right';
-          var kids = x < 0 ? (pets ? '🐾' : '?') : [el('span', { class: 'e', 'aria-hidden': 'true' }, ent(x).e), el('span', { class: 'nm' }, ent(x).name)];
+          // an empty place shows a grey figure: a person, or an animal
+          var kids = x < 0 ? el('span', { class: 'wl-ghost', 'aria-hidden': 'true' }, pets ? '🐕' : '👤') : [el('span', { class: 'e', 'aria-hidden': 'true' }, ent(x).e), el('span', { class: 'nm' }, ent(x).name)];
           return el('button', { class: cls, type: 'button', disabled: done ? 'disabled' : null,
             'aria-label': 'בית ' + (h + 1) + (pets ? ', חיה' : ', אדם') + (x >= 0 ? ': ' + ent(x).name : ''),
             onclick: function () { openSheet(h, pets); } }, kids);
