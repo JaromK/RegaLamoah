@@ -130,7 +130,13 @@
     '.wsr-words li{font-size:.98rem;line-height:1.35;font-weight:800;padding:0 .45rem;border-radius:999px;background:var(--surface-2);border:2px solid var(--line);}',
     '.wsr-actions{flex-wrap:nowrap;margin-top:-.35rem;}',
     '.wsr-words li.is-found{text-decoration:line-through;color:var(--ink);}',
-    '.wsr-theme{margin:0;font-size:1.2rem;font-weight:800;color:var(--language);}'
+    '.wsr-theme{margin:0;font-size:1.2rem;font-weight:800;color:var(--language);}',
+    '@media (min-width:900px){',
+    '.g-split .wsr-wrap{width:min(calc(100svh - 12.5rem),40rem);flex:none;}',
+    '.g-split .wsr-cell{font-size:calc(min(100svh - 12.5rem,40rem) / var(--n) * .6);}',
+    '.g-split .wsr-words{margin:0;gap:.45rem;}.g-split .wsr-words li{font-size:1.25rem;padding:.1rem .7rem;}',
+    '.g-split .wsr-actions{margin-top:0;}',
+    '}'
   ].join('');
 
   BrainGames.register({
@@ -207,9 +213,10 @@
         var hintBtn = el('button', { class: 'btn btn-secondary btn-sm', type: 'button', onclick: hint }, 'רמז');
         var showBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: reveal }, 'הראו את המילים');
         var actions = el('div', { class: 'g-actions wsr-actions' }, [hintBtn, showBtn]);
+        // on a computer the words and buttons sit beside the board (shared .g-split layout); on a phone below it
+        root.classList.add('g-split');
         root.appendChild(wrap);
-        root.appendChild(list);
-        root.appendChild(actions);
+        root.appendChild(el('div', { class: 'g-side' }, [list, actions]));
         var INTRO = 'נושא: ' + B.theme;
         ctx.setStatus(INTRO);
 
