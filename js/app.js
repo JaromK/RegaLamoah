@@ -111,7 +111,8 @@
     'jigsaw': '🧩', 'pill-box': '💊', 'water-pour': '🫗', 'sliding-puzzle': '🟦', 'hanoi': '🗼', 'lights-out': '💡',
     'crossword': '✍️', 'guess-word': '💭', 'opposites': '☯️', 'who-lives-where': '🏘️', 'maze': '🌀', 'shadow-match': '👤',
     'target-number': '🏹', 'where-is-it': '🔑', 'phone-number': '📞', 'appointments': '📅', 'block-rows': '🟥', 'mystery': '🕵️',
-    'code-breaker': '🔓', 'two-colors': '🌓', 'crowns': '👑', 'greater-less': '🪜', 'skyscrapers': '🏙️', 'treasures': '💎', 'ships': '🚢', 'bridges': '🌉', 'hitori': '⬛', 'truth-lies': '🤥'
+    'code-breaker': '🔓', 'two-colors': '🌓', 'crowns': '👑', 'greater-less': '🪜', 'skyscrapers': '🏙️', 'treasures': '💎', 'ships': '🚢', 'bridges': '🌉', 'hitori': '⬛', 'truth-lies': '🤥',
+    'bulls-cows': '🎯', 'peg-solitaire': '🔵', 'mancala': '🫘'
   };
   // the one "home" button used everywhere: the house and the words "דף הבית" (and the same for settings)
   function homeButton(cls, onclick) {
