@@ -98,7 +98,11 @@
     '.br2-wrap{width:min(100%,calc(100svh - 17rem),30rem);aspect-ratio:1;}',
     '.br2-svg{width:100%;height:100%;display:block;touch-action:manipulation;}',
     '.br2-grid{stroke:var(--line);stroke-width:.02;}',
-    '.br2-bridge{stroke:var(--ink);stroke-width:.09;stroke-linecap:round;}',
+    '.br2-bridge{stroke:var(--ink);stroke-width:.09;stroke-linecap:round;pointer-events:none;}',
+    '.br2-maybe{stroke:var(--ink-soft);stroke-width:.05;stroke-dasharray:.12 .14;opacity:.55;pointer-events:none;}',
+    '.br2-maybe.is-near{stroke:var(--c-blue);opacity:1;stroke-width:.07;}',
+    '.br2-hit{stroke:transparent;stroke-width:.55;cursor:pointer;}',
+    '.br2-isl.is-reach circle{stroke:var(--c-blue);stroke-width:.11;fill:var(--c-blue-soft);}',
     '.br2-isl circle{fill:var(--surface);stroke:var(--ink);stroke-width:.06;cursor:pointer;}',
     '.br2-isl{cursor:pointer;}',
     '.br2-isl text{font-family:var(--font-display);font-weight:900;font-size:.56px;fill:var(--ink);pointer-events:none;}',
@@ -119,7 +123,7 @@
     benefit: 'תכנון וחשיבה לוגית',
     instructions: [
       'על כל אי כתוב כמה גשרים יוצאים ממנו. גשרים עוברים רק ישר: לרוחב או לאורך.',
-      'לחצו על אי ואז על אי אחר באותה שורה או באותו טור: נבנה גשר. לחיצה נוספת על אותו זוג: גשר כפול. עוד פעם: הגשר נמחק.',
+      'הקווים המקווקווים מראים איפה אפשר לבנות גשר. לחצו על קו: גשר. עוד לחיצה: גשר כפול. עוד לחיצה: הגשר נמחק. (אפשר גם ללחוץ על אי ואז על אי מודגש.)',
       'גשרים לא חוצים זה את זה, ובסוף כל האיים מחוברים יחד. אי נצבע ירוק כשיש לו בדיוק מספיק גשרים.',
       'יש "רמז", "↶ בטלו" ו"נקו". אין שעון.'
     ],
@@ -158,7 +162,7 @@
         root.classList.add('g-split');
         root.appendChild(wrap);
         root.appendChild(el('div', { class: 'g-side' }, [acts]));
-        ctx.setStatus('לחצו על אי, ואז על אי אחר באותה שורה או טור');
+        ctx.setStatus('לחצו על קו מקווקו בין שני איים כדי לבנות גשר');
         draw();
 
         function add(tag, attrs, parent) {
@@ -173,16 +177,25 @@
             add('line', { x1: g, y1: -0.5, x2: g, y2: n - 0.5, class: 'br2-grid' });
             add('line', { x1: -0.5, y1: g, x2: n - 0.5, y2: g, class: 'br2-grid' });
           }
+          // every place a bridge can go: a faint dashed line (not where it would cross a bridge); the bridges drawn;
+          // and over each a wide invisible strip, so a tap anywhere between two islands builds or changes that bridge
           E.forEach(function (e, k) {
-            if (!val[k]) return;
-            var A = I[e.a], B = I[e.b], off = val[k] === 2 ? [-0.11, 0.11] : [0];
+            var A = I[e.a], B = I[e.b];
+            var blocked = !val[k] && E.some(function (f, j) { return val[j] && crosses(e, f); });
+            if (!val[k] && !blocked) add('line', { x1: A.c, y1: A.r, x2: B.c, y2: B.r, class: 'br2-maybe' + (sel >= 0 && (e.a === sel || e.b === sel) ? ' is-near' : '') });
+            var off = val[k] === 2 ? [-0.11, 0.11] : val[k] ? [0] : [];
             off.forEach(function (o) {
               add('line', { x1: A.c + (e.horiz ? 0 : o), y1: A.r + (e.horiz ? o : 0), x2: B.c + (e.horiz ? 0 : o), y2: B.r + (e.horiz ? o : 0), class: 'br2-bridge' });
             });
+            if (blocked) return;
+            var hit = add('line', { x1: A.c, y1: A.r, x2: B.c, y2: B.r, class: 'br2-hit', role: 'button',
+              'aria-label': 'גשר בין ' + A.need + ' ל-' + B.need + (val[k] ? ' (' + val[k] + ')' : '') });
+            hit.addEventListener('click', function () { tapEdge(k); });
           });
           var s = sums();
           I.forEach(function (isl, i) {
-            var cls = 'br2-isl' + (i === sel ? ' is-sel' : '') + (s[i] === isl.need ? ' is-ok' : s[i] > isl.need ? ' is-over' : '') + (i === tip ? ' is-tip' : '');
+            var reach = sel >= 0 && i !== sel && E.some(function (e) { return (e.a === sel && e.b === i) || (e.b === sel && e.a === i); });
+            var cls = 'br2-isl' + (i === sel ? ' is-sel' : '') + (reach ? ' is-reach' : '') + (s[i] === isl.need ? ' is-ok' : s[i] > isl.need ? ' is-over' : '') + (i === tip ? ' is-tip' : '');
             var gEl = add('g', { class: cls, role: 'button', 'aria-label': 'אי ' + isl.need + (s[i] === isl.need ? ', מלא' : '') });
             add('rect', { x: isl.c - 0.5, y: isl.r - 0.5, width: 1, height: 1, fill: 'transparent' }, gEl); // the whole square is the target
             add('circle', { cx: isl.c, cy: isl.r, r: 0.44 }, gEl);
@@ -198,7 +211,14 @@
           ctx.sound('tap'); tip = -1;
           if (sel < 0 || sel === i) { sel = sel === i ? -1 : i; draw(); return; }
           var k = E.findIndex(function (e) { return (e.a === sel && e.b === i) || (e.a === i && e.b === sel); });
-          if (k < 0) { ctx.setStatus('אי אפשר לבנות גשר בין שני האיים האלה: הם לא באותה שורה או טור, או שיש אי באמצע'); sel = i; draw(); return; }
+          if (k < 0) { ctx.setStatus('לאי הזה אין קו מקווקו מהאי שבחרתם. בחרו אחד מהאיים המודגשים'); sel = i; draw(); return; }
+          sel = -1;
+          tapEdge(k);
+        }
+        // a tap on the line between two islands: no bridge → bridge → double bridge → none
+        function tapEdge(k) {
+          if (done) return;
+          ctx.sound('tap'); tip = -1;
           var nv = (val[k] + 1) % 3;
           if (nv && E.some(function (f, j) { return val[j] && crosses(E[k], f); })) { ctx.setStatus('הגשר הזה היה חוצה גשר אחר'); sel = -1; draw(); return; }
           past.push(val.slice());
