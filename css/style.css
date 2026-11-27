@@ -187,6 +187,16 @@ p { margin: 0; }
 .hero-title { font-size: clamp(2rem, 6vw, 2.9rem); font-weight: 900; }
 .hero-lead { font-size: 1.15rem; color: var(--ink-soft); max-width: 34em; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; padding-top: .25rem; }
+/* the daily practice button: a play sign, what it does, and what it starts */
+.hero-go { display: flex; align-items: center; gap: .9rem; text-align: start; padding: .7rem 1.4rem; min-height: 4.6rem; width: 100%; max-width: 30rem;
+  box-shadow: 0 6px 0 rgba(0,0,0,.18); animation: hero-go-pulse 2.4s ease-in-out 3; }
+.hero-go-icon { flex: none; width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--surface); color: var(--accent);
+  display: grid; place-items: center; font-size: 1.15rem; padding-inline-start: .2rem; }
+.hero-go-text { display: flex; flex-direction: column; gap: .15rem; }
+.hero-go-main { font-size: 1.25rem; font-weight: 900; line-height: 1.2; }
+.hero-go-sub { font-size: .98rem; font-weight: 700; opacity: .92; line-height: 1.25; }
+@keyframes hero-go-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { .hero-go { animation: none; } }
 .done-banner {
   background: var(--good-soft); color: var(--good); font-weight: 700; padding: .9rem 1.2rem; border-radius: var(--radius);
 }
@@ -418,6 +428,7 @@ p { margin: 0; }
 .search-input { flex: 1; min-width: 0; max-width: none; background: var(--surface); font-size: 1.25rem; }
 .search-input::-webkit-search-cancel-button { display: none; }
 .search-row .search-clear { flex: none; }
+.game-picker { max-width: 34rem; background: var(--surface); font-size: 1.15rem; font-weight: 700; cursor: pointer; }
 .search-row { position: relative; }
 .search-box { flex: 1; min-width: 0; display: flex; }
 .search-box .search-input { width: 100%; }

@@ -533,9 +533,19 @@
     var clearBtn = el('button', { class: 'btn btn-quiet btn-sm search-clear', type: 'button', 'aria-label': 'ניקוי החיפוש',
       onclick: function () { input.value = ''; show(); input.focus(); } }, 'ניקוי');
     var box = el('div', { class: 'search-box' }, [input, suggest]);
+    // or pick from a list of every game, by category (the phone's own picker, big and familiar)
+    var picker = el('select', { class: 'text-input game-picker', id: 'game-picker', 'aria-label': 'בחירת משחק מהרשימה',
+      onchange: function () { var g = BG.getGame(picker.value); if (g) renderIntro(g, false); } },
+      [el('option', { value: '' }, 'או בחרו משחק מהרשימה')].concat(Object.keys(BG.SKILLS).map(function (skill) {
+        var gs = BG.all().filter(function (g) { return g.skill === skill; }).sort(function (a, b) { return a.name.localeCompare(b.name, 'he'); });
+        return el('optgroup', { label: SKILL_EMOJI[skill] + ' ' + BG.SKILLS[skill].label }, gs.map(function (g) {
+          return el('option', { value: g.id }, (GAME_ICONS[g.id] ? GAME_ICONS[g.id] + ' ' : '') + g.name);
+        }));
+      })));
     return el('section', { class: 'section search' }, [
       el('h2', { class: 'section-title' }, el('label', { for: 'game-search' }, 'חיפוש משחק')),
       el('form', { class: 'search-row', role: 'search', onsubmit: function (e) { e.preventDefault(); hideSuggest(); input.blur(); } }, [box, clearBtn]),
+      picker,
       note,
       results
     ]);
@@ -557,7 +567,7 @@
     var thoughtRng = U.makeRng(U.hashString('thought:' + U.dateKey()));
 
     var lead = doneCount === 0
-      ? 'האימון של היום מחכה לכם: ' + daily.length + ' משחקים קצרים, כל אחד כשלוש דקות. מחר יחכו לכם משחקים אחרים.'
+      ? 'האימון של היום מחכה לכם. מחר יחכו לכם משחקים אחרים.'
       : nextGame
         ? 'כבר שיחקתם ' + doneCount + ' מתוך ' + daily.length + ' משחקים היום. נשארו עוד קצת.'
         : 'השלמתם את האימון של היום. כל הכבוד!';
@@ -568,8 +578,15 @@
       el('p', { class: 'hero-lead' }, lead),
       el('div', { class: 'hero-actions' }, [
         nextGame
-          ? el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { renderIntro(nextGame, true); } },
-              doneCount === 0 ? 'התחילו את האימון של היום' : 'המשיכו: ' + nextGame.name)
+          ? el('button', { class: 'btn btn-primary btn-lg hero-go', type: 'button', onclick: function () { renderIntro(nextGame, true); } }, [
+              el('span', { class: 'hero-go-icon', 'aria-hidden': 'true' }, '▶'),
+              el('span', { class: 'hero-go-text' }, [
+                el('span', { class: 'hero-go-main' }, doneCount === 0 ? 'לחצו כאן להתחיל את האימון של היום' : 'לחצו כאן להמשיך את האימון'),
+                el('span', { class: 'hero-go-sub' }, doneCount === 0
+                  ? daily.length + ' משחקים קצרים בזה אחר זה, כשלוש דקות כל אחד'
+                  : 'המשחק הבא: ' + nextGame.name + ' (' + (doneCount + 1) + ' מתוך ' + daily.length + ')')
+              ])
+            ])
           : el('div', { class: 'done-banner' }, 'נתראה מחר עם משחקים חדשים. בינתיים אפשר לשחק בחופשיות למטה.')
       ]),
       el('dl', { class: 'stats' }, [
