@@ -97,7 +97,7 @@
   }
 
   // each category and each game has its own picture (emoji), on the category's soft colour
-  var SKILL_EMOJI = { memory: '🧠', attention: '🎯', logic: '🧮', language: '💬', perception: '📐', executive: '🧭' };
+  var SKILL_EMOJI = { memory: '🧠', attention: '🎯', logic: '🧮', language: '💬', perception: '📐', executive: '🧭', fun: '🎲' };
   var GAME_ICONS = {
     'memory-pairs': '🃏', 'sequence-lights': '🚦', 'grid-memory': '🔲', 'mental-math': '➕', 'number-series': '📈', 'shop-change': '🪙',
     'odd-one-out': '🙃', 'color-word': '🎨', 'whats-new': '✨', 'shopping-list': '📝', 'face-names': '🙂', 'count-items': '🍏',
@@ -407,7 +407,7 @@
   /* One card in the "all games" list (also used by the search results). */
   /* Games that live in their own app: the card opens that site. */
   var LINKED_GAMES = [
-    { skill: 'logic', name: 'סודוקו', url: 'https://jaromk.github.io/Sudoku/',
+    { skill: 'fun', name: 'סודוקו', url: 'https://jaromk.github.io/Sudoku/',
       tagline: 'מלאו את הלוח במספרים 1 עד 9, בלי לחזור על מספר בשורה, בטור ובריבוע' }
   ];
   function linkCard(g) {

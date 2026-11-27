@@ -124,7 +124,7 @@
   BrainGames.register({
     id: 'lights-out',
     name: 'כבו את האורות',
-    skill: 'logic',
+    skill: 'fun',
     isNew: true,
     tagline: 'כל לחיצה מחליפה מנורה ואת השכנות שלה',
     benefit: 'חשיבה לוגית ותכנון',

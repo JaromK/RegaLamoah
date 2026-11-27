@@ -91,7 +91,7 @@
   BrainGames.register({
     id: 'treasures',
     name: 'אוצרות',
-    skill: 'logic',
+    skill: 'fun',
     isNew: true,
     tagline: 'מספרים מגלים כמה אוצרות מסביב. מצאו את כולם',
     benefit: 'הסקת מסקנות וריכוז',

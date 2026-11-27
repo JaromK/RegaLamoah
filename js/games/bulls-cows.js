@@ -60,7 +60,7 @@
   BrainGames.register({
     id: 'bulls-cows',
     name: 'בול פגיעה',
-    skill: 'logic',
+    skill: 'fun',
     isNew: true,
     tagline: 'נחשו את המספר הסודי לפי "בול" ו"פגיעה"',
     benefit: 'הסקת מסקנות וזיכרון עבודה',

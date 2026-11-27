@@ -268,7 +268,7 @@
   BrainGames.register({
     id: 'tangram',
     name: 'טנגרם',
-    skill: 'perception',
+    skill: 'fun',
     tagline: 'מלאו את הצללית בחלקי הטנגרם',
     benefit: 'תפיסה מרחבית, סיבוב בדמיון ותכנון',
     instructions: [

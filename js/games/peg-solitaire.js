@@ -130,7 +130,7 @@
   BrainGames.register({
     id: 'peg-solitaire',
     name: 'סוליטר',
-    skill: 'executive',
+    skill: 'fun',
     isNew: true,
     tagline: 'קופצים מעל הכדורים עד שנשאר אחד',
     benefit: 'תכנון כמה צעדים קדימה',

@@ -186,7 +186,7 @@
   BrainGames.register({
     id: 'sliding-puzzle',
     name: 'פאזל הזזה',
-    skill: 'executive',
+    skill: 'fun',
     isNew: true,
     tagline: 'החליקו את המשבצות עד שהכול מסודר',
     benefit: 'תכנון, סדר פעולות וסבלנות',

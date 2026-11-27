@@ -124,7 +124,7 @@
   BrainGames.register({
     id: 'ships',
     name: 'ספינות',
-    skill: 'logic',
+    skill: 'fun',
     isNew: true,
     tagline: 'מצאו את הספינות לפי המספרים בשוליים',
     benefit: 'הסקת מסקנות ותכנון',

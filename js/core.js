@@ -15,7 +15,8 @@
     logic:     { label: 'חשיבה וחשבון', hue: 'logic' },
     language:  { label: 'שפה', hue: 'language' },
     perception: { label: 'תפיסה מרחבית', hue: 'perception' },
-    executive: { label: 'תכנון וגמישות', hue: 'executive' }
+    executive: { label: 'תכנון וגמישות', hue: 'executive' },
+    fun:       { label: 'משחקים לכיף', hue: 'fun' } // the well-known classic games (user request)
   };
 
   var MIN_LEVEL = 1;

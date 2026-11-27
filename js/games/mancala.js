@@ -113,7 +113,7 @@
   BrainGames.register({
     id: 'mancala',
     name: 'מנקלה',
-    skill: 'executive',
+    skill: 'fun',
     isNew: true,
     tagline: 'משחק הזריעה העתיק, מול המחשב',
     benefit: 'תכנון, ספירה וחשיבה קדימה',

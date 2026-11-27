@@ -71,7 +71,7 @@
   BrainGames.register({
     id: 'code-breaker',
     name: 'פצחו את הקוד',
-    skill: 'logic',
+    skill: 'fun',
     isNew: true,
     tagline: 'נחשו את קוד הצבעים הסודי לפי הרמזים',
     benefit: 'הסקת מסקנות וזיכרון עבודה',

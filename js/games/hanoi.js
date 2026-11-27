@@ -138,7 +138,7 @@
   BrainGames.register({
     id: 'hanoi',
     name: 'מגדלי האנוי',
-    skill: 'executive',
+    skill: 'fun',
     isNew: true,
     tagline: 'העבירו את הדיסקים, אף פעם לא גדול על קטן',
     benefit: 'תכנון, סבלנות וחשיבה כמה צעדים קדימה',

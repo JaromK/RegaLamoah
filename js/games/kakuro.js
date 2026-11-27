@@ -209,7 +209,7 @@
   BrainGames.register({
     id: 'kakuro',
     name: 'קאקורו',
-    skill: 'logic',
+    skill: 'fun',
     isNew: true,
     tagline: 'תשבץ של מספרים: כל שורה וטור מגיעים לסכום',
     benefit: 'חשבון, חשיבה לוגית ותכנון',
