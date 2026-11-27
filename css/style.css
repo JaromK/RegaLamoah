@@ -327,6 +327,16 @@ p { margin: 0; }
 .is-playing .play { gap: .5rem; }
 .is-playing .play-status { font-size: 1.15rem; min-height: 1.6rem; }
 .is-playing .play-board { padding: 1rem .75rem; gap: .9rem; min-height: 10rem; }
+/* Split play board (GAME_API.md): a game puts its main board first and the rest in a .g-side, and adds .g-split
+   to the board. On a phone .g-side disappears from the layout (its children stack as usual); on a computer the
+   board sits on one side and the controls on the other, so nothing needs scrolling. */
+.g-side { display: contents; }
+@media (min-width: 900px) {
+  .app:has(.play-board.g-split) { max-width: 72rem; }
+  .is-playing .play-board.g-split { flex-direction: row; align-items: center; justify-content: center; gap: 2.5rem; }
+  .play-board.g-split > .g-side { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+    width: min(26rem, 42%); flex: none; }
+}
 
 /* ---------- shared game building blocks (see GAME_API.md) ---------- */
 .g-prompt { font-size: 1.35rem; font-weight: 700; text-align: center; text-wrap: balance; }

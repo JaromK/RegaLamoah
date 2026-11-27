@@ -134,7 +134,11 @@
     '.mz-arrow{border-radius:var(--radius);border:3px solid var(--c-blue);background:var(--c-blue-soft);color:var(--ink);font-size:2rem;font-weight:900;cursor:pointer;line-height:1;padding:0;}',
     '.mz-arrow:disabled{opacity:.35;cursor:default;}',
     '.mz-help-btn{border-radius:var(--radius);border:2px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:800;font-size:1.05rem;cursor:pointer;}',
-    '.mz-bag{min-width:4.2rem;display:flex;align-items:center;justify-content:center;font-size:1.6rem;gap:.1rem;}'
+    '.mz-bag{min-width:4.2rem;display:flex;align-items:center;justify-content:center;font-size:1.6rem;gap:.1rem;}',
+    /* a computer: the maze as big as the screen allows, the arrows beside it */
+    '.mz-keys{display:none;margin:0;}',
+    '@media (min-width:900px){.g-split .mz-wrap{width:min(calc(100svh - 12.5rem),40rem);flex:none;}.mz-keys{display:block;}',
+    '.g-split .mz-pad{grid-template-columns:repeat(3,5rem);grid-template-rows:repeat(2,4.4rem);}}'
   ].join('');
 
   BrainGames.register({
@@ -146,7 +150,7 @@
     benefit: 'תפיסה מרחבית ותכנון דרך',
     instructions: [
       'העיגול הכחול הוא אתם. הובילו אותו אל הבית 🏠.',
-      'לחצו על החצים. העיגול ממשיך בדרך הישרה עד פנייה או צומת. אפשר גם ללחוץ על משבצת בשורה שלו או בטור שלו.',
+      'לחצו על החצים (או על החצים במקלדת). העיגול ממשיך בדרך הישרה עד פנייה או צומת. אפשר גם ללחוץ על משבצת בשורה שלו או בטור שלו.',
       'ברמות גבוהות: קודם לוקחים את המפתח 🔑 או אוספים כוכבים ⭐, ורק אחר כך הולכים הביתה.',
       'אין שעון. מנסים להגיע בלי להסתובב יותר מדי. יש כפתור "עזרה" שמראה את הדרך.'
     ],
@@ -158,6 +162,7 @@
       var sp = spec(level);
       var ROUNDS = sp.size <= 8 ? 3 : 2, round = 0, solved = 0;
       var NS = 'http://www.w3.org/2000/svg';
+      var keyHandler = null;
 
       function nextRound() {
         if (round >= ROUNDS) {
@@ -194,8 +199,9 @@
         var bag = el('div', { class: 'mz-bag', 'aria-live': 'polite' });
         var helpBtn = el('button', { class: 'mz-help-btn', type: 'button', onclick: help }, 'עזרה');
         var pad = el('div', { class: 'mz-pad' }, [helpBtn, arrow(N, '↑', 'למעלה'), bag, arrow(W, '←', 'שמאלה'), arrow(S, '↓', 'למטה'), arrow(E, '→', 'ימינה')]);
+        root.classList.add('g-split');
         root.appendChild(wrap);
-        root.appendChild(pad);
+        root.appendChild(el('div', { class: 'g-side' }, [pad, el('p', { class: 'g-hint mz-keys' }, 'אפשר גם עם החצים במקלדת')]));
         status();
         draw();
 
@@ -274,6 +280,16 @@
           else status();
           draw();
         }
+        // the arrow keys of a keyboard move too; the page does not scroll with them
+        if (keyHandler) document.removeEventListener('keydown', keyHandler);
+        keyHandler = function (e) {
+          var d = { ArrowUp: N, ArrowDown: S, ArrowLeft: W, ArrowRight: E }[e.key];
+          if (!d || e.ctrlKey || e.metaKey || e.altKey) return;
+          e.preventDefault();
+          if (document.activeElement && document.activeElement.blur && document.activeElement !== document.body) document.activeElement.blur();
+          move(d);
+        };
+        document.addEventListener('keydown', keyHandler);
         function move(d) {
           if (done || !(P.cells[pos[0]][pos[1]] & d)) return;
           walk(slide(P, pos[0], pos[1], d, stopAt));
@@ -315,6 +331,7 @@
           ctx.setStatus(ok ? 'הגעתם הביתה! ' + steps + ' צעדים' : helped ? 'הגעתם הביתה, בעזרת הקו הצהוב' : 'הגעתם הביתה, בדרך ארוכה (' + steps + ' צעדים, הקצרה: ' + P.best + ')');
           ctx.feedback(ok, ok ? undefined : 'הגעתם! בפעם הבאה נסו דרך קצרה יותר').then(function () {
             pad.remove();
+            var hintP = root.querySelector('.mz-keys'); if (hintP) hintP.remove();
             { ctx.wait(600).then(nextRound); return; } // a correct answer moves on by itself
             var next = el('button', { class: 'btn btn-primary btn-lg', type: 'button', onclick: function () { next.disabled = true; nextRound(); } },
               round >= ROUNDS ? 'לסיכום' : 'למבוך הבא');
@@ -324,6 +341,7 @@
       }
 
       nextRound();
+      return function cleanup() { if (keyHandler) document.removeEventListener('keydown', keyHandler); root.classList.remove('g-split'); };
     }
   });
 })();
