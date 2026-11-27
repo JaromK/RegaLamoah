@@ -132,11 +132,13 @@
     '.wsr-words li.is-found{text-decoration:line-through;color:var(--ink);}',
     '.wsr-theme{margin:0;font-size:1.2rem;font-weight:800;color:var(--language);}',
     '@media (min-width:900px){',
-    '.g-split .wsr-wrap{width:min(calc(100svh - 12.5rem),40rem);flex:none;}',
-    '.g-split .wsr-cell{font-size:calc(min(100svh - 12.5rem,40rem) / var(--n) * .6);}',
+    '.g-split .wsr-wrap{width:min(calc(100svh - 11.5rem),46rem);flex:none;}',
+    '.g-split .wsr-cell{font-size:calc(min(100svh - 11.5rem,46rem) / var(--n) * .6);}',
     // the words one under the other, in a narrow column beside the board
     '.g-split .wsr-words{margin:0;gap:.35rem;flex-direction:column;flex-wrap:nowrap;align-items:stretch;text-align:center;}',
-    '.g-split .wsr-words li{font-size:1.2rem;padding:.05rem .9rem;}',
+    '.g-split .wsr-words li{font-size:1.25rem;padding:.1rem .9rem;}',
+    /* many words: two columns beside the board, so the board can stay big */
+    '.g-split .wsr-words.is-two{display:grid;grid-template-columns:repeat(2,auto);gap:.35rem .4rem;}',
     '.play-board.g-split:has(.wsr-wrap) > .g-side{width:auto;min-width:11rem;}',
     '.g-split .wsr-actions{margin-top:0;}',
     '}'
@@ -212,7 +214,7 @@
           rings.appendChild(rc);
         }
         var chips = B.words.map(function (w) { return el('li', null, w.w); });
-        var list = el('ul', { class: 'wsr-words' }, chips);
+        var list = el('ul', { class: 'wsr-words' + (chips.length > 7 ? ' is-two' : '') }, chips);
         var hintBtn = el('button', { class: 'btn btn-secondary btn-sm', type: 'button', onclick: hint }, 'רמז');
         var showBtn = el('button', { class: 'btn btn-quiet btn-sm', type: 'button', onclick: reveal }, 'הראו את המילים');
         var actions = el('div', { class: 'g-actions wsr-actions' }, [hintBtn, showBtn]);

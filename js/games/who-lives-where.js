@@ -206,6 +206,8 @@
     '.wl-legend span{white-space:nowrap;}',
     '.wl-legend{margin:0;padding-top:.1rem;text-align:center;font-size:.92rem;font-weight:700;color:var(--ink-soft);line-height:1.25;}',
     '.wl-street{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:.35rem;width:100%;max-width:28rem;direction:rtl;}',
+    '@media (min-width:900px){.g-split .wl-street{width:min(34rem,50%);max-width:none;flex:none;}.g-split .wl-slot{height:4rem;}',
+    '.g-split .wl-slot .e{font-size:1.8rem;}.g-split .wl-slot .nm{font-size:1.2rem;}.play-board.g-split > .wl-side{width:min(28rem,46%);}}',
     '.wl-house{display:flex;flex-direction:column;align-items:stretch;min-width:0;}',
     '.wl-roof{height:1.7rem;clip-path:polygon(50% 0,100% 100%,0 100%);background:var(--hc);display:flex;align-items:flex-end;justify-content:center;',
     'color:#fff;font-weight:900;font-size:1.15rem;line-height:1;padding-bottom:.15rem;}',
@@ -314,7 +316,10 @@
         var lg = legend(P);
         // inside the list: no extra gap on the page; each explanation stays on one line
         if (lg.length) clueList.appendChild(el('li', { class: 'wl-legend' }, [].concat.apply([], lg.map(function (t, i) { return (i ? [' · '] : []).concat([el('span', null, t)]); }))));
-        [street, clueList, actions].forEach(function (nd) { root.appendChild(nd); });
+        // on a computer the clues and buttons sit beside the street (shared .g-split layout); on a phone below it
+        root.classList.add('g-split');
+        root.appendChild(street);
+        root.appendChild(el('div', { class: 'g-side wl-side' }, [clueList, actions]));
         var baseStatus = 'לחצו על בית ובחרו מי גר שם';
         ctx.setStatus(baseStatus);
         render();
