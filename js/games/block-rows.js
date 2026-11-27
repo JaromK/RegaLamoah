@@ -1,6 +1,7 @@
 /* מלאו שורות — place coloured blocks (each with a symbol) on a board, with no clock and nothing falling. A full row or
    column is cleared. The goal names which lines count: any full line, a line of one colour, a line of one symbol, or a
-   line that is one colour AND one symbol. A board has a number of blocks to use (planning, flexible thinking). */
+   line that is one colour AND one symbol. New blocks keep coming until the goal is reached or no block fits any more
+   (then "בטלו" can try another way). Planning, flexible thinking. */
 (function () {
   'use strict';
 
@@ -18,18 +19,18 @@
   };
 
   /* Level 1–50: n = board side, k = colours, free = colour and symbol vary separately (otherwise each colour has its
-     own symbol), goals = [{ t: 'any' | 'color' | 'symbol' | 'both', n }], blocks = blocks to use, big = largest block. */
+     own symbol), goals = [{ t: 'any' | 'color' | 'symbol' | 'both', n }], big = largest block. */
   function spec(level) {
     var L = Math.max(1, Math.min(50, level));
-    if (L <= 6) return { n: 6, k: 3, free: false, goals: [{ t: 'any', n: 2 }], blocks: 12, big: 3 };
-    if (L <= 12) return { n: 6, k: 3, free: false, goals: [{ t: 'any', n: 3 }], blocks: 14, big: 4 };
-    if (L <= 18) return { n: 6, k: 2, free: false, goals: [{ t: 'color', n: 2 }], blocks: 14, big: 4 };
-    if (L <= 24) return { n: 6, k: 3, free: false, goals: [{ t: 'color', n: 2 }], blocks: 15, big: 4 };
-    if (L <= 30) return { n: 6, k: 3, free: false, goals: [{ t: 'color', n: 3 }], blocks: 20, big: 4 };
-    if (L <= 35) return { n: 6, k: 3, free: true, goals: [{ t: 'symbol', n: 2 }], blocks: 16, big: 4 };
-    if (L <= 40) return { n: 6, k: 3, free: true, goals: [{ t: 'color', n: 1 }, { t: 'symbol', n: 1 }], blocks: 15, big: 4 };
-    if (L <= 45) return { n: 7, k: 3, free: true, goals: [{ t: 'color', n: 2 }, { t: 'symbol', n: 1 }], blocks: 22, big: 4 };
-    return { n: 7, k: 3, free: true, goals: [{ t: 'both', n: 1 }, { t: 'color', n: 1 }, { t: 'symbol', n: 1 }], blocks: 26, big: 4 };
+    if (L <= 6) return { n: 6, k: 3, free: false, goals: [{ t: 'any', n: 2 }], big: 3 };
+    if (L <= 12) return { n: 6, k: 3, free: false, goals: [{ t: 'any', n: 3 }], big: 4 };
+    if (L <= 18) return { n: 6, k: 2, free: false, goals: [{ t: 'color', n: 2 }], big: 4 };
+    if (L <= 24) return { n: 6, k: 3, free: false, goals: [{ t: 'color', n: 2 }], big: 4 };
+    if (L <= 30) return { n: 6, k: 3, free: false, goals: [{ t: 'color', n: 3 }], big: 4 };
+    if (L <= 35) return { n: 6, k: 3, free: true, goals: [{ t: 'symbol', n: 2 }], big: 4 };
+    if (L <= 40) return { n: 6, k: 3, free: true, goals: [{ t: 'color', n: 1 }, { t: 'symbol', n: 1 }], big: 4 };
+    if (L <= 45) return { n: 7, k: 3, free: true, goals: [{ t: 'color', n: 2 }, { t: 'symbol', n: 1 }], big: 4 };
+    return { n: 7, k: 3, free: true, goals: [{ t: 'both', n: 1 }, { t: 'color', n: 1 }, { t: 'symbol', n: 1 }], big: 4 };
   }
 
   function turn(cells) { // a quarter turn, moved back to the top-left corner
@@ -57,8 +58,9 @@
   function goalText(g) {
     var many = g.n > 1 ? g.n + ' ' : '';
     if (g.t === 'any') return g.n > 1 ? g.n + ' שורות מלאות' : 'שורה מלאה';
-    if (g.t === 'color') return many + (g.n > 1 ? 'שורות' : 'שורה') + ' בצבע אחד';
-    if (g.t === 'symbol') return many + (g.n > 1 ? 'שורות' : 'שורה') + ' עם סימן אחד';
+    // several lines: each one is one colour (or one symbol), and they may differ from one another
+    if (g.t === 'color') return g.n > 1 ? g.n + ' שורות, כל אחת בצבע אחד' : 'שורה בצבע אחד';
+    if (g.t === 'symbol') return g.n > 1 ? g.n + ' שורות, כל אחת עם סימן אחד' : 'שורה עם סימן אחד';
     return many + (g.n > 1 ? 'שורות' : 'שורה') + ' של ' + g.s + ' ' + CNAME[g.c] + ' בלבד';
   }
   function goalShort(g) {
@@ -72,6 +74,10 @@
     '.br-goal b{font-variant-numeric:tabular-nums;background:var(--surface);border-radius:999px;padding:0 .45rem;}',
     '.br-goal.is-met{border-color:var(--good);background:var(--good-soft);}',
     '.br-goal .sw{display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:5px;font-size:.95rem;color:#fff;}',
+    '.br-goals.is-many .br-goal{font-size:.93rem;padding:.12rem .4rem;gap:.22rem;}.br-goals.is-many{gap:.25rem;}',
+    '.br-ex{display:inline-flex;gap:.3rem;}.br-ex-line{display:inline-flex;gap:1px;}',
+    '.br-ex-line span{width:.8rem;height:.8rem;border-radius:2px;display:grid;place-items:center;}',
+    '.br-ex-line span.is-sym{background:var(--surface);color:var(--ink);font-size:.7rem;line-height:1;box-shadow:inset 0 0 0 1px var(--line);}',
     '.br-left{font-weight:700;color:var(--ink-soft);font-size:1rem;text-align:center;line-height:1.15;}',
     '.br-board{--n:6;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:3px;padding:4px;background:var(--line);border-radius:var(--radius-sm);',
     'width:min(100%,calc(100svh - 25rem),30rem);min-width:min(100%,17rem);direction:ltr;touch-action:none;}',
@@ -88,6 +94,7 @@
     '.br-slot{min-height:4.8rem;border:3px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);display:grid;place-items:center;cursor:pointer;padding:.3rem;touch-action:none;}',
     '.br-slot.is-sel{border-color:var(--ink);box-shadow:0 0 0 3px var(--ink);}',
     '.br-slot:disabled{opacity:.35;cursor:default;}',
+    '.br-slot.is-stuck{opacity:1;border-color:var(--bad);background:var(--bad-soft);}',
     '.br-mini{display:grid;gap:2px;direction:ltr;pointer-events:none;}',
     '.br-mini span{width:1.2rem;height:1.2rem;border-radius:4px;display:grid;place-items:center;font-size:.85rem;color:#fff;line-height:1;}',
     '.br-mini span.e{background:transparent;}',
@@ -115,7 +122,7 @@
     benefit: 'תכנון, גמישות מחשבתית וראייה מרחבית',
     instructions: [
       'בחרו חלק למטה ולחצו על הלוח: יופיע צל של החלק. לחיצה נוספת על הצל מניחה אותו. אפשר גם לגרור.',
-      'שורה או טור שמתמלאים נמחקים, ומפנים מקום. אין שעון ושום דבר לא נופל.',
+      'שורה או טור שמתמלאים נמחקים, ומפנים מקום. אין שעון, שום דבר לא נופל, והחלקים לא נגמרים: ממשיכים עד שמשיגים את המטרה, או עד שאין מקום לאף חלק.',
       'המטרה כתובה למעלה: למשל "שורה בצבע אחד" או "שורה עם סימן אחד". רק שורות כאלה נספרות.',
       '"סובבו" מסובב את החלק, ו"בטלו" מחזיר את הצעד האחרון.'
     ],
@@ -151,7 +158,7 @@
         var bothGoal = goals.filter(function (g) { return g.t === 'both'; })[0];
         var grid = [];
         for (var i = 0; i < n * n; i++) grid.push(null);
-        var left = sp.blocks; // blocks still to come, the tray included
+        var used = 0, stuck = false; // blocks placed; stuck = none of the three blocks fits anywhere
         var tray = [null, null, null], sel = -1, ghost = null, done = false, history = [];
 
         function newBlock() {
@@ -162,14 +169,7 @@
           if (bothGoal && ctx.randInt(1, 100) <= 35) { c = bothGoal.c; s = bothGoal.s; } // the wanted kind comes more often
           return { cells: cells, c: c, s: s };
         }
-        function fill() {
-          for (var j = 0; j < 3; j++) if (!tray[j] && left - tray.filter(Boolean).length > 0) tray[j] = newBlock();
-          // never stuck: if no block fits anywhere, the last one becomes a single square
-          if (!tray.some(function (b) { return b && fitsAnywhere(b); })) {
-            var j2 = tray.map(function (b) { return !!b; }).lastIndexOf(true);
-            if (j2 >= 0) tray[j2] = { cells: [[0, 0]], c: tray[j2].c, s: tray[j2].s };
-          }
-        }
+        function fill() { for (var j = 0; j < 3; j++) if (!tray[j]) tray[j] = newBlock(); } // blocks never run out
         function fits(b, r0, c0) {
           return b.cells.every(function (x) {
             var r = r0 + x[0], c = c0 + x[1];
@@ -182,7 +182,7 @@
         }
 
         // ---- screen ----
-        var goalRow = el('div', { class: 'br-goals' });
+        var goalRow = el('div', { class: 'br-goals' + (sp.goals.length > 1 ? ' is-many' : '') });
         var leftEl = el('div', { class: 'br-left' });
         var cellEls = [];
         for (i = 0; i < n * n; i++) (function (i) {
@@ -197,20 +197,33 @@
         var trayEl = el('div', { class: 'br-tray' }, slots);
         var turnBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: rotate }, 'סובבו ↻');
         var undoBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: undo }, '↶ בטלו');
-        var acts = el('div', { class: 'g-actions br-acts' }, [turnBtn, leftEl, undoBtn]);
+        var stuckBtn = el('button', { class: 'btn btn-primary', type: 'button', hidden: true, onclick: giveUp }, round >= ROUNDS ? 'לסיכום' : 'ללוח הבא');
+        var acts = el('div', { class: 'g-actions br-acts' }, [turnBtn, stuckBtn, leftEl, undoBtn]);
         root.appendChild(goalRow); root.appendChild(board); root.appendChild(trayEl); root.appendChild(acts);
         fill();
         ctx.setStatus(goals.length > 1 ? 'מלאו שורות לפי המטרות שלמעלה' : 'המטרה: ' + goalText(goals[0]));
         draw();
 
         function swatch(c, s) { return el('span', { class: 'sw br-' + c }, s); }
+        function example(t) {
+          var line = function (j) {
+            return el('span', { class: 'br-ex-line' }, (goals.length > 1 ? [0, 1] : [0, 1, 2]).map(function () { // shorter when chips share a row
+              return t === 'color' ? el('span', { class: 'br-' + colors[j] }) : el('span', { class: 'is-sym' }, syms[j]);
+            }));
+          };
+          return el('span', { class: 'br-ex', 'aria-hidden': 'true' }, [line(0), line(1)]);
+        }
         function draw() {
           goalRow.innerHTML = '';
           goals.forEach(function (g) {
             var kids = [];
             if (g.t === 'both') kids.push(swatch(g.c, g.s));
+            // several lines of one colour / symbol: a small example of two lines that differ, so it is clear
+            // that every line may have its own colour (or symbol)
+            if (g.n > 1 && (g.t === 'color' || g.t === 'symbol')) kids.push(example(g.t));
             // with two or three goals the chips need the short words to share one line
-            kids.push(el('span', null, goals.length > 1 ? goalShort(g) : goalText({ t: g.t, n: 1, c: g.c, s: g.s })));
+            kids.push(el('span', null, goals.length > 1 ? goalShort(g) : g.n > 1 ? (g.t === 'color' ? 'כל שורה בצבע אחד' : 'כל שורה עם סימן אחד')
+              : goalText({ t: g.t, n: 1, c: g.c, s: g.s })));
             // a goal of several lines shows how many are done; a goal of one line just gets a ✓
             if (g.n > 1 || g.got >= g.n) kids.push(el('b', null, g.got >= g.n ? '✓' : g.got + '/' + g.n));
             goalRow.appendChild(el('div', { class: 'br-goal' + (g.got >= g.n ? ' is-met' : '') }, kids));
@@ -229,7 +242,8 @@
           slots.forEach(function (b, j) {
             b.innerHTML = '';
             b.classList.toggle('is-sel', j === sel && !done);
-            b.disabled = done || !tray[j];
+            b.classList.toggle('is-stuck', stuck);
+            b.disabled = done || stuck || !tray[j];
             if (!tray[j]) return;
             var d = dims(tray[j].cells), on = {};
             tray[j].cells.forEach(function (x) { on[x[0] + ',' + x[1]] = true; });
@@ -240,9 +254,10 @@
             b.appendChild(mini);
             b.setAttribute('aria-label', 'חלק ' + CNAME[tray[j].c] + ' של ' + tray[j].cells.length + ' משבצות');
           });
-          leftEl.textContent = 'נשארו ' + left + ' חלקים';
+          leftEl.textContent = 'הנחתם ' + used + ' חלקים';
           leftEl.setAttribute('aria-live', 'polite');
           turnBtn.disabled = done || sel < 0;
+          turnBtn.hidden = stuck; stuckBtn.hidden = !stuck;
           undoBtn.disabled = done || !history.length;
         }
 
@@ -280,9 +295,9 @@
 
         function place() {
           var b = tray[sel];
-          history.push({ grid: grid.slice(), tray: tray.slice(), left: left, got: goals.map(function (g) { return g.got; }) });
+          history.push({ grid: grid.slice(), tray: tray.slice(), used: used, got: goals.map(function (g) { return g.got; }) });
           b.cells.forEach(function (x) { grid[(ghost.r + x[0]) * n + ghost.c + x[1]] = { c: b.c, s: b.s }; });
-          tray[sel] = null; left--;
+          tray[sel] = null; used++;
           sel = -1; ghost = null;
           ctx.sound('tap');
           // full rows and columns
@@ -333,16 +348,25 @@
           return 'השורה התמלאה, אבל לא כולה ' + open.s + ' ' + CNAME[open.c] + ', אז היא לא נספרת';
         }
         function after(won) {
-          if (won) { finishBoard(true); return; }
+          if (won) { finishBoard(); return; }
           fill();
-          if (!left) { finishBoard(false); return; }
+          // blocked: no block fits anywhere. Say so plainly, and let the player undo or go on
+          if (!tray.some(function (b) { return fitsAnywhere(b); })) {
+            stuck = true; ctx.sound('bad');
+            ctx.setStatus('הלוח נחסם: אין מקום לאף חלק'); // the red blocks show it; "בטלו" tries another way
+          }
           draw();
+        }
+        function giveUp() {
+          if (done || !stuck) return;
+          done = true; draw();
+          ctx.feedback(false, 'הלוח נחסם').then(nextRound);
         }
         function undo() {
           if (done || !history.length) return;
           ctx.sound('tap');
           var h = history.pop();
-          grid = h.grid; tray = h.tray; left = h.left;
+          grid = h.grid; tray = h.tray; used = h.used; stuck = false;
           goals.forEach(function (g, j) { g.got = h.got[j]; });
           sel = -1; ghost = null;
           ctx.setStatus('הצעד האחרון בוטל');
@@ -387,18 +411,12 @@
           dragCleanup = function () { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up); if (fly) fly.remove(); };
         }
 
-        function finishBoard(won) {
+        function finishBoard() { // the goal is reached
           done = true; sel = -1; ghost = null;
           draw();
-          if (won) good++;
-          ctx.setStatus(won ? 'כל הכבוד! השגתם את המטרה' : 'נגמרו החלקים לפני שהשגתם את המטרה');
-          ctx.feedback(won, won ? 'השגתם את המטרה!' : 'נגמרו החלקים').then(function () {
-            if (won) { ctx.wait(600).then(nextRound); return; }
-            ctx.setStatus('נגמרו החלקים. טיפ: חשבו לאיזו שורה מתאים כל חלק, לפי ' +
-              (goals.some(function (g) { return g.t === 'symbol'; }) ? 'הסימן שלו' : goals.some(function (g) { return g.t === 'any'; }) ? 'המקום הפנוי' : 'הצבע שלו'));
-            acts.hidden = trayEl.hidden = true; // the continue button takes the place of the empty tray and the buttons
-            ctx.next(round >= ROUNDS ? 'לסיכום' : 'ללוח הבא').then(nextRound);
-          });
+          good++;
+          ctx.setStatus('כל הכבוד! השגתם את המטרה, עם ' + used + ' חלקים');
+          ctx.feedback(true, 'השגתם את המטרה!').then(function () { ctx.wait(600).then(nextRound); });
         }
       }
 
