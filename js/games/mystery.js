@@ -24,18 +24,18 @@
   ];
   // who = the one who did it, said in a few words (one line on a phone together with the known fact)
   var CASES = [
-    { e: '🎂', who: 'מי שלקח את העוגה של סבתא' }, { e: '🪴', who: 'מי ששבר את העציץ של השכנה' },
-    { e: '📰', who: 'מי שלקח את העיתון של סבא' }, { e: '🚲', who: 'מי שלקח את האופניים של הנכד' },
-    { e: '🍪', who: 'מי שלקח את העוגיות' }, { e: '🎈', who: 'מי שהוריד את הבלונים' },
-    { e: '🐈', who: 'מי שפתח את השער לחתול' }, { e: '🌷', who: 'מי שקטף את הפרחים בגינה' }
+    { e: '🎂', what: 'העוגה של סבתא נעלמה!', who: 'מי שלקח אותה' }, { e: '🪴', what: 'העציץ של השכנה נשבר!', who: 'מי ששבר אותו' },
+    { e: '📰', what: 'העיתון של סבא נעלם!', who: 'מי שלקח אותו' }, { e: '🚲', what: 'האופניים של הנכד נעלמו!', who: 'מי שלקח אותם' },
+    { e: '🍪', what: 'העוגיות נעלמו מהצנצנת!', who: 'מי שלקח אותן' }, { e: '🎈', what: 'הבלונים של המסיבה נעלמו!', who: 'מי שלקח אותם' },
+    { e: '🐈', what: 'השער נפתח והחתול ברח!', who: 'מי שפתח אותו' }, { e: '🌷', what: 'הפרחים בגינה נקטפו!', who: 'מי שקטף אותם' }
   ];
 
   /* Level 1–50: n = suspects (and places, and things), items = things too, types = kinds of clue,
      noDirect = no clue that names the answer straight away. */
   function spec(level) {
     var L = Math.max(1, Math.min(50, level));
-    var full = L >= 13; // from 13 the clues settle everything (who was where, with what), not only the answer
-    var s = spec0(L); s.full = full; return s;
+    // the clues always settle everything (who was where, with what): the player fills in every suspect's card
+    var s = spec0(L); s.full = true; return s;
   }
   function spec0(L) {
     if (L <= 5) return { n: 3, items: false, types: ['spY', 'spN'], noDirect: false };
@@ -83,7 +83,7 @@
     P.forEach(function (pl) { (sp.items ? P : [null]).forEach(function (it) { worlds.push({ pl: pl, it: it || pl }); }); });
     var sol = rnd.pick(worlds);
     var c = rnd.randInt(0, n - 1);
-    var q = !sp.items ? 'who' : rnd.pick(['who', 'item', 'place']);
+    var q = 'who'; // the question is always who did it (the clearest one)
     var fact = q === 'place' ? { t: 'item', v: sol.it[c] } : q === 'item' ? { t: 'place', v: sol.pl[c] } : rnd.pick([{ t: 'place', v: sol.pl[c] }].concat(sp.items ? [{ t: 'item', v: sol.it[c] }] : []));
     var ans = answerIn(sol, q, fact);
     // every true clue of the allowed kinds
@@ -130,44 +130,47 @@
       var rest = clues.filter(function (x) { return x !== cl; });
       if (unique(rest)) clues = rest;
     });
-    if (clues.length < 2 || clues.length > (n === 3 ? 6 : 8)) return null; // 8 clues at most: they must fit a phone
+    if (clues.length < 2 || clues.length > (n === 3 ? 6 : 7)) return null; // 7 clues at most: they must fit a phone
     return { n: n, items: sp.items, sol: sol, culprit: c, q: q, fact: fact, answer: ans, clues: rnd.shuffle(clues), worlds: worlds };
   }
 
   var css = [
-    '.my-case{display:flex;align-items:center;gap:.5rem;width:100%;max-width:30rem;background:var(--c-yellow-soft);border-radius:var(--radius-sm);padding:.2rem .55rem;}',
-    '.my-case .e{font-size:1.7rem;line-height:1;flex:none;}',
-    '.my-case p{margin:0;font-weight:800;font-size:.95rem;line-height:1.25;}',
-
-    '.my-main{display:flex;flex-direction:column;align-items:center;gap:.4rem;width:100%;}',
-    '.my-clues{list-style:none;margin:0;padding:0;width:100%;max-width:30rem;display:flex;flex-direction:column;gap:.1rem;}',
-    '.my-clue{background:var(--surface-2);border-radius:8px;padding:.05rem .5rem;font-weight:700;font-size:.97rem;line-height:1.3;}',
-    '.play-board.g-split:has(.my-book){gap:.55rem;}',
-    '.my-clue.is-tip{background:var(--c-purple-soft);box-shadow:inset 0 0 0 3px var(--c-purple);}',
-    /* the switch between places and things sits in the empty top corner of the notebook */
-    '.my-switch{border:2px solid var(--c-blue);border-radius:8px;background:var(--c-blue-soft);color:var(--ink);font:inherit;font-size:1.1rem;line-height:1;',
-    'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.1rem 0;cursor:pointer;}',
-    '.my-switch small{font-size:.62rem;font-weight:800;white-space:nowrap;}',
-    '.my-book{display:grid;grid-template-columns:3.4rem repeat(var(--n),2.35rem);gap:3px;direction:rtl;}',
-    '.my-h{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;font-size:1.35rem;line-height:1.05;text-align:center;}',
-    '.my-h small{font-size:.66rem;font-weight:800;color:var(--ink-soft);white-space:nowrap;}',
-    '.my-row{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.3rem;line-height:1;}',
-    '.my-row{flex-direction:row;gap:.15rem;font-size:1.1rem;}.my-row small{font-size:.8rem;font-weight:800;}',
-    '.my-cell{height:2.3rem;border:2px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;font-size:1.4rem;font-weight:900;',
-    'cursor:pointer;padding:0;line-height:1;}',
-    '.my-cell.is-x{color:var(--c-red);}.my-cell.is-x.is-auto{color:var(--ink-soft);opacity:.6;}',
-    '.my-cell.is-v{color:var(--c-green);background:var(--c-green-soft);}',
-    '.my-cell.is-tip{box-shadow:0 0 0 3px var(--c-purple);}',
-    '.my-cell.is-bad{box-shadow:0 0 0 3px var(--c-red);}',
-    '.my-acts{flex-wrap:nowrap;gap:.3rem;width:100%;max-width:30rem;}.my-acts .btn{flex:1 1 auto;min-width:0;min-height:2.9rem;padding-inline:.4rem;font-size:.95rem;white-space:nowrap;}',
+    /* the story: what happened, the big clue, the goal */
+    '.my-story{width:100%;max-width:32rem;background:var(--c-yellow-soft);border-radius:14px;padding:.35rem .6rem;display:flex;gap:.5rem;align-items:center;}',
+    '.my-story .e{font-size:2rem;line-height:1;flex:none;}',
+    '.my-story p{margin:0;font-weight:800;font-size:.98rem;line-height:1.25;}',
+    '.my-story .big{display:block;margin-top:.15rem;color:var(--c-red);}',
+    /* suspects: a card each, with the places (and things) to fill in */
+    /* one row per suspect: who, where, (what) */
+    '.my-cards{display:flex;flex-direction:column;gap:.22rem;width:100%;max-width:32rem;}',
+    '.my-card{background:var(--surface-2);border-radius:12px;padding:.1rem .3rem;display:grid;grid-template-columns:5.2rem repeat(var(--k),minmax(0,1fr));gap:.3rem;align-items:center;border:3px solid transparent;}',
+    '.my-card.is-bad{border-color:var(--c-red);}.my-card.is-ok{border-color:var(--c-green);}.my-card.is-tip{border-color:var(--c-purple);}',
+    '.my-card.is-culprit{background:var(--c-yellow-soft);border-color:var(--c-yellow);}',
+    '.my-who{display:flex;align-items:center;gap:.3rem;font-weight:900;font-size:1rem;min-width:0;}',
+    '.my-who .e{font-size:1.5rem;line-height:1;}',
+    '.my-slot{display:flex;align-items:center;justify-content:center;gap:.25rem;min-height:2.55rem;border-radius:10px;border:2px dashed var(--ink-soft);background:var(--surface);',
+    'color:var(--ink);font:inherit;font-weight:800;font-size:.95rem;padding:.05rem .3rem;cursor:pointer;white-space:nowrap;overflow:hidden;min-width:0;min-height:2.2rem;}',
+    '.my-slot.is-set{border-style:solid;border-color:var(--c-blue);background:var(--c-blue-soft);}',
+    '.my-slot .e{font-size:1.25rem;}',
+    '.my-slot:disabled{cursor:default;}',
+    '.my-clues{list-style:none;margin:0;padding:0;width:100%;max-width:32rem;display:flex;flex-direction:column;gap:.15rem;}',
+    '.my-clue{display:flex;gap:.4rem;align-items:center;width:100%;text-align:start;padding:.05rem .45rem;border-radius:8px;border:0;background:var(--surface-2);',
+    'color:var(--ink);font:inherit;font-size:.95rem;font-weight:700;line-height:1.28;cursor:pointer;}',
+    '.my-clue .ck{flex:none;width:1.25rem;height:1.25rem;border:2px solid var(--ink-soft);border-radius:4px;display:grid;place-items:center;font-size:.85rem;}',
+    '.my-clue.is-done{opacity:.55;}.my-clue.is-done .ck{background:var(--good);border-color:var(--good);color:#fff;}',
+    '.my-clue.is-tip{background:var(--c-purple-soft);box-shadow:inset 0 0 0 3px var(--c-purple);opacity:1;}',
+    '.my-clue.is-broken{background:var(--c-red-soft);box-shadow:inset 0 0 0 3px var(--c-red);opacity:1;}',
+    '.my-acts{flex-wrap:nowrap;gap:.3rem;width:100%;max-width:32rem;}.my-acts .btn{flex:1 1 auto;min-width:0;padding-inline:.4rem;font-size:.95rem;white-space:nowrap;}',
+    /* the chooser at the bottom of the screen */
     '.my-sheet{position:fixed;inset-inline:0;bottom:0;z-index:15;background:var(--surface);border-top:3px solid var(--c-blue);box-shadow:var(--shadow);',
     'padding:.8rem .8rem 1rem;display:flex;flex-direction:column;gap:.6rem;align-items:center;}',
     '.my-sheet h3{font-family:var(--font-body);font-size:1.2rem;font-weight:800;margin:0;}',
     '.my-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem;width:100%;max-width:26rem;}',
-    '.my-opt{display:flex;align-items:center;justify-content:center;gap:.4rem;min-height:3.6rem;border-radius:var(--radius-sm);border:2px solid var(--line);',
-    'background:var(--surface-2);color:var(--ink);font:inherit;font-weight:800;font-size:1.15rem;cursor:pointer;}',
-    '.my-opt .e{font-size:1.7rem;}',
-    '@media (min-width:900px){.my-main{max-width:30rem;}.g-split .my-book{grid-template-columns:4rem repeat(var(--n),3.4rem);}.g-split .my-cell{height:3.4rem;}}'
+    '.my-opt{display:flex;align-items:center;justify-content:center;gap:.4rem;min-height:3.4rem;border-radius:var(--radius-sm);border:2px solid var(--line);',
+    'background:var(--surface-2);color:var(--ink);font:inherit;font-weight:800;font-size:1.1rem;cursor:pointer;}',
+    '.my-opt .e{font-size:1.6rem;}.my-opt small{font-size:.8rem;color:var(--ink-soft);font-weight:700;}',
+    '.my-opt.is-here{border-color:var(--c-blue);background:var(--c-blue-soft);}',
+    '@media (min-width:900px){.my-main,.my-side{max-width:32rem;width:100%;display:flex;flex-direction:column;gap:.6rem;align-items:center;}}'
   ].join('');
 
   BrainGames.register({
@@ -175,13 +178,13 @@
     name: 'תעלומה בשכונה',
     skill: 'logic',
     isNew: true,
-    tagline: 'קראו את הרמזים ופתרו את התעלומה',
+    tagline: 'קראו את הרמזים וגלו מי עשה את זה',
     benefit: 'חשיבה לוגית והסקת מסקנות',
     instructions: [
-      'משהו קרה בשכונה (העוגה נעלמה, העציץ נשבר…). כל חשוד היה במקום אחר (ובהמשך גם החזיק חפץ אחר). דבר אחד ידוע על מי שעשה את זה.',
-      'קראו את הרמזים וגלו מי עשה את זה, או באיזה חפץ השתמש, או איפה זה קרה.',
-      'במחברת הבלש לחצו על משבצת: פעם אחת ✗ (לא), פעם שנייה ✓ (כן). ✓ מסמן ✗ בשאר השורה והטור.',
-      'כשאתם יודעים, לחצו "פתרתי!". יש "רמז", "↶ בטלו" ו"נקו". אין שעון.'
+      'משהו קרה בשכונה, ויש כמה חשודים. כל חשוד היה במקום אחר (ובהמשך גם החזיק חפץ אחר).',
+      'הרמז הגדול אומר איפה היה מי שעשה את זה. הרמזים הקטנים מספרים על החשודים.',
+      'לחצו על "איפה?" בכרטיס של כל חשוד ובחרו מקום. כשכולם במקום, לחצו "בדיקה".',
+      'מי שנמצא במקום של הרמז הגדול, הוא עשה את זה! יש "רמז", "↶ בטלו" ו"נקו". אין שעון.'
     ],
     css: css,
     _model: { spec: spec, makeCase: makeCase, holds: holds, answerIn: answerIn },
@@ -225,202 +228,146 @@
           }
           return '';
         }
-        var factText = C.fact.t === 'place' ? cs.who + ' היה ' + plc[C.fact.v].in + '.' : cs.who + ' החזיק את ' + IT(C.fact.v) + '.';
-        var QTEXT = { who: 'מי זה היה?', item: 'איזה חפץ הוא החזיק?', place: 'איפה הוא היה?' };
+        var bigClue = C.fact.t === 'place' ? cs.who + ' היה ' + plc[C.fact.v].in : cs.who + ' החזיק את ' + IT(C.fact.v);
 
-        // the notebook: marks.place[s][j] / marks.item[s][j] = 0 empty, 1 ✗, 2 ✓; auto = ✗ put by a ✓
-        function grid() { return Array.apply(null, { length: n }).map(function () { return Array.apply(null, { length: n }).map(function () { return 0; }); }); }
-        var marks = { place: grid(), item: grid() }, auto = { place: grid(), item: grid() };
-        var tab = 'place', hints = 0, done = false, past = [], tip = null;
+        // what the player wrote on each card: pl[s] = place index or -1, it[s] = thing index or -1
+        var pl = ppl.map(function () { return -1; }), it = ppl.map(function () { return -1; });
+        var marks = {}, done = false, hints = 0, checks = 0, past = [], tipS = -1, tipClue = -1, bad = {}, broken = -1, sheet = null;
 
-        var caseEl = el('div', { class: 'my-case' }, [el('span', { class: 'e', 'aria-hidden': 'true' }, cs.e),
-          el('p', null, factText)]);
-        var ASK = QTEXT[C.q];
-        var clueEls = C.clues.map(function (c) { return el('li', { class: 'my-clue' }, clueText(c)); });
+        var story = el('div', { class: 'my-story' }, [
+          el('p', null, [cs.e + ' ' + (cs.what || ''), el('span', { class: 'big' }, '🔍 הרמז הגדול: ' + bigClue + '.')])]);
+        var cardsEl = el('div', { class: 'my-cards', style: { '--k': C.items ? 2 : 1 } });
+        var clueEls = C.clues.map(function (c, i) {
+          return el('li', null, el('button', { class: 'my-clue', type: 'button', onclick: function () { marks[i] = !marks[i]; ctx.sound('tap'); draw(); } },
+            [el('span', { class: 'ck', 'aria-hidden': 'true' }), el('span', null, clueText(c))]));
+        });
         var clueList = el('ul', { class: 'my-clues' }, clueEls);
-        var book = el('div', { class: 'my-book', style: { '--n': n }, 'aria-label': 'מחברת הבלש' });
+        var checkBtn = el('button', { class: 'btn btn-primary', type: 'button', onclick: check }, 'בדיקה');
         var hintBtn = el('button', { class: 'btn btn-secondary', type: 'button', onclick: hint }, 'רמז');
         var undoBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: undo }, '↶ בטלו');
         var clearBtn = el('button', { class: 'btn btn-quiet', type: 'button', onclick: clearAll }, 'נקו');
-        var solveBtn = el('button', { class: 'btn btn-primary', type: 'button', onclick: openAnswer }, 'פתרתי!');
-        var acts = el('div', { class: 'g-actions my-acts' }, [solveBtn, hintBtn, undoBtn, clearBtn]);
+        var acts = el('div', { class: 'g-actions my-acts' }, [checkBtn, hintBtn, undoBtn, clearBtn]);
         root.classList.add('g-split');
-        root.appendChild(el('div', { class: 'my-main' }, [caseEl, clueList]));
-        root.appendChild(el('div', { class: 'g-side' }, [book, acts]));
-        ctx.setStatus(ASK);
-        var sheet = null;
+        root.appendChild(el('div', { class: 'my-main' }, [story, cardsEl]));
+        root.appendChild(el('div', { class: 'g-side my-side' }, [clueList, acts]));
+        ctx.setStatus('גלו מי זה! לחצו על "איפה?" ליד כל חשוד');
         draw();
 
-        function setTab(t) { tab = t; ctx.sound('tap'); draw(); }
         function draw() {
-          book.innerHTML = '';
-          var cols = tab === 'place' ? plc : its;
-          // the top corner: with things too, a switch that shows the other page of the notebook
-          book.appendChild(!C.items ? el('span') : el('button', { class: 'my-switch', type: 'button', disabled: done,
-            'aria-label': tab === 'place' ? 'לעבור לחפצים' : 'לעבור למקומות', onclick: function () { setTab(tab === 'place' ? 'item' : 'place'); } },
-            [tab === 'place' ? '🧰' : '📍', el('small', null, tab === 'place' ? 'לחפצים' : 'למקומות')]));
-          cols.forEach(function (x) { book.appendChild(el('span', { class: 'my-h' }, [x.e, el('small', null, x.name)])); });
-          for (var s = 0; s < n; s++) {
-            book.appendChild(el('span', { class: 'my-row' }, [ppl[s].e, el('small', null, ppl[s].name)]));
-            for (var j = 0; j < n; j++) (function (s, j) {
-              var m = marks[tab][s][j];
-              var cls = 'my-cell' + (m === 1 ? ' is-x' + (auto[tab][s][j] ? ' is-auto' : '') : m === 2 ? ' is-v' : '') +
-                (tip && tip.tab === tab && tip.s === s && tip.j === j ? (tip.bad ? ' is-bad' : ' is-tip') : '');
-              book.appendChild(el('button', { class: cls, type: 'button', disabled: done,
-                'aria-label': ppl[s].name + ', ' + cols[j].name + (m === 1 ? ': לא' : m === 2 ? ': כן' : ''),
-                onclick: function () { tapCell(s, j); } }, m === 1 ? '✗' : m === 2 ? '✓' : ''));
-            })(s, j);
-          }
-          var any = ['place', 'item'].some(function (t) { return marks[t].some(function (r) { return r.some(Boolean); }); });
+          cardsEl.innerHTML = '';
+          ppl.forEach(function (p, s) {
+            var kids = [el('span', { class: 'my-who' }, [el('span', { class: 'e', 'aria-hidden': 'true' }, p.e), p.name])];
+            kids.push(el('button', { class: 'my-slot' + (pl[s] >= 0 ? ' is-set' : ''), type: 'button', disabled: done, onclick: function () { open(s, 'place'); } },
+              pl[s] >= 0 ? [el('span', { class: 'e', 'aria-hidden': 'true' }, plc[pl[s]].e), plc[pl[s]].name] : '📍 איפה?'));
+            if (C.items) kids.push(el('button', { class: 'my-slot' + (it[s] >= 0 ? ' is-set' : ''), type: 'button', disabled: done, onclick: function () { open(s, 'item'); } },
+              it[s] >= 0 ? [el('span', { class: 'e', 'aria-hidden': 'true' }, its[it[s]].e), its[it[s]].name] : '🧰 מה?'));
+            var culprit = done && s === C.culprit;
+            cardsEl.appendChild(el('div', { class: 'my-card' + (bad[s] ? ' is-bad' : '') + (s === tipS ? ' is-tip' : '') + (culprit ? ' is-culprit' : done ? ' is-ok' : '') }, kids));
+          });
+          clueEls.forEach(function (li, i) {
+            var b = li.firstChild;
+            b.classList.toggle('is-done', !!marks[i]); b.firstChild.textContent = marks[i] ? '✓' : '';
+            b.classList.toggle('is-tip', i === tipClue); b.classList.toggle('is-broken', i === broken);
+          });
+          var full = pl.every(function (v) { return v >= 0; }) && (!C.items || it.every(function (v) { return v >= 0; }));
+          checkBtn.disabled = done || !full;
           undoBtn.disabled = done || !past.length;
-          clearBtn.disabled = done || !any;
-          hintBtn.disabled = solveBtn.disabled = done;
+          clearBtn.disabled = done || !(pl.some(function (v) { return v >= 0; }) || it.some(function (v) { return v >= 0; }));
+          hintBtn.disabled = done;
         }
-        function snapshot() { past.push(JSON.stringify({ marks: marks, auto: auto })); }
-        function tapCell(s, j) {
-          if (done) return;
-          ctx.sound('tap');
-          snapshot();
-          if (tip) ctx.setStatus(ASK);
-          clearTip();
-          var m = marks[tab];
-          m[s][j] = (m[s][j] + 1) % 3;
-          auto[tab][s][j] = 0;
-          if (m[s][j] === 2) { // ✓: the rest of the row and the column cannot be
-            for (var k = 0; k < n; k++) {
-              if (k !== j && !m[s][k]) { m[s][k] = 1; auto[tab][s][k] = 1; }
-              if (k !== s && !m[k][j]) { m[k][j] = 1; auto[tab][k][j] = 1; }
-            }
-          }
-          draw();
-        }
-        function undo() {
-          if (done || !past.length) return;
-          ctx.sound('tap'); clearTip();
-          var p = JSON.parse(past.pop()); marks = p.marks; auto = p.auto;
-          ctx.setStatus('הצעד האחרון בוטל');
-          draw();
-        }
-        function clearAll() {
-          if (done) return;
-          ctx.sound('tap'); clearTip(); snapshot();
-          marks = { place: grid(), item: grid() }; auto = { place: grid(), item: grid() };
-          ctx.setStatus('המחברת נוקתה (אפשר "בטלו")');
-          draw();
-        }
-        function clearTip() { tip = null; clueEls.forEach(function (x) { x.classList.remove('is-tip'); }); }
-
-        /* ---------- hints that teach one step: never the answer itself ---------- */
-        function truth(t, s, j) { return (t === 'place' ? C.sol.pl[s] : C.sol.it[s]) === j; }
-        // the worlds that fit some clues and the right marks of the notebook
-        function fitting(clues) {
-          return C.worlds.filter(function (w) {
-            if (!clues.every(function (c) { return holds(c, w); })) return false;
-            for (var s = 0; s < n; s++) for (var j = 0; j < n; j++) {
-              var mp = marks.place[s][j], mi = marks.item[s][j];
-              if (mp && (mp === 2) === truth('place', s, j) && (mp === 2) !== (w.pl[s] === j)) return false;
-              if (C.items && mi && (mi === 2) === truth('item', s, j) && (mi === 2) !== (w.it[s] === j)) return false;
-            }
-            return true;
-          });
-        }
-        function sureCells(ws) { // cells every fitting world agrees on, and not marked right yet
-          var out = [];
-          (C.items ? ['place', 'item'] : ['place']).forEach(function (t) {
-            for (var s = 0; s < n; s++) for (var j = 0; j < n; j++) {
-              var m = marks[t][s][j];
-              if (m && (m === 2) === truth(t, s, j)) continue;
-              var v = ws.length ? (t === 'place' ? ws[0].pl[s] === j : ws[0].it[s] === j) : null;
-              if (ws.length && ws.every(function (w) { return (t === 'place' ? w.pl[s] === j : w.it[s] === j) === v; })) out.push({ t: t, s: s, j: j, v: v });
-            }
-          });
-          return out;
-        }
-        function hint() {
-          if (done) return;
-          clearTip();
-          // a wrong mark first: say which, not what is right
-          var kinds = C.items ? ['place', 'item'] : ['place'];
-          for (var ti = 0; ti < kinds.length; ti++) {
-            var t = kinds[ti];
-            for (var s = 0; s < n; s++) for (var j = 0; j < n; j++) {
-              var m = marks[t][s][j];
-              if (m && (m === 2) !== truth(t, s, j)) {
-                hints++;
-                tab = t; tip = { tab: t, s: s, j: j, bad: true };
-                ctx.setStatus('רמז: הסימון במשבצת האדומה לא נכון. קראו שוב את הרמזים על ' + S(s));
-                draw(); return;
-              }
-            }
-          }
-          // one step that follows from one clue (with what is already marked); else from all the clues together
-          // what a clue says in so many words ("דוד לא היה בגינה") is a weaker hint than what follows from it
-          function literal(c, ci) {
-            var cl = C.clues[ci];
-            return (cl.t === 'spN' && c.t === 'place' && !c.v && cl.s === c.s && cl.p === c.j) ||
-              (cl.t === 'spY' && c.t === 'place' && c.v && cl.s === c.s && cl.p === c.j) ||
-              (cl.t === 'siN' && c.t === 'item' && !c.v && cl.s === c.s && cl.i === c.j) ||
-              (cl.t === 'siY' && c.t === 'item' && c.v && cl.s === c.s && cl.i === c.j);
-          }
-          var firstLiteral = null;
-          for (var k = 0; k < C.clues.length; k++) {
-            var sure = sureCells(fitting([C.clues[k]]));
-            var deduced = sure.filter(function (c) { return !literal(c, k); });
-            if (deduced.length) { give(deduced[0], k); return; }
-            if (sure.length && !firstLiteral) firstLiteral = { c: sure[0], k: k };
-          }
-          var both = sureCells(fitting(C.clues));
-          if (both.length && !firstLiteral) { give(both[0], -1); return; }
-          if (firstLiteral) { give(firstLiteral.c, firstLiteral.k); return; }
-          ctx.setStatus('רמז: במחברת כבר יש כל מה שצריך. מי ' + (C.fact.t === 'place' ? 'היה ' + plc[C.fact.v].in : 'החזיק את ' + IT(C.fact.v)) + '?');
-        }
-        function give(c, ci) {
-          hints++;
-          tab = c.t; tip = { tab: c.t, s: c.s, j: c.j };
-          if (ci >= 0) clueEls[ci].classList.add('is-tip');
-          var what = c.t === 'place' ? (c.v ? was(c.s) + ' ' : 'לא ' + was(c.s) + ' ') + plc[c.j].in : (c.v ? held(c.s) + ' את ' : 'לא ' + held(c.s) + ' את ') + IT(c.j);
-          ctx.setStatus('רמז: ' + (ci >= 0 ? 'מהרמז המסומן' : 'משני רמזים יחד') + ' אפשר לדעת ש' + S(c.s) + ' ' + what + '. סמנו ' + (c.v ? '✓' : '✗') + ' במשבצת המסומנת');
-          draw();
-        }
-
-        /* ---------- the answer ---------- */
         function closeSheet() { if (sheet) sheet.remove(); sheet = null; }
-        function openAnswer() {
+        function open(s, kind) {
           if (done) return;
-          ctx.sound('tap');
-          closeSheet();
-          var list = C.q === 'who' ? ppl : C.q === 'item' ? its : plc;
+          ctx.sound('tap'); closeSheet();
+          var list = kind === 'place' ? plc : its, cur = kind === 'place' ? pl : it;
           sheet = el('div', { class: 'my-sheet', role: 'dialog' }, [
-            el('h3', null, QTEXT[C.q]),
-            el('div', { class: 'my-opts' }, list.map(function (x, i) {
-              return el('button', { class: 'my-opt', type: 'button', onclick: function () { answer(i); } }, [el('span', { class: 'e', 'aria-hidden': 'true' }, x.e), x.name]);
-            })),
-            el('button', { class: 'btn btn-quiet', type: 'button', onclick: closeSheet }, 'עוד לא, סגירה')
+            el('h3', null, kind === 'place' ? 'איפה ' + was(s) + ' ' + S(s) + '?' : 'מה ' + held(s) + ' ' + S(s) + '?'),
+            el('div', { class: 'my-opts' }, list.map(function (x, j) {
+              var who = cur.indexOf(j);
+              return el('button', { class: 'my-opt' + (cur[s] === j ? ' is-here' : ''), type: 'button', onclick: function () { set(s, kind, j); } },
+                [el('span', { class: 'e', 'aria-hidden': 'true' }, x.e), el('span', null, [x.name, who >= 0 && who !== s ? el('small', null, ' (' + S(who) + ')') : null])]);
+            }).concat(cur[s] >= 0 ? [el('button', { class: 'my-opt', type: 'button', onclick: function () { set(s, kind, -1); } }, 'עוד לא יודעים')] : [])),
+            el('button', { class: 'btn btn-quiet', type: 'button', onclick: function () { closeSheet(); } }, 'סגירה')
           ]);
           root.appendChild(sheet);
         }
-        function answer(i) {
-          closeSheet();
-          done = true; clearTip();
-          var ok = i === C.answer;
-          if (ok && hints <= 2) good++;
-          // the whole solution goes into the notebook
-          for (var s = 0; s < n; s++) for (var j = 0; j < n; j++) {
-            marks.place[s][j] = C.sol.pl[s] === j ? 2 : 1; auto.place[s][j] = 0;
-            if (C.items) { marks.item[s][j] = C.sol.it[s] === j ? 2 : 1; auto.item[s][j] = 0; }
-          }
-          tab = C.fact.t === 'item' && C.q !== 'place' ? 'item' : C.q === 'item' ? 'item' : 'place';
+        function snapshot() { past.push(JSON.stringify({ pl: pl, it: it })); }
+        // one place (and one thing) per suspect: choosing a taken one swaps it with that suspect
+        function set(s, kind, j) {
+          ctx.sound('tap'); snapshot(); closeSheet();
+          var cur = kind === 'place' ? pl : it;
+          var other = j >= 0 ? cur.indexOf(j) : -1;
+          if (other >= 0 && other !== s) cur[other] = cur[s];
+          cur[s] = j;
+          bad = {}; broken = -1; tipS = -1; tipClue = -1;
+          ctx.setStatus(cur.every(function (v) { return v >= 0; }) && (!C.items || (pl.concat(it)).every(function (v) { return v >= 0; })) ? 'כולם במקום? לחצו "בדיקה"' : 'איפה היה כל חשוד? לחצו על "איפה?"');
           draw();
-          var c = C.culprit;
-          var why = C.q === 'who'
-            ? S(c) + ' ' + (C.fact.t === 'place' ? was(c) + ' ' + plc[C.fact.v].in : held(c) + ' את ' + IT(C.fact.v)) + ', ולכן ' + (ppl[c].f ? 'היא' : 'הוא') + ' ' + (ppl[c].f ? 'עשתה' : 'עשה') + ' את זה'
-            : C.q === 'item' ? 'מי שהיה ' + plc[C.fact.v].in + ' ' + (ppl[c].f ? 'הייתה' : 'היה') + ' ' + S(c) + ', ' + (ppl[c].f ? 'והיא החזיקה' : 'והוא החזיק') + ' את ' + IT(C.sol.it[c])
-            : 'את ' + IT(C.fact.v) + ' ' + held(c) + ' ' + S(c) + ', ' + (ppl[c].f ? 'והיא הייתה ' : 'והוא היה ') + plc[C.sol.pl[c]].in;
-          ctx.setStatus((ok ? 'נכון! ' : 'לא בדיוק. ') + why + '.');
-          acts.hidden = true; // the case is closed: the continue button takes the place of the buttons
-          ctx.feedback(ok, ok ? (hints > 2 ? 'נכון, בעזרת רמזים' : 'פתרתם את התעלומה!') : 'הפתרון במחברת').then(function () {
-            return ok ? ctx.wait(2200) : ctx.next(round >= ROUNDS ? 'לסיכום' : 'לתעלומה הבאה');
-          }).then(nextRound);
+        }
+        function undo() { if (done || !past.length) return; ctx.sound('tap'); var p = JSON.parse(past.pop()); pl = p.pl; it = p.it; bad = {}; broken = -1; draw(); }
+        function clearAll() { if (done) return; ctx.sound('tap'); snapshot(); pl = pl.map(function () { return -1; }); it = it.map(function () { return -1; }); bad = {}; broken = -1; ctx.setStatus('הכרטיסים נוקו (אפשר "בטלו")'); draw(); }
+        function world() { return { pl: pl.slice(), it: C.items ? it.slice() : pl.slice() }; }
+        function check() {
+          if (done) return;
+          checks++;
+          var w = world();
+          var wrong = {}, any = false;
+          ppl.forEach(function (_, s) { if (pl[s] !== C.sol.pl[s] || (C.items && it[s] !== C.sol.it[s])) { wrong[s] = true; any = true; } });
+          if (any) {
+            // a clue the cards break, if there is one: that is where to look
+            broken = C.clues.findIndex(function (c) { return !holds(c, w); });
+            bad = wrong;
+            ctx.sound('bad');
+            ctx.setStatus('משהו לא מתאים. תקנו את הכרטיסים האדומים'); // the clue they break is marked in red too
+            draw(); return;
+          }
+          done = true; closeSheet();
+          var c = C.culprit, ok = checks <= 2 && hints <= 2;
+          if (ok) good++;
+          draw();
+          var why = C.fact.t === 'place' ? S(c) + ' ' + was(c) + ' ' + plc[C.fact.v].in : S(c) + ' ' + held(c) + ' את ' + IT(C.fact.v);
+          ctx.setStatus('פתרתם! ' + why + ', אז ' + S(c) + ' ' + (ppl[c].f ? 'עשתה' : 'עשה') + ' את זה 🕵️');
+          acts.hidden = true;
+          ctx.feedback(ok, ok ? 'פתרתם את התעלומה!' : 'פתרתם, בעזרת רמזים').then(function () { return ctx.wait(2600); }).then(nextRound);
+        }
+        /* a hint: a card that is wrong first; else the clue that settles one card, and whose card it is */
+        function hint() {
+          if (done) return;
+          hints++; closeSheet(); bad = {}; broken = -1;
+          for (var s = 0; s < n; s++) {
+            if ((pl[s] >= 0 && pl[s] !== C.sol.pl[s]) || (C.items && it[s] >= 0 && it[s] !== C.sol.it[s])) {
+              tipS = s; tipClue = -1;
+              ctx.setStatus('רמז: משהו בכרטיס של ' + S(s) + ' לא נכון. קראו שוב את הרמזים עליו'); draw(); return;
+            }
+          }
+          // the worlds that fit the right cards so far (and some clues)
+          function fitting(clues) {
+            return C.worlds.filter(function (w) {
+              for (var q = 0; q < n; q++) { if (pl[q] >= 0 && w.pl[q] !== pl[q]) return false; if (C.items && it[q] >= 0 && w.it[q] !== it[q]) return false; }
+              return clues.every(function (c) { return holds(c, w); });
+            });
+          }
+          function settled(ws) { // an empty slot that every fitting world agrees on
+            for (var q = 0; q < n; q++) {
+              if (pl[q] < 0 && ws.length && ws.every(function (w) { return w.pl[q] === ws[0].pl[q]; })) return { s: q, kind: 'place' };
+              if (C.items && it[q] < 0 && ws.length && ws.every(function (w) { return w.it[q] === ws[0].it[q]; })) return { s: q, kind: 'item' };
+            }
+            return null;
+          }
+          for (var k = 0; k < C.clues.length; k++) {
+            var one = settled(fitting([C.clues[k]]));
+            if (one) {
+              tipS = one.s; tipClue = k;
+              ctx.setStatus('רמז: מהרמז המסומן אפשר לדעת ' + (one.kind === 'place' ? 'איפה ' + was(one.s) : 'מה ' + held(one.s)) + ' ' + S(one.s) + '. נסו!');
+              draw(); return;
+            }
+          }
+          var all = settled(fitting(C.clues));
+          if (all) {
+            tipS = all.s; tipClue = -1;
+            ctx.setStatus('רמז: אם מחברים כמה רמזים, אפשר לדעת ' + (all.kind === 'place' ? 'איפה ' + was(all.s) : 'מה ' + held(all.s)) + ' ' + S(all.s) + '. נסו מה מתאים לכולם');
+            draw(); return;
+          }
+          ctx.setStatus('רמז: הכול כבר כתוב. לחצו "בדיקה"');
         }
       }
 
